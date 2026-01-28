@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#111827" />
+    <title>Static Personal Knowledge Management System</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- MathJax Configuration for LaTeX Rendering -->
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [
+            ["\\(", "\\)"],
+            ["$", "$"]
+          ],
+          displayMath: [
+            ["\\[", "\\]"],
+            ["$$", "$$"]
+          ]
+        },
+        options: {
+          skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"]
+        }
+      };
+    </script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+
+    <!-- Main Application Script -->
+    <script type="module" src="./javascript/app.js"></script>
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <!-- Header Section -->
+      <header class="app-header">
+        <div class="header-bar">
+          <!-- Sidebar Toggle Button -->
+          <button
+            id="sidebarToggle"
+            class="sidebar-toggle"
+            type="button"
+            aria-label="Toggle navigation"
+            aria-expanded="false"
+          >
+            <span class="sidebar-toggle-icon"></span>
+            <span class="sidebar-toggle-label">Menu</span>
+          </button>
+
+          <!-- Logo and Banner -->
+          <div class="header-center">
+            <div class="header-logo-wrap">
+              <img
+                src="./assets/Logo.png"
+                alt="Logo"
+                class="header-logo-img"
+              />
+            </div>
+            <div class="header-banner-wrap">
+              <img
+                src="./assets/Banner.png"
+                alt="Banner"
+                class="header-banner-img"
+              />
+            </div>
+          </div>
+
+          <!-- Theme Toggle Button -->
+          <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+            aria-label="Toggle theme"
+          >
+            <span id="themeIcon">☾</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Sidebar Navigation -->
+      <aside
+        id="sidebar"
+        class="sidebar"
+        data-open="false"
+        aria-label="Main navigation"
+      >
+        <!-- Search Bar Section -->
+        <div class="sidebar-search">
+          <div class="search-input-wrapper">
+            <span class="search-icon">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="Search (Ctrl+K)"
+              aria-label="Search any pages"
+              autocomplete="off"
+            />
+            <button
+              id="searchClear"
+              class="search-clear"
+              type="button"
+              aria-label="Clear search"
+              style="display: none;"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div id="searchResults" class="search-results" style="display: none;"></div>
+        </div>
+
+        <!-- Breadcrumb Navigation -->
+        <div class="sidebar-header">
+          <div class="sidebar-breadcrumb" id="sidebarBreadcrumb">Home</div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav id="sidebarNav" class="sidebar-nav"></nav>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+          <div>Footer</div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <div class="page-root">
+          <section id="contentCard" class="card preload"></section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

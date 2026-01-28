@@ -1,0 +1,9 @@
+{
+  "name": "folder-tree-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:tree": "node scripts/generate-tree.mjs"
+  }
+}
