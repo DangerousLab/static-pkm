@@ -287,61 +287,66 @@ body {
 }
 
 /* Mobile Landscape Mode - Ultra Compact Header */
-  @media (max-width: 840px) and (orientation: landscape) {
-    .app-header {
-      padding: 0 12px;
-      min-height: 32px;
-      line-height: 0;
-    }
-
-    /* Hide logo in landscape */
-    .header-logo-wrap {
-      display: none;
-    }
-
-    /* Show only banner with top 66% visible, flush to bottom */
-    .header-banner-wrap {
-      height: 32px;
-      overflow: hidden;
-      gap: 0;
-      display: block;
-      padding: 0;
-      margin: 0;
-      line-height: 0;
-      font-size: 0;
-    }
-
-    .header-banner-img {
-      display: block;
-      height: 48px;
-      width: auto;
-      max-width: 100%;
-      margin: 0 auto;
-      vertical-align: bottom;
-      line-height: 0;
-    }
-
-    /* Hide tagline */
-    .header-tagline {
-      display: none;
-    }
-
-    /* Adjust sidebar position */
-    .sidebar {
-      top: 32px;
-      height: calc(100vh - 32px);
-    }
-
-    /* Smaller theme toggle */
-    .theme-toggle {
-      width: 28px;
-      height: 28px;
-    }
-
-    .theme-toggle span {
-      font-size: 0.85rem;
-    }
+@media (max-height: 600px) and (orientation: landscape) {
+  .app-header {
+    padding: 0 12px;
+    min-height: 32px;
+    display: flex;
+    align-items: stretch;
   }
+
+  .header-logo-wrap {
+    display: none;
+  }
+
+  .header-center {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-banner-wrap {
+    height: 40px;
+    overflow: hidden;
+    gap: 0;
+    display: block;
+    padding: 0;
+    margin: 0;
+    line-height: 0;
+    font-size: 0;
+    text-align: center;
+  }
+
+  .header-banner-img {
+    display: inline-block;
+    height: 60px;
+    width: auto;  /* ← Auto calculates from aspect ratio */
+    max-width: none;
+    max-height: none;
+    margin: 0 auto;
+    vertical-align: bottom;
+  }
+
+  .header-tagline {
+    display: none;
+  }
+
+  .sidebar {
+    top: 32px;
+    height: calc(100vh - 32px);
+  }
+
+  .theme-toggle {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    flex-shrink: 0;
+  }
+
+  .theme-toggle span {
+    font-size: 0.85rem !important;
+  }
+}
 
 /* Theme Toggle Button */
 .theme-toggle {
