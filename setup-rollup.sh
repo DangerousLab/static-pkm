@@ -500,7 +500,6 @@ update_gitignore() {
 
 # Rollup Build System
 node_modules/
-javascript/app.min.js.map
 *.log
 
 # OS Files
