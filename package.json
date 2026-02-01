@@ -1,9 +1,29 @@
 {
-  "name": "folder-tree-generator",
+  "name": "unstablon-pkm",
   "version": "1.0.0",
+  "description": "Unstablon - Science-focused Static Personal Knowledge Management System",
   "private": true,
   "type": "module",
   "scripts": {
-    "build:tree": "node scripts/generate-tree.mjs"
+    "build": "npm run build:tree && npm run build:js",
+    "build:js": "rollup -c",
+    "build:tree": "node scripts/generate-tree.mjs",
+    "test": "npm run build && node scripts/test-dual-server.mjs",
+    "dev": "node scripts/dev-server.mjs",
+    "preview": "node scripts/prod-server.mjs",
+    "watch": "node scripts/watch-and-build.mjs",
+    "clean": "rm -f javascript/app.min.js.map"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.9.6"
+  },
+  "dependencies": {
+    "lz-string": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }

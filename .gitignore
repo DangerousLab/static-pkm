@@ -1,2 +1,16 @@
 /docs
 .DS_Store
+# Rollup Build System
+node_modules/
+javascript/app.min.js.map
+*.log
+
+# OS Files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backup-*/
