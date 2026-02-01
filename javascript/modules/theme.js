@@ -1,6 +1,6 @@
 /**
  * Theme management module
- * Handles dark/light theme toggling
+ * Handles dark/light theme toggling and asset switching
  */
 
 import { dom, state, themeController } from '../core/state.js';
@@ -15,6 +15,26 @@ export function setThemeMetaColor(theme) {
 }
 
 /**
+ * Update logo and banner based on theme
+ */
+export function updateThemeAssets(theme) {
+  const headerLogo = document.getElementById('headerLogo');
+  const headerBanner = document.getElementById('headerBanner');
+  
+  if (headerLogo) {
+    headerLogo.src = theme === 'dark' 
+      ? './assets/logo-dark.png' 
+      : './assets/logo-light.png';
+  }
+  
+  if (headerBanner) {
+    headerBanner.src = theme === 'dark' 
+      ? './assets/banner-dark.png' 
+      : './assets/banner-light.png';
+  }
+}
+
+/**
  * Toggle between dark and light themes
  */
 export function toggleTheme() {
@@ -23,6 +43,7 @@ export function toggleTheme() {
   dom.htmlEl.setAttribute("data-theme", next);
   dom.themeIcon.textContent = next === "dark" ? "☾" : "☼";
   setThemeMetaColor(next);
+  updateThemeAssets(next);
 
   const event = new CustomEvent("themechange", { detail: { theme: next } });
   document.dispatchEvent(event);
@@ -41,4 +62,5 @@ export function initTheme() {
   const initialTheme = dom.htmlEl.getAttribute("data-theme") || "dark";
   dom.themeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
   setThemeMetaColor(initialTheme);
+  updateThemeAssets(initialTheme);
 }
