@@ -9,8 +9,8 @@
     // and makes alignment consistent when multiple calculators are placed
     // inside a shared layout.
     root.innerHTML = `
-      <header class="header">
-        <div class="title-row">
+      <header class="content-header">
+        <div class="content-title-row">
           <h1>Nitric Acid Stoichiometry Calculator</h1>
         </div>
         <div class="reaction-row">
