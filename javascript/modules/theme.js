@@ -43,33 +43,62 @@ export function setThemeMetaColor(theme) {
 }
 
 /**
- * Update logo and banner based on theme with smooth transition
+ * Update logo and banner based on theme with slide-up animation
  */
 export function updateThemeAssets(theme) {
   const headerLogo = document.getElementById('headerLogo');
   const headerBanner = document.getElementById('headerBanner');
+  const headerTagline = document.querySelector('.header-tagline');
   
   if (headerLogo && headerBanner) {
-    // Fade out
-    headerLogo.style.opacity = '0';
-    headerBanner.style.opacity = '0';
+    // Step 1: Remove existing animations by removing class
+    headerLogo.classList.remove('animate');
+    headerBanner.classList.remove('animate');
+    if (headerTagline) {
+      headerTagline.classList.remove('animate');
+    }
     
-    // Wait for fade out, then switch images
-    setTimeout(() => {
-      headerLogo.src = theme === 'dark' 
-        ? './assets/logo-dark.png' 
-        : './assets/logo-light.png';
+    // Step 2: Force reflow to ensure animation can restart
+    void headerLogo.offsetWidth;
+    void headerBanner.offsetWidth;
+    if (headerTagline) {
+      void headerTagline.offsetWidth;
+    }
+    
+    // Step 3: Temporarily disable animation on elements
+    headerLogo.style.animation = 'none';
+    headerBanner.style.animation = 'none';
+    if (headerTagline) {
+      headerTagline.style.animation = 'none';
+    }
+    
+    // Step 4: Switch source immediately
+    headerLogo.src = theme === 'dark' 
+      ? './assets/logo-dark.png' 
+      : './assets/logo-light.png';
+    
+    headerBanner.src = theme === 'dark' 
+      ? './assets/banner-dark.png' 
+      : './assets/banner-light.png';
+    
+    // Step 5: Re-enable animation and add animate class in next frame
+    requestAnimationFrame(() => {
+      // Remove inline style to restore CSS animation
+      headerLogo.style.animation = '';
+      headerBanner.style.animation = '';
+      if (headerTagline) {
+        headerTagline.style.animation = '';
+      }
       
-      headerBanner.src = theme === 'dark' 
-        ? './assets/banner-dark.png' 
-        : './assets/banner-light.png';
-      
-      // Fade back in
+      // Add animate class to trigger animation
       requestAnimationFrame(() => {
-        headerLogo.style.opacity = '1';
-        headerBanner.style.opacity = '1';
+        headerLogo.classList.add('animate');
+        headerBanner.classList.add('animate');
+        if (headerTagline) {
+          headerTagline.classList.add('animate');
+        }
       });
-    }, 200); // Match CSS transition duration
+    });
   }
 }
 
@@ -105,11 +134,6 @@ export function initTheme() {
   dom.themeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
   setThemeMetaColor(initialTheme);
   
-  // Set initial images without transition
-  const headerLogo = document.getElementById('headerLogo');
-  const headerBanner = document.getElementById('headerBanner');
-  if (headerLogo && headerBanner) {
-    headerLogo.style.opacity = '1';
-    headerBanner.style.opacity = '1';
-  }
+  // Initial load already has animation via CSS
+  // No need to do anything special
 }

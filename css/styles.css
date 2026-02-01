@@ -61,6 +61,57 @@ body {
   min-height: 100vh;
 }
 
+/* ==================== SLIDE-UP FADE ANIMATION ==================== */
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Initial load animations with staggered delays (uniform 75ms intervals) */
+.header-logo-img {
+  animation: slideUpFade 0.4s ease-out;
+  animation-delay: 0s;
+  animation-fill-mode: both;
+}
+
+.header-banner-img {
+  animation: slideUpFade 0.4s ease-out;
+  animation-delay: 0.075s;
+  animation-fill-mode: both;
+}
+
+.header-tagline {
+  animation: slideUpFade 0.4s ease-out;
+  animation-delay: 0.15s;
+  animation-fill-mode: both;
+}
+
+/* Theme toggle animations (same timing as initial load) */
+.header-logo-img.animate {
+  animation: slideUpFade 0.4s ease-out;
+  animation-delay: 0s;
+  animation-fill-mode: both;
+}
+
+.header-banner-img.animate {
+  animation: slideUpFade 0.4s ease-out;
+  animation-delay: 0.075s;
+  animation-fill-mode: both;
+}
+
+.header-tagline.animate {
+  animation: slideUpFade 0.4s ease-out;
+  animation-delay: 0.15s;
+  animation-fill-mode: both;
+}
+
 /* ==================== HEADER SECTION ==================== */
 
 .app-header {
@@ -204,12 +255,6 @@ body {
   display: block;
 }
 
-.header-logo-img,
-.header-banner-img {
-  transition: opacity 0.2s ease;
-}
-
-
 .header-tagline {
   font-family: 'Uni Sans', sans-serif;
   font-size: 0.7rem;
@@ -240,6 +285,63 @@ body {
     display: none;
   }
 }
+
+/* Mobile Landscape Mode - Ultra Compact Header */
+  @media (max-width: 840px) and (orientation: landscape) {
+    .app-header {
+      padding: 0 12px;
+      min-height: 32px;
+      line-height: 0;
+    }
+
+    /* Hide logo in landscape */
+    .header-logo-wrap {
+      display: none;
+    }
+
+    /* Show only banner with top 66% visible, flush to bottom */
+    .header-banner-wrap {
+      height: 32px;
+      overflow: hidden;
+      gap: 0;
+      display: block;
+      padding: 0;
+      margin: 0;
+      line-height: 0;
+      font-size: 0;
+    }
+
+    .header-banner-img {
+      display: block;
+      height: 48px;
+      width: auto;
+      max-width: 100%;
+      margin: 0 auto;
+      vertical-align: bottom;
+      line-height: 0;
+    }
+
+    /* Hide tagline */
+    .header-tagline {
+      display: none;
+    }
+
+    /* Adjust sidebar position */
+    .sidebar {
+      top: 32px;
+      height: calc(100vh - 32px);
+    }
+
+    /* Smaller theme toggle */
+    .theme-toggle {
+      width: 28px;
+      height: 28px;
+    }
+
+    .theme-toggle span {
+      font-size: 0.85rem;
+    }
+  }
 
 /* Theme Toggle Button */
 .theme-toggle {
@@ -642,26 +744,16 @@ body {
     0 0 0 1px rgba(148, 163, 184, 0.3);
 }
 
+/* Card animation using slideUpFade keyframes */
 .card.preload {
+  animation: none;
   opacity: 0;
+  transform: translateY(12px);
 }
 
 .card.loaded {
-  opacity: 1;
-  transition: opacity 0.5s ease;
-}
-
-@media (min-width: 841px) {
-  .card.preload {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-
-  .card.loaded {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
+  animation: slideUpFade 0.4s ease-out 0s;
+  animation-fill-mode: both;
 }
 
 /* ==================== CONTENT STYLES (modules, pages, documents) ==================== */
