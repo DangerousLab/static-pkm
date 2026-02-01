@@ -1103,3 +1103,70 @@ body {
     font-size: 1.2rem;
   }
 }
+
+/* ============================================
+   PORTRAIT MOBILE MODE - MAXIMIZE HORIZONTAL SPACE
+   ============================================ */
+@media (max-width: 600px) {
+  /* Remove horizontal padding only from main content */
+  .main-content {
+    padding-top: 0.5rem; /* Keep original top padding */
+    padding-bottom: 0.5rem; /* Keep original bottom padding */
+    padding-left: 0; /* Remove left */
+    padding-right: 0; /* Remove right */
+  }
+
+  /* Stack Mode: Minimize horizontal spacing only */
+  .story-river {
+    padding-top: 2rem; /* Preserve original vertical padding */
+    padding-bottom: 2rem;
+    padding-left: 0.25rem; /* Minimal horizontal */
+    padding-right: 0.25rem;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* Cards: Minimal horizontal margins only */
+  .card {
+    margin-top: 0.5rem; /* Keep original vertical spacing */
+    margin-bottom: 0.5rem;
+    margin-left: 0.25rem; /* Just 4px sides */
+    margin-right: 0.25rem;
+    /* border-radius unchanged - consistent across devices */
+  }
+
+  /* AGGRESSIVE: Reduce ALL card inner padding */
+  .card-header {
+    padding: 0.3rem 0.4rem; /* 4.8px / 6.4px */
+  }
+
+  .card-body {
+    padding: 0.4rem; /* 6.4px all around */
+  }
+
+  .card-footer {
+    padding: 0.3rem 0.4rem; /* 4.8px / 6.4px */
+  }
+
+  .card-body p,
+  .card-body ul,
+  .card-body ol {
+    padding: 0.1rem; /* 1.6px */
+  }
+
+  /* Canvas Mode: Use nearly full viewport width */
+  .canvas-view .card {
+    min-width: calc(100vw - 0.5rem);
+  }
+
+  /* Tighter sidebar horizontal padding only */
+  .sidebar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .sidebar-section {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
