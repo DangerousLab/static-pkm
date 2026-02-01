@@ -9,6 +9,12 @@
     <meta name="theme-color" content="#111827" />
     <title>Unstablon</title>
 
+    <!-- Preload Theme Assets -->
+    <link rel="preload" as="image" href="./assets/logo-dark.png" />
+    <link rel="preload" as="image" href="./assets/logo-light.png" />
+    <link rel="preload" as="image" href="./assets/banner-dark.png" />
+    <link rel="preload" as="image" href="./assets/banner-light.png" />
+
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./css/styles.css" />
     <link
@@ -73,6 +79,7 @@
                 src="./assets/logo-dark.png"
                 alt="Unstablon Logo"
                 class="header-logo-img"
+                loading="eager"
               />
             </div>
             <div class="header-banner-wrap">
@@ -81,6 +88,7 @@
                 src="./assets/banner-dark.png"
                 alt="Unstablon"
                 class="header-banner-img"
+                loading="eager"
               />
               <p class="header-tagline">A static, modular PKM for experimental scientists</p>
             </div>

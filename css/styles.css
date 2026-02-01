@@ -204,6 +204,12 @@ body {
   display: block;
 }
 
+.header-logo-img,
+.header-banner-img {
+  transition: opacity 0.2s ease;
+}
+
+
 .header-tagline {
   font-family: 'Uni Sans', sans-serif;
   font-size: 0.7rem;
