@@ -10,7 +10,7 @@
     
     <!-- PWA support (no auto-hide bars) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     
     <title>Unstablon</title>
@@ -61,41 +61,41 @@
   </head>
 
   <body>
-    <div class="app-shell">
-      <!-- Mobile Landscape Left Bar (44px vertical sidebar) -->
-      <div class="landscape-leftbar">
-        <!-- Toggle button at top -->
-        <button
-          id="landscapeToggle"
-          class="landscape-leftbar-toggle sidebar-toggle"
-          type="button"
-          aria-label="Toggle navigation"
-          aria-expanded="false"
-        >
-          <span class="sidebar-toggle-icon"></span>
-        </button>
+    <!-- Mobile Landscape Left Bar (44px vertical sidebar) - MOVED OUTSIDE app-shell -->
+    <div class="landscape-leftbar">
+      <!-- Toggle button at top -->
+      <button
+        id="landscapeToggle"
+        class="landscape-leftbar-toggle sidebar-toggle"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+      >
+        <span class="sidebar-toggle-icon"></span>
+      </button>
 
-        <!-- Logo in middle -->
-        <div class="landscape-leftbar-logo">
-          <img
-            id="landscapeLogo"
-            src="./assets/logo-dark.png"
-            alt="Logo"
-            loading="eager"
-          />
-        </div>
-
-        <!-- Theme toggle at bottom -->
-        <button
-          id="landscapeThemeToggle"
-          class="theme-toggle"
-          type="button"
-          aria-label="Toggle theme"
-        >
-          <span id="landscapeThemeIcon">☾</span>
-        </button>
+      <!-- Logo in middle -->
+      <div class="landscape-leftbar-logo">
+        <img
+          id="landscapeLogo"
+          src="./assets/logo-dark.png"
+          alt="Logo"
+          loading="eager"
+        />
       </div>
 
+      <!-- Theme toggle at bottom -->
+      <button
+        id="landscapeThemeToggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="Toggle theme"
+      >
+        <span id="landscapeThemeIcon">☾</span>
+      </button>
+    </div>
+
+    <div class="app-shell">
       <!-- Header Section -->
       <header class="app-header">
         <div class="header-bar">

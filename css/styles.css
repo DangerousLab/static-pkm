@@ -1,13 +1,8 @@
 /* ==================== CSS VARIABLES ==================== */
 :root {
-  /* Safe area insets for notched devices */
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-right: env(safe-area-inset-right, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-left: env(safe-area-inset-left, 0px);
-  
   /* Existing variables... */
   --bg: #3c3c3c;
+  --bg-card: #303030;
   /* ... rest of your variables ... */
 }
 
@@ -331,11 +326,10 @@ body {
 /* ==================== MOBILE LANDSCAPE LEFT BAR ==================== */
 
 .landscape-leftbar {
-  display: none; /* Hidden by default, shown only in landscape mode */
+  display: none;
 }
 
 @media (max-height: 600px) and (orientation: landscape) {
-  /* Prevent body scrolling and set fixed dimensions */
   html, body {
     overflow: hidden;
     width: 100vw;
@@ -344,24 +338,20 @@ body {
     padding: 0;
   }
 
-  /* App shell takes full viewport */
   .app-shell {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
     position: relative;
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* Left bar - positioned at LEFT EDGE (safe area starts here) */
   .landscape-leftbar {
     position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: env(safe-area-inset-left, 0px);
+    top: 0;
+    left: 0;
     width: var(--landscape-leftbar-width);
-    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: 100vh;
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -377,7 +367,6 @@ body {
     border-right-color: rgba(148, 163, 184, 0.6);
   }
 
-  /* Left bar toggle button at TOP */
   .landscape-leftbar-toggle {
     width: 44px;
     height: 44px;
@@ -392,7 +381,6 @@ body {
     flex-shrink: 0;
   }
 
-  /* Left bar logo in MIDDLE with animation */
   .landscape-leftbar-logo {
     flex: 1;
     display: flex;
@@ -412,14 +400,12 @@ body {
     animation-fill-mode: both;
   }
 
-  /* Landscape logo theme toggle animation */
   .landscape-leftbar-logo img.animate {
     animation: slideUpFade 0.4s ease-out;
     animation-delay: 0s;
     animation-fill-mode: both;
   }
 
-  /* Left bar theme toggle at BOTTOM */
   .landscape-leftbar .theme-toggle {
     width: 32px;
     height: 32px;
@@ -432,67 +418,36 @@ body {
     font-size: 0.9rem;
   }
 
-  /* Hide standard header in landscape mode */
   .app-header {
     display: none !important;
   }
 
-  /* Sidebar backdrop - covers the hidden sidebar area in webapp mode */
-  /* Uses adjacent sibling to create backdrop AFTER sidebar element */
-  .landscape-leftbar::after {
-    content: '';
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px));
-    width: 80vw; /* Same as sidebar width */
-    max-width: 360px; /* Same as sidebar max-width */
-    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-    background: var(--bg);
-    z-index: 19; /* Below sidebar (20) but above main content */
-    pointer-events: none;
-    opacity: 0; /* Hidden by default */
-    transition: opacity 0.25s ease;
-  }
-
-  :root[data-theme="light"] .landscape-leftbar::after {
-    background: #f9fafb;
-  }
-
-  /* Show backdrop only in standalone mode when sidebar is closed */
-  @media (display-mode: standalone) {
-    .sidebar[data-open="false"] ~ * .landscape-leftbar::after,
-    body:has(.sidebar[data-open="false"]) .landscape-leftbar::after {
-      opacity: 1;
-    }
-  }
-
-  /* Sidebar positioning */
+  /* Sidebar - starts after left bar */
   .sidebar {
-    top: env(safe-area-inset-top, 0px) !important;
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
-    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: var(--landscape-leftbar-width) !important;
+    height: 100vh !important;
     width: 80vw !important;
     max-width: 360px !important;
     transform: translateX(-100%) !important;
-    z-index: 20; /* Above backdrop */
-    overflow: hidden; /* CRITICAL: Hide content when slid off screen */
+    z-index: 20 !important;
   }
 
   .sidebar[data-open="true"] {
     transform: translateX(0) !important;
   }
 
-  /* Main content - fills remaining space after left bar */
-  .app-shell .main-content {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
-    right: 0 !important; /* Extend to screen edge, padding handles safe area */
-    bottom: env(safe-area-inset-bottom, 0px);
-    width: auto !important; /* Let it fill available space */
+  /* Main content - fills remaining space */
+  .main-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: var(--landscape-leftbar-width) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
     margin: 0 !important;
     padding: 4px 8px !important;
-    padding-right: calc(8px + env(safe-area-inset-right, 0px)) !important; /* Add safe area to padding */
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -506,7 +461,7 @@ body {
     margin-top: 4px !important;
     padding: 10px 16px 18px !important;
     border-radius: 14px !important;
-    max-width: 100%; /* Allow card to expand */
+    max-width: 100%;
   }
 
   .card .content-header,
