@@ -94,6 +94,8 @@ export function getFactoryForModule(node) {
 
 /**
  * Load a module (interactive tool/calculator)
+ * Note: Shared CSS patterns loaded via modules.css in index.html
+ * Module-specific styles are inlined in each module's JS file
  */
 export function loadModule(node, done) {
   console.log('[ContentLoader] Loading module:', node.id);

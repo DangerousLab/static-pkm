@@ -1,0 +1,299 @@
+/**
+ * Shared Module CSS Patterns
+ * File: css/modules.css
+ * Version: 1.0
+ * Last Updated: 2026-02-02
+ * 
+ * This file contains reusable CSS patterns used by multiple modules.
+ * Only add patterns that are used by 3+ modules OR likely useful for future modules.
+ * 
+ * Naming Convention: Use 'shared-' prefix for all classes
+ */
+
+/* ============================================
+   MODULE HEADER PATTERN
+   Used by: nitricCalculator, calcA, calcB, calcC, calcD, calcE
+   Purpose: Standard module header with title and optional subtitle
+   ============================================ */
+
+.shared-module-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.shared-module-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shared-module-title-row h1 {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+  white-space: normal;
+  line-height: 1.2;
+  color: var(--text-main);
+}
+
+.shared-module-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  max-width: 660px;
+}
+
+.shared-module-subtitle span {
+  display: block;
+}
+
+/* ============================================
+   MODULE PANEL PATTERN
+   Used by: nitricCalculator, calcA, calcB, calcC, calcD, calcE
+   Purpose: Standard content panel container
+   ============================================ */
+
+.shared-module-panel {
+  border-radius: 14px;
+  border: 1px solid rgba(160, 160, 160, 0.55);
+  background: var(--bg-panel);
+  padding: 16px 16px 18px;
+  margin-bottom: 12px;
+}
+
+:root[data-theme="light"] .shared-module-panel {
+  border-color: rgba(148, 163, 184, 0.7);
+  background: var(--bg-panel);
+}
+
+.shared-module-panel-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ============================================
+   FORM ELEMENTS PATTERN
+   Used by: nitricCalculator, future form-based modules
+   Purpose: Standard form layout and input fields
+   ============================================ */
+
+.shared-form-row {
+  margin-bottom: 10px;
+}
+
+.shared-form-row label {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.shared-field {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(180, 180, 180, 0.65);
+  background: var(--bg-input, var(--bg-panel));
+  color: var(--text-main);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+:root[data-theme="light"] .shared-field {
+  background: #ffffff;
+  border-color: rgba(148, 163, 184, 0.8);
+}
+
+.shared-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+  background: var(--bg-panel);
+}
+
+:root[data-theme="light"] .shared-field:focus {
+  background: #f9fafb;
+}
+
+.shared-field[readonly] {
+  background: var(--bg-disabled, rgba(128, 128, 128, 0.2));
+  cursor: default;
+  opacity: 0.7;
+}
+
+:root[data-theme="light"] .shared-field[readonly] {
+  background: #f3f4f6;
+}
+
+.shared-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ============================================
+   BUTTON PATTERN (Optional - if standardized)
+   Used by: Future modules with standard buttons
+   Purpose: Consistent button styling
+   ============================================ */
+
+.shared-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.shared-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.shared-btn:active {
+  transform: scale(0.98);
+}
+
+.shared-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shared-btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.shared-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   Applied to all shared patterns
+   ============================================ */
+
+/* Tablet and small desktop */
+@media (max-width: 768px) {
+  .shared-module-header {
+    gap: 5px;
+    margin-bottom: 14px;
+  }
+
+  .shared-module-title-row h1 {
+    font-size: 1.4rem;
+  }
+
+  .shared-module-panel {
+    padding: 14px 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+  }
+
+  .shared-field {
+    padding: 6px 9px;
+    font-size: 0.88rem;
+  }
+
+  .shared-form-row {
+    margin-bottom: 9px;
+  }
+
+  .shared-form-row label {
+    font-size: 0.84rem;
+    margin-bottom: 2px;
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 600px) and (orientation: portrait) {
+  .shared-module-header {
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .shared-module-title-row h1 {
+    font-size: 1.3rem;
+  }
+
+  .shared-module-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .shared-module-panel {
+    padding: 12px 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+
+  .shared-module-panel-title {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .shared-field {
+    padding: 6px 8px;
+    font-size: 0.88rem;
+  }
+
+  .shared-form-row {
+    margin-bottom: 8px;
+  }
+
+  .shared-form-row label {
+    font-size: 0.82rem;
+    margin-bottom: 2px;
+  }
+
+  .shared-hint {
+    font-size: 0.76rem;
+  }
+
+  .shared-btn {
+    padding: 7px 14px;
+    font-size: 0.88rem;
+  }
+}
+
+/* Mobile landscape */
+@media (max-width: 900px) and (orientation: landscape) {
+  .shared-module-header {
+    gap: 5px;
+    margin-bottom: 14px;
+  }
+
+  .shared-module-title-row h1 {
+    font-size: 1.35rem;
+  }
+
+  .shared-module-panel {
+    padding: 13px 11px 15px;
+  }
+}
+
+/**
+ * END OF SHARED MODULE PATTERNS
+ * 
+ * IMPORTANT NOTES:
+ * - Only add patterns used by 3+ modules
+ * - Always use CSS variables for colors
+ * - Include both light/dark theme support
+ * - Add responsive breakpoints
+ * - Use 'shared-' prefix for all classes
+ * - Document which modules use each pattern
+ */

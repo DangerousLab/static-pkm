@@ -1,4 +1,4 @@
-// nitricCalculator.js
+// nitricCalculator.js v2.0 - Updated for shared CSS patterns
 (function (global) {
   function createNitricCalculator(options) {
     const root = options.root;
@@ -6,33 +6,9 @@
 
     console.log('[NitricCalculator] Initializing');
 
-    // ==================== INLINE STYLES ====================
+    // ==================== INLINE STYLES (UNIQUE TO NITRIC ONLY) ====================
     const styles = `
-      /* Content Header */
-      .nitric-content-header {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 18px;
-      }
-
-      .nitric-content-title-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .nitric-content-title-row h1 {
-        font-size: 1.5rem;
-        font-weight: 650;
-        letter-spacing: -0.02em;
-        margin: 0;
-        white-space: normal;
-        line-height: 1.2;
-      }
-
-      /* Reaction and Pills */
+      /* Reaction and Pills - UNIQUE TO NITRIC */
       .nitric-reaction-row {
         display: flex;
         justify-content: flex-start;
@@ -64,17 +40,7 @@
         white-space: nowrap;
       }
 
-      .nitric-subtitle {
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        max-width: 660px;
-      }
-
-      .nitric-subtitle span {
-        display: block;
-      }
-
-      /* Layout Grids */
+      /* Layout Grids - UNIQUE TO NITRIC */
       .nitric-layout {
         display: grid;
         grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
@@ -85,27 +51,6 @@
         .nitric-layout {
           grid-template-columns: minmax(0, 1fr);
         }
-      }
-
-      /* Panels and Subpanels */
-      .nitric-panel {
-        border-radius: 14px;
-        border: 1px solid rgba(160, 160, 160, 0.55);
-        background: var(--bg-panel);
-        padding: 16px 16px 18px;
-      }
-
-      :root[data-theme="light"] .nitric-panel {
-        border-color: rgba(148, 163, 184, 0.7);
-      }
-
-      .nitric-panel-title {
-        font-size: 0.9rem;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        margin-bottom: 8px;
       }
 
       .nitric-two-cols {
@@ -120,6 +65,7 @@
         }
       }
 
+      /* Subpanels - UNIQUE TO NITRIC */
       .nitric-subpanel {
         border-radius: 10px;
         border: 1px solid rgba(200, 200, 200, 0.35);
@@ -141,62 +87,7 @@
         margin-bottom: 6px;
       }
 
-      /* Form Elements */
-      .nitric-form-row {
-        margin-bottom: 10px;
-      }
-
-      .nitric-form-row label {
-        font-size: 0.86rem;
-        color: var(--text-muted);
-        display: block;
-        margin-bottom: 3px;
-      }
-
-      .nitric-field {
-        width: 100%;
-        padding: 7px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(180, 180, 180, 0.65);
-        background: #1f1f1f;
-        color: var(--text-main);
-        font-size: 0.9rem;
-        outline: none;
-        transition: border-color 0.16s ease, box-shadow 0.16s ease,
-          background 0.16s ease;
-      }
-
-      :root[data-theme="light"] .nitric-field {
-        background: #ffffff;
-        border-color: rgba(148, 163, 184, 0.8);
-      }
-
-      .nitric-field:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px var(--accent-soft);
-        background: #262626;
-      }
-
-      :root[data-theme="light"] .nitric-field:focus {
-        background: #f9fafb;
-      }
-
-      .nitric-field[readonly] {
-        background: #2c2c2c;
-        cursor: default;
-      }
-
-      :root[data-theme="light"] .nitric-field[readonly] {
-        background: #f3f4f6;
-      }
-
-      .nitric-hint {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-        margin-top: 2px;
-      }
-
-      /* Math Blocks */
+      /* Math Blocks - UNIQUE TO NITRIC */
       .nitric-math-block {
         position: relative;
         background: #262626;
@@ -223,15 +114,6 @@
 
       /* Responsive - Mobile Portrait */
       @media (max-width: 600px) and (orientation: portrait) {
-        .nitric-content-header {
-          gap: 4px;
-          margin-bottom: 12px;
-        }
-
-        .nitric-content-title-row h1 {
-          font-size: 1.3rem;
-        }
-
         .nitric-layout {
           gap: 12px;
         }
@@ -240,33 +122,19 @@
           gap: 10px;
         }
 
-        .nitric-panel {
-          padding: 12px 10px 14px;
-          border-radius: 12px;
-        }
-
         .nitric-subpanel {
           padding: 8px 7px 10px;
           border-radius: 8px;
         }
 
-        .nitric-field {
-          padding: 6px 8px;
-          font-size: 0.88rem;
-        }
-
-        .nitric-form-row {
-          margin-bottom: 8px;
-        }
-
-        .nitric-form-row label {
-          font-size: 0.82rem;
-          margin-bottom: 2px;
-        }
-
         .nitric-math-block {
           padding: 6px 8px;
           margin: 5px 0;
+        }
+
+        .nitric-pill {
+          font-size: 0.7rem;
+          padding: 2px 7px;
         }
       }
     `;
@@ -279,10 +147,10 @@
     styleEl.textContent = styles;
     container.appendChild(styleEl);
 
-    // Build UI with prefixed classes
+    // Build UI - NOW USING SHARED CLASSES
     container.innerHTML += `
-      <header class="nitric-content-header">
-        <div class="nitric-content-title-row">
+      <header class="shared-module-header">
+        <div class="shared-module-title-row">
           <h1>Nitric Acid Stoichiometry Calculator</h1>
         </div>
         <div class="nitric-reaction-row">
@@ -292,30 +160,30 @@
             </span>
           </div>
         </div>
-        <p class="nitric-subtitle">
+        <p class="shared-module-subtitle">
           <span>Stoichiometric calculator for HNO₃ from KNO₃ and aqueous H₂SO₄ at 25 °C.</span>
           <span>Reaction defaults to 1 mol KNO₃ and 1 mol H₂SO₄ and can be scaled with a factor.</span>
         </p>
       </header>
 
       <div class="nitric-layout">
-        <section class="nitric-panel">
-          <div class="nitric-panel-title">Inputs & results</div>
+        <section class="shared-module-panel">
+          <div class="shared-module-panel-title">Inputs & results</div>
           <div class="nitric-two-cols">
             <div class="nitric-subpanel">
               <div class="nitric-subpanel-title">Inputs</div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="scaleFactor-nitric">Scale factor (mol of KNO₃ and H₂SO₄)</label>
-                <input id="scaleFactor-nitric" class="nitric-field" type="number" step="0.1" value="4" min="0" />
-                <div class="nitric-hint" id="scaleWarning-nitric" style="display:none;">
+                <input id="scaleFactor-nitric" class="shared-field" type="number" step="0.1" value="4" min="0" />
+                <div class="shared-hint" id="scaleWarning-nitric" style="display:none;">
                   Scale factor must be ≥ 0. Negative values are not allowed.
                 </div>
               </div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="targetConc-nitric">Target nitric acid concentration (w/w)</label>
-                <select id="targetConc-nitric" class="nitric-field">
+                <select id="targetConc-nitric" class="shared-field">
                   <option value="0.550">55%</option>
                   <option value="0.680">68%</option>
                   <option value="0.760" selected>76%</option>
@@ -324,9 +192,9 @@
                 </select>
               </div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="acidPercent-nitric">Sulfuric acid concentration, \\(p\\) (% w/w H₂SO₄)</label>
-                <input id="acidPercent-nitric" class="nitric-field" type="number" step="0.1" value="93"
+                <input id="acidPercent-nitric" class="shared-field" type="number" step="0.1" value="93"
                        placeholder="e.g. 93" />
               </div>
             </div>
@@ -334,36 +202,36 @@
             <div class="nitric-subpanel">
               <div class="nitric-subpanel-title">Results</div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="acidDensity-nitric">Density of H₂SO₄ solution (25 °C) (g/mL)</label>
-                <input id="acidDensity-nitric" class="nitric-field" type="number" readonly placeholder="computed" />
+                <input id="acidDensity-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="acidMass-nitric">Mass of sulfuric acid solution, \\(M_{\\mathrm{acid}}\\) (g)</label>
-                <input id="acidMass-nitric" class="nitric-field" type="number" readonly placeholder="computed" />
+                <input id="acidMass-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="acidVolume-nitric">Volume of sulfuric acid solution (mL)</label>
-                <input id="acidVolume-nitric" class="nitric-field" type="number" readonly placeholder="computed" />
+                <input id="acidVolume-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="waterInAcid-nitric">Water already in acid, \\(m_{\\mathrm{H_2O,acid}}\\) (g)</label>
-                <input id="waterInAcid-nitric" class="nitric-field" type="number" readonly placeholder="computed" />
+                <input id="waterInAcid-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
 
-              <div class="nitric-form-row">
+              <div class="shared-form-row">
                 <label for="waterMass-nitric">Required added water, \\(M_{\\mathrm{add}}\\) (g)</label>
-                <input id="waterMass-nitric" class="nitric-field" type="number" readonly placeholder="computed" />
+                <input id="waterMass-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
             </div>
           </div>
         </section>
 
-        <section class="nitric-panel">
-          <div class="nitric-panel-title">Equations</div>
+        <section class="shared-module-panel">
+          <div class="shared-module-panel-title">Equations</div>
 
           <div class="nitric-math-block"><div class="nitric-math-inner" id="equationInfo-nitric"></div></div>
           <div class="nitric-math-block"><div class="nitric-math-inner" id="waterInfo-nitric"></div></div>
