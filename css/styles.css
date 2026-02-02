@@ -437,9 +437,9 @@ body {
     display: none !important;
   }
 
-  /* Sidebar backdrop - ONLY covers the sidebar area when closed */
-  /* Only visible in standalone/webapp mode (not in browser) */
-  .sidebar::before {
+  /* Sidebar backdrop - covers the hidden sidebar area in webapp mode */
+  /* Uses adjacent sibling to create backdrop AFTER sidebar element */
+  .landscape-leftbar::after {
     content: '';
     position: fixed;
     top: env(safe-area-inset-top, 0px);
@@ -448,20 +448,22 @@ body {
     max-width: 360px; /* Same as sidebar max-width */
     height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     background: var(--bg);
-    z-index: -1; /* Behind sidebar content */
+    z-index: 19; /* Below sidebar (20) but above main content */
     pointer-events: none;
     opacity: 0; /* Hidden by default */
+    transition: opacity 0.25s ease;
   }
 
-  /* Show backdrop only in standalone mode (webapp) when sidebar is closed */
+  :root[data-theme="light"] .landscape-leftbar::after {
+    background: #f9fafb;
+  }
+
+  /* Show backdrop only in standalone mode when sidebar is closed */
   @media (display-mode: standalone) {
-    .sidebar[data-open="false"]::before {
+    .sidebar[data-open="false"] ~ * .landscape-leftbar::after,
+    body:has(.sidebar[data-open="false"]) .landscape-leftbar::after {
       opacity: 1;
     }
-  }
-
-  :root[data-theme="light"] .sidebar::before {
-    background: #f9fafb;
   }
 
   /* Sidebar positioning */
@@ -472,22 +474,25 @@ body {
     width: 80vw !important;
     max-width: 360px !important;
     transform: translateX(-100%) !important;
-    z-index: 20;
+    z-index: 20; /* Above backdrop */
+    overflow: hidden; /* CRITICAL: Hide content when slid off screen */
   }
 
   .sidebar[data-open="true"] {
     transform: translateX(0) !important;
   }
 
-  /* Main content - ALWAYS in same position, sidebar overlays it */
+  /* Main content - fills remaining space after left bar */
   .app-shell .main-content {
     position: fixed;
     top: env(safe-area-inset-top, 0px);
     left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
-    right: env(safe-area-inset-right, 0px);
+    right: 0 !important; /* Extend to screen edge, padding handles safe area */
     bottom: env(safe-area-inset-bottom, 0px);
+    width: auto !important; /* Let it fill available space */
     margin: 0 !important;
     padding: 4px 8px !important;
+    padding-right: calc(8px + env(safe-area-inset-right, 0px)) !important; /* Add safe area to padding */
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -501,6 +506,7 @@ body {
     margin-top: 4px !important;
     padding: 10px 16px 18px !important;
     border-radius: 14px !important;
+    max-width: 100%; /* Allow card to expand */
   }
 
   .card .content-header,
