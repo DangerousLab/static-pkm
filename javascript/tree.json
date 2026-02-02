@@ -42,22 +42,15 @@
           "title": "Extremely Long Sidebar Calculator Title For Layout Testing",
           "tags": [],
           "file": "Home/Tools/calcE.js"
-        },
-        {
-          "type": "module",
-          "id": "nitricCalculator",
-          "title": "Nitric Acid Stoichiometry Calculator",
-          "tags": [],
-          "file": "Home/Tools/nitricCalculator.js"
         }
       ]
     },
     {
       "type": "module",
-      "id": "notepad",
-      "title": "Notepad",
+      "id": "nitricCalculator",
+      "title": "Nitric Acid Stoichiometry Calculator",
       "tags": [],
-      "file": "Home/notepad.js"
+      "file": "Home/nitricCalculator.js"
     }
   ]
 }
