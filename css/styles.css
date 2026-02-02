@@ -45,7 +45,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%);
+  background-color: #1f1f1f; /* SOLID color first for iOS status bar */
+  background-image: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%); /* Gradient on top */
   color: var(--text-main);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
@@ -53,7 +54,8 @@ body {
 }
 
 :root[data-theme="light"] body {
-  background: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
+  background-color: #f3f4f6; /* SOLID color for iOS status bar */
+  background-image: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
 }
 
 /* ==================== WEBAPP STATUS BAR THEMING ==================== */
@@ -65,23 +67,6 @@ html {
 
 :root[data-theme="light"] html {
   background: #f3f4f6; /* Light theme */
-}
-
-/* Ensure safe area top (status bar area) matches theme */
-body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-top, 0px);
-  background: #1f1f1f;
-  z-index: 100;
-  pointer-events: none;
-}
-
-:root[data-theme="light"] body::after {
-  background: #f3f4f6;
 }
 
 /* ==================== APP SHELL LAYOUT ==================== */

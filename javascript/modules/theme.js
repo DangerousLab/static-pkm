@@ -43,13 +43,6 @@ export function setThemeMetaColor(theme) {
   if (themeColorMeta) {
     themeColorMeta.setAttribute("content", theme === "dark" ? "#1f1f1f" : "#f3f4f6");
   }
-  
-  if (statusBarStyleMeta) {
-    // Keep it as 'default' to allow both light and dark colors
-    // This shows white status bar with dark text in light mode
-    // and respects theme-color in dark mode when combined with CSS
-    statusBarStyleMeta.setAttribute("content", "default");
-  }
 }
 
 /**
