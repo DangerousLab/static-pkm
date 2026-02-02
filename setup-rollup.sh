@@ -1,22 +1,23 @@
 #!/bin/bash
 
 ################################################################################
-# Unstablon PKM - Rollup Build System Setup Script (In-Memory Dev Server)
-# Version: 3.0
-# Date: 2026-02-01
+# Unstablon PKM - Rollup Build System Setup Script (CSS + JS Bundling)
+# Version: 4.0
+# Date: 2026-02-02
 #
 # Features:
-# - Single index.html (production-ready by default)
+# - CSS minification and bundling (styles.css + modules.css → app.min.css)
+# - JavaScript bundling (app.js → app.min.js)
 # - In-memory dev server (no temp files)
 # - Dual-server testing (ports 3000 dev, 3001 prod)
-# - Auto-rebuild on file changes
+# - Auto-rebuild on file changes (JS + CSS)
 # - Interleaved server logs
 #
 # Usage:
 #   1. Download this file
-#   2. Rename to: setup-rollup-final.sh
-#   3. chmod +x setup-rollup-final.sh
-#   4. ./setup-rollup-final.sh
+#   2. Rename to: setup-rollup.sh
+#   3. chmod +x setup-rollup.sh
+#   4. ./setup-rollup.sh
 #
 ################################################################################
 
@@ -102,6 +103,13 @@ preflight_checks() {
         all_checks_passed=false
     fi
 
+    if [ -d "css" ] && [ -f "css/styles.css" ]; then
+        print_success "CSS directory detected"
+    else
+        print_error "CSS directory not found"
+        all_checks_passed=false
+    fi
+
     if [ "$all_checks_passed" = false ]; then
         print_error "Pre-flight checks failed"
         exit 1
@@ -137,11 +145,60 @@ backup_existing_files() {
 }
 
 ################################################################################
-# Create Rollup Configuration
+# Create CSS Entry Point
 ################################################################################
 
-create_rollup_config() {
-    print_header "Creating Rollup Configuration"
+create_css_entry() {
+    print_header "Creating CSS Entry Point"
+
+    cat > css/main.css << 'CSSMAIN'
+/**
+ * CSS Entry Point for Bundling
+ * Consolidates all CSS files into single minified output
+ */
+
+@import './styles.css';
+@import './modules.css';
+CSSMAIN
+
+    print_success "Created css/main.css"
+}
+
+################################################################################
+# Create PostCSS Configuration
+################################################################################
+
+create_postcss_config() {
+    print_header "Creating PostCSS Configuration"
+
+    cat > postcss.config.js << 'POSTCSSCONFIG'
+export default {
+  plugins: {
+    'postcss-import': {},
+    'cssnano': {
+      preset: ['default', {
+        discardComments: {
+          removeAll: true,
+        },
+        normalizeWhitespace: true,
+        colormin: true,
+        minifyFontValues: true,
+        minifySelectors: true,
+      }],
+    },
+  },
+};
+POSTCSSCONFIG
+
+    print_success "Created postcss.config.js"
+}
+
+################################################################################
+# Create Rollup Configuration (JavaScript)
+################################################################################
+
+create_rollup_config_js() {
+    print_header "Creating Rollup Configuration (JavaScript)"
 
     cat > rollup.config.js << 'ROLLUPCONFIG'
 import { nodeResolve } from '@rollup/plugin-node-resolve';
@@ -169,6 +226,35 @@ export default {
 ROLLUPCONFIG
 
     print_success "Created rollup.config.js"
+}
+
+################################################################################
+# Create Rollup Configuration (CSS)
+################################################################################
+
+create_rollup_config_css() {
+    print_header "Creating Rollup Configuration (CSS)"
+
+    cat > rollup.config.css.js << 'ROLLUPCSSCONFIG'
+import postcss from 'rollup-plugin-postcss';
+
+export default {
+  input: 'css/main.css',
+  output: {
+    file: 'css/app.min.css',
+  },
+  plugins: [
+    postcss({
+      extract: true,
+      minimize: true,
+      sourceMap: true,
+      extensions: ['.css'],
+    }),
+  ],
+};
+ROLLUPCSSCONFIG
+
+    print_success "Created rollup.config.css.js"
 }
 
 ################################################################################
@@ -224,12 +310,11 @@ const server = http.createServer((req, res) => {
 
   let content = fs.readFileSync(filePath);
 
-  // Inject app.js instead of app.min.js for index.html
+  // In-memory modifications for development
   if (filePath.endsWith('index.html')) {
-    content = content.toString().replace(
-      'src="./javascript/app.min.js"',
-      'src="./javascript/app.js"'
-    );
+    content = content.toString()
+      .replace('src="./javascript/app.min.js"', 'src="./javascript/app.js"')
+      .replace('href="./css/app.min.css"', 'href="./css/styles.css" />\n    <link rel="stylesheet" href="./css/modules.css"');
   }
 
   res.writeHead(200, { 'Content-Type': contentType });
@@ -314,7 +399,7 @@ PRODSERVER
 }
 
 ################################################################################
-# Create File Watcher
+# Create File Watcher (JS + CSS)
 ################################################################################
 
 create_file_watcher() {
@@ -330,15 +415,17 @@ import { spawn } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const WATCH_DIR = path.join(ROOT, 'javascript');
+const WATCH_JS = path.join(ROOT, 'javascript');
+const WATCH_CSS = path.join(ROOT, 'css');
 
-let building = false;
+let buildingJs = false;
+let buildingCss = false;
 
-function build() {
-  if (building) return;
+function buildJs() {
+  if (buildingJs) return;
 
-  building = true;
-  console.log('[Watcher] Changes detected, rebuilding...');
+  buildingJs = true;
+  console.log('[Watcher] JS changes detected, rebuilding...');
 
   const buildProcess = spawn('npm', ['run', 'build:js'], {
     cwd: ROOT,
@@ -347,19 +434,48 @@ function build() {
 
   buildProcess.on('close', (code) => {
     if (code === 0) {
-      console.log('[Watcher] Build complete, watching for changes...');
+      console.log('[Watcher] JS build complete');
     } else {
-      console.log('[Watcher] Build failed');
+      console.log('[Watcher] JS build failed');
     }
-    building = false;
+    buildingJs = false;
   });
 }
 
-console.log('[Watcher] Watching for changes in javascript/...');
+function buildCss() {
+  if (buildingCss) return;
 
-fs.watch(WATCH_DIR, { recursive: true }, (eventType, filename) => {
+  buildingCss = true;
+  console.log('[Watcher] CSS changes detected, rebuilding...');
+
+  const buildProcess = spawn('npm', ['run', 'build:css'], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
+
+  buildProcess.on('close', (code) => {
+    if (code === 0) {
+      console.log('[Watcher] CSS build complete');
+    } else {
+      console.log('[Watcher] CSS build failed');
+    }
+    buildingCss = false;
+  });
+}
+
+console.log('[Watcher] Watching for changes...');
+console.log('[Watcher]   - javascript/');
+console.log('[Watcher]   - css/');
+
+fs.watch(WATCH_JS, { recursive: true }, (eventType, filename) => {
   if (filename && filename.endsWith('.js') && !filename.includes('app.min.js')) {
-    build();
+    buildJs();
+  }
+});
+
+fs.watch(WATCH_CSS, { recursive: true }, (eventType, filename) => {
+  if (filename && filename.endsWith('.css') && !filename.includes('app.min.css') && !filename.includes('main.css')) {
+    buildCss();
   }
 });
 WATCHER
@@ -391,14 +507,14 @@ console.log('╚═════════════════════�
 
 console.log('📝 Development Server');
 console.log('   http://localhost:3000');
-console.log('   Uses: javascript/app.js (unminified)\n');
+console.log('   Uses: javascript/app.js + css/styles.css + css/modules.css\n');
 
 console.log('🚀 Production Server');
 console.log('   http://localhost:3001');
-console.log('   Uses: javascript/app.min.js (minified)\n');
+console.log('   Uses: javascript/app.min.js + css/app.min.css\n');
 
 console.log('🔄 File Watcher');
-console.log('   Auto-rebuilds on changes in javascript/\n');
+console.log('   Auto-rebuilds on changes in javascript/ and css/\n');
 
 console.log('💡 Open both URLs in your browser to test');
 console.log('⚠️  Press Ctrl+C to stop all servers\n');
@@ -457,19 +573,24 @@ update_package_json() {
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:tree && npm run build:js",
-    "build:js": "rollup -c",
+    "build": "npm run build:tree && npm run build:css && npm run build:js",
+    "build:js": "rollup -c rollup.config.js",
+    "build:css": "rollup -c rollup.config.css.js",
     "build:tree": "node scripts/generate-tree.mjs",
     "test": "npm run build && node scripts/test-dual-server.mjs",
     "dev": "node scripts/dev-server.mjs",
     "preview": "node scripts/prod-server.mjs",
     "watch": "node scripts/watch-and-build.mjs",
-    "clean": "rm -f javascript/app.min.js.map"
+    "clean": "rm -f javascript/app.min.js* css/app.min.css*"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.9.6"
+    "cssnano": "^6.0.3",
+    "postcss": "^8.4.33",
+    "postcss-import": "^16.0.0",
+    "rollup": "^4.9.6",
+    "rollup-plugin-postcss": "^4.0.2"
   },
   "dependencies": {
     "lz-string": "^1.5.0"
@@ -502,6 +623,11 @@ update_gitignore() {
 node_modules/
 *.log
 
+# Build Outputs
+javascript/app.min.js.map
+css/app.min.css.map
+css/main.css
+
 # OS Files
 .DS_Store
 
@@ -526,109 +652,86 @@ create_documentation() {
     print_header "Creating Documentation"
 
     cat > ROLLUP-GUIDE.md << 'GUIDE'
-# 🚀 Rollup Build System Guide
-
-## Overview
-
-Single-source build system with in-memory dev server and dual-mode testing.
-
-## File Structure
-
-```
-repo/
-├── index.html                # Production (references app.min.js)
-├── javascript/
-│   ├── app.js               # Source (for development)
-│   ├── app.min.js          # Minified (for production)
-│   └── app.min.js.map      # Source map [gitignored]
-```
+# 🚀 Rollup Build System Guide (CSS + JS)
 
 ## Commands
 
 ### Build Production
 npm run build
 
-Creates:
-- javascript/app.min.js (minified)
-- javascript/app.min.js.map (source map)
-
 ### Dual-Mode Testing
 npm run test
 
-Starts THREE processes:
-1. Dev server (port 3000) - serves app.js
-2. Prod server (port 3001) - serves app.min.js
-3. File watcher - auto-rebuilds on changes
-
-URLs:
-- Development: http://localhost:3000
-- Production: http://localhost:3001
+Opens:
+- http://localhost:3000 (dev - unminified)
+- http://localhost:3001 (prod - minified)
 
 Press Ctrl+C to stop all servers.
 
-### Individual Servers
-
-# Development only
-npm run dev
-
-# Production only
-npm run preview
-
-# File watcher only
-npm run watch
-
-## How It Works
-
-### In-Memory Dev Server
-
-The dev server reads index.html and modifies it on-the-fly:
-
-```html
-<!-- Disk: index.html -->
-<script src="./javascript/app.min.js"></script>
-
-<!-- Served at localhost:3000 -->
-<script src="./javascript/app.js"></script>
-```
-
-No temporary files created!
-
-### Auto-Rebuild
-
-The file watcher monitors javascript/ folder:
-- Detects changes to *.js files
-- Runs npm run build:js
-- Production server immediately serves new bundle
-
-## Workflow
-
-1. Start testing: npm run test
-2. Open both URLs in browser
-3. Make changes to javascript/app.js
-4. Watch auto-rebuild happen
-5. Refresh browsers to see changes
-6. Compare dev vs prod behavior
-7. Ctrl+C when done
+### Individual Commands
+npm run dev       # Dev server only
+npm run preview   # Prod server only  
+npm run watch     # File watcher only
+npm run build:css # Build CSS only
+npm run build:js  # Build JS only
 
 ## What Gets Committed
 
-✅ Commit these:
+✅ Commit:
 - index.html
 - javascript/app.js (source)
-- javascript/app.min.js (built for GitHub Pages)
+- javascript/app.min.js (built)
+- css/styles.css (source)
+- css/modules.css (source)
+- css/app.min.css (built)
 
 ❌ Don't commit:
-- javascript/app.min.js.map (gitignored)
-- node_modules/ (gitignored)
+- javascript/app.min.js.map
+- css/app.min.css.map
+- css/main.css
+- node_modules/
 
-## GitHub Pages Deployment
+## Performance
 
-index.html references app.min.js by default, so GitHub Pages works immediately!
-
-Just push and it deploys correctly.
+- CSS: 2 files → 1 minified (~60-70% smaller)
+- JS: Minified + console.log removed
+- Fewer HTTP requests = faster loads
 GUIDE
 
     print_success "Created ROLLUP-GUIDE.md"
+}
+
+################################################################################
+# Update index.html Reference
+################################################################################
+
+update_index_html() {
+    print_header "Updating index.html"
+
+    # Update JavaScript reference
+    if grep -q 'src="./javascript/app.js"' index.html; then
+        print_info "Updating JS script reference to app.min.js..."
+        sed -i.bak 's|src="./javascript/app.js"|src="./javascript/app.min.js"|g' index.html
+        print_success "Updated JavaScript reference"
+    elif grep -q 'src="./javascript/app.min.js"' index.html; then
+        print_success "JavaScript reference already uses app.min.js"
+    else
+        print_warning "Could not find JS script tag in index.html"
+    fi
+
+    # Update CSS references
+    if grep -q 'href="./css/styles.css"' index.html; then
+        print_info "Consolidating CSS references to app.min.css..."
+        sed -i.bak 's|<link rel="stylesheet" href="./css/styles.css" />|<link rel="stylesheet" href="./css/app.min.css" />|g' index.html
+        sed -i.bak '/<link rel="stylesheet" href=".\/css\/modules.css"/d' index.html
+        print_success "Updated CSS references to app.min.css"
+    elif grep -q 'href="./css/app.min.css"' index.html; then
+        print_success "CSS reference already uses app.min.css"
+    else
+        print_warning "Could not find CSS link tags in index.html"
+    fi
+
+    rm -f index.html.bak
 }
 
 ################################################################################
@@ -638,7 +741,7 @@ GUIDE
 install_dependencies() {
     print_header "Installing Dependencies"
 
-    print_info "Installing Rollup and plugins..."
+    print_info "Installing Rollup, PostCSS, and plugins..."
     echo ""
 
     if npm install; then
@@ -661,31 +764,20 @@ generate_initial_build() {
         npm run build:tree && print_success "Generated tree.json" || print_warning "Could not generate tree.json"
     fi
 
-    print_info "Building production bundle..."
+    print_info "Building CSS bundle..."
+    if npm run build:css; then
+        print_success "Built css/app.min.css"
+    else
+        print_error "CSS build failed"
+        exit 1
+    fi
+
+    print_info "Building JavaScript bundle..."
     if npm run build:js; then
         print_success "Built javascript/app.min.js"
     else
-        print_error "Build failed"
+        print_error "JavaScript build failed"
         exit 1
-    fi
-}
-
-################################################################################
-# Update index.html Reference
-################################################################################
-
-update_index_html() {
-    print_header "Updating index.html"
-
-    if grep -q 'src="./javascript/app.js"' index.html; then
-        print_info "Updating script reference to app.min.js..."
-        sed -i.bak 's|src="./javascript/app.js"|src="./javascript/app.min.js"|g' index.html
-        rm index.html.bak
-        print_success "Updated index.html to reference app.min.js"
-    elif grep -q 'src="./javascript/app.min.js"' index.html; then
-        print_success "index.html already references app.min.js"
-    else
-        print_warning "Could not find script tag in index.html"
     fi
 }
 
@@ -697,13 +789,16 @@ print_summary() {
     print_header "Setup Complete! 🎉"
 
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}  Rollup Build System Successfully Installed${NC}"
+    echo -e "${GREEN}  Rollup Build System (CSS + JS) Successfully Installed${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
     print_info "Files Created:"
     echo "  ✓ rollup.config.js"
-    echo "  ✓ scripts/dev-server.mjs (in-memory)"
+    echo "  ✓ rollup.config.css.js"
+    echo "  ✓ postcss.config.js"
+    echo "  ✓ css/main.css"
+    echo "  ✓ scripts/dev-server.mjs"
     echo "  ✓ scripts/prod-server.mjs"
     echo "  ✓ scripts/watch-and-build.mjs"
     echo "  ✓ scripts/test-dual-server.mjs"
@@ -712,13 +807,8 @@ print_summary() {
     echo ""
 
     print_info "Build Output:"
-    echo "  ✓ javascript/app.min.js (minified)"
-    echo ""
-
-    print_info "Repository State:"
-    echo "  ✓ index.html → references app.min.js (production-ready)"
-    echo "  ✓ Both app.js and app.min.js in repo"
-    echo "  ✓ GitHub Pages will work correctly"
+    echo "  ✓ css/app.min.css"
+    echo "  ✓ javascript/app.min.js"
     echo ""
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -728,22 +818,23 @@ print_summary() {
     echo "  Test both modes:"
     echo -e "     ${GREEN}npm run test${NC}"
     echo ""
-    echo "  Then open in browser:"
-    echo "     http://localhost:3000 (dev - app.js)"
-    echo "     http://localhost:3001 (prod - app.min.js)"
+    echo "  Then open:"
+    echo "     http://localhost:3000 (dev)"
+    echo "     http://localhost:3001 (prod)"
     echo ""
     echo "  Build for deployment:"
     echo -e "     ${GREEN}npm run build${NC}"
     echo ""
 
     print_info "Features:"
-    echo "  ✅ In-memory dev server (no temp files)"
-    echo "  ✅ Dual-mode testing (ports 3000 & 3001)"
-    echo "  ✅ Auto-rebuild on file changes"
-    echo "  ✅ Production-ready by default"
+    echo "  ✅ CSS bundling (2 files → 1 minified)"
+    echo "  ✅ JavaScript minification"
+    echo "  ✅ In-memory dev server"
+    echo "  ✅ Dual-mode testing"
+    echo "  ✅ Auto-rebuild on changes"
     echo ""
 
-    echo -e "${GREEN}🎉 Ready to use! Run 'npm run test' to start.${NC}"
+    echo -e "${GREEN}🎉 Ready! Run 'npm run test' to start.${NC}"
     echo ""
 }
 
@@ -757,16 +848,19 @@ main() {
     echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v3.0            ║${NC}"
+    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.0            ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║           In-Memory Dev Server + Dual Testing                ║${NC}"
+    echo -e "${BLUE}║        CSS + JS Bundling + In-Memory Dev Server             ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     preflight_checks
     backup_existing_files
-    create_rollup_config
+    create_css_entry
+    create_postcss_config
+    create_rollup_config_js
+    create_rollup_config_css
     create_dev_server
     create_prod_server
     create_file_watcher

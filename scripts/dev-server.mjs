@@ -41,12 +41,11 @@ const server = http.createServer((req, res) => {
 
   let content = fs.readFileSync(filePath);
 
-  // Inject app.js instead of app.min.js for index.html
+  // In-memory modifications for development
   if (filePath.endsWith('index.html')) {
-    content = content.toString().replace(
-      'src="./javascript/app.min.js"',
-      'src="./javascript/app.js"'
-    );
+    content = content.toString()
+      .replace('src="./javascript/app.min.js"', 'src="./javascript/app.js"')
+      .replace('href="./css/app.min.css"', 'href="./css/styles.css" />\n    <link rel="stylesheet" href="./css/modules.css"');
   }
 
   res.writeHead(200, { 'Content-Type': contentType });

@@ -5,19 +5,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:tree && npm run build:js",
-    "build:js": "rollup -c",
+    "build": "npm run build:tree && npm run build:css && npm run build:js",
+    "build:js": "rollup -c rollup.config.js",
+    "build:css": "rollup -c rollup.config.css.js",
     "build:tree": "node scripts/generate-tree.mjs",
     "test": "npm run build && node scripts/test-dual-server.mjs",
     "dev": "node scripts/dev-server.mjs",
     "preview": "node scripts/prod-server.mjs",
     "watch": "node scripts/watch-and-build.mjs",
-    "clean": "rm -f javascript/app.min.js.map"
+    "clean": "rm -f javascript/app.min.js* css/app.min.css*"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
-    "rollup": "^4.9.6"
+    "cssnano": "^6.0.3",
+    "postcss": "^8.4.33",
+    "postcss-import": "^16.0.0",
+    "rollup": "^4.9.6",
+    "rollup-plugin-postcss": "^4.0.2"
   },
   "dependencies": {
     "lz-string": "^1.5.0"

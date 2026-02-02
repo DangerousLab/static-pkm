@@ -27,3 +27,22 @@ node_modules/
 
 # Backups
 backup-*/
+
+# Rollup Build System
+node_modules/
+*.log
+
+# Build Outputs
+javascript/app.min.js.map
+css/app.min.css.map
+css/main.css
+
+# OS Files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backup-*/

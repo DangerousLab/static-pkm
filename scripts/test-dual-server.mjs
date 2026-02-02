@@ -13,14 +13,14 @@ console.log('╚═════════════════════�
 
 console.log('📝 Development Server');
 console.log('   http://localhost:3000');
-console.log('   Uses: javascript/app.js (unminified)\n');
+console.log('   Uses: javascript/app.js + css/styles.css + css/modules.css\n');
 
 console.log('🚀 Production Server');
 console.log('   http://localhost:3001');
-console.log('   Uses: javascript/app.min.js (minified)\n');
+console.log('   Uses: javascript/app.min.js + css/app.min.css\n');
 
 console.log('🔄 File Watcher');
-console.log('   Auto-rebuilds on changes in javascript/\n');
+console.log('   Auto-rebuilds on changes in javascript/ and css/\n');
 
 console.log('💡 Open both URLs in your browser to test');
 console.log('⚠️  Press Ctrl+C to stop all servers\n');
