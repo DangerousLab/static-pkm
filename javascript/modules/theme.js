@@ -49,6 +49,7 @@ export function updateThemeAssets(theme) {
   const headerLogo = document.getElementById('headerLogo');
   const headerBanner = document.getElementById('headerBanner');
   const headerTagline = document.querySelector('.header-tagline');
+  const landscapeLogo = document.getElementById('landscapeLogo');
   
   if (headerLogo && headerBanner) {
     // Step 1: Remove existing animations by removing class
@@ -100,6 +101,31 @@ export function updateThemeAssets(theme) {
       });
     });
   }
+
+  // Update landscape left bar logo WITH animation
+  if (landscapeLogo) {
+    // Step 1: Remove existing animation
+    landscapeLogo.classList.remove('animate');
+    
+    // Step 2: Force reflow
+    void landscapeLogo.offsetWidth;
+    
+    // Step 3: Temporarily disable animation
+    landscapeLogo.style.animation = 'none';
+    
+    // Step 4: Switch source
+    landscapeLogo.src = theme === 'dark' 
+      ? './assets/logo-dark.png' 
+      : './assets/logo-light.png';
+    
+    // Step 5: Re-enable animation
+    requestAnimationFrame(() => {
+      landscapeLogo.style.animation = '';
+      requestAnimationFrame(() => {
+        landscapeLogo.classList.add('animate');
+      });
+    });
+  }
 }
 
 /**
@@ -109,7 +135,16 @@ export function toggleTheme() {
   const current = dom.htmlEl.getAttribute("data-theme") || "dark";
   const next = current === "dark" ? "light" : "dark";
   dom.htmlEl.setAttribute("data-theme", next);
+  
+  // Update main theme icon
   dom.themeIcon.textContent = next === "dark" ? "☾" : "☼";
+  
+  // Update landscape theme icon
+  const landscapeThemeIcon = document.getElementById('landscapeThemeIcon');
+  if (landscapeThemeIcon) {
+    landscapeThemeIcon.textContent = next === "dark" ? "☾" : "☼";
+  }
+  
   setThemeMetaColor(next);
   updateThemeAssets(next);
 
@@ -128,12 +163,23 @@ export function initTheme() {
   // Preload all theme images immediately
   preloadThemeImages();
 
+  // Main theme toggle
   dom.themeToggleBtn.addEventListener("click", toggleTheme);
+
+  // Landscape left bar theme toggle
+  const landscapeThemeToggle = document.getElementById('landscapeThemeToggle');
+  if (landscapeThemeToggle) {
+    landscapeThemeToggle.addEventListener("click", toggleTheme);
+  }
 
   const initialTheme = dom.htmlEl.getAttribute("data-theme") || "dark";
   dom.themeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
-  setThemeMetaColor(initialTheme);
   
-  // Initial load already has animation via CSS
-  // No need to do anything special
+  // Set initial landscape theme icon
+  const landscapeThemeIcon = document.getElementById('landscapeThemeIcon');
+  if (landscapeThemeIcon) {
+    landscapeThemeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
+  }
+  
+  setThemeMetaColor(initialTheme);
 }

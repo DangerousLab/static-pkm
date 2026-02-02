@@ -13,6 +13,7 @@
   --success: #4ade80;
   --sidebar-base: 240px;
   --header-height: 90px;
+  --landscape-leftbar-width: 44px;
 }
 
 /* Light Theme Variables */
@@ -286,68 +287,6 @@ body {
   }
 }
 
-/* Mobile Landscape Mode - Ultra Compact Header */
-@media (max-height: 600px) and (orientation: landscape) {
-  .app-header {
-    padding: 0 12px;
-    min-height: 32px;
-    display: flex;
-    align-items: stretch;
-  }
-
-  .header-logo-wrap {
-    display: none;
-  }
-
-  .header-center {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .header-banner-wrap {
-    height: 40px;
-    overflow: hidden;
-    gap: 0;
-    display: block;
-    padding: 0;
-    margin: 0;
-    line-height: 0;
-    font-size: 0;
-    text-align: center;
-  }
-
-  .header-banner-img {
-    display: inline-block;
-    height: 60px;
-    width: auto;  /* ← Auto calculates from aspect ratio */
-    max-width: none;
-    max-height: none;
-    margin: 0 auto;
-    vertical-align: bottom;
-  }
-
-  .header-tagline {
-    display: none;
-  }
-
-  .sidebar {
-    top: 32px;
-    height: calc(100vh - 32px);
-  }
-
-  .theme-toggle {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 28px !important;
-    min-height: 28px !important;
-    flex-shrink: 0;
-  }
-
-  .theme-toggle span {
-    font-size: 0.85rem !important;
-  }
-}
-
 /* Theme Toggle Button */
 .theme-toggle {
   justify-self: end;
@@ -376,6 +315,132 @@ body {
 .theme-toggle span {
   font-size: 1rem;
   line-height: 1;
+}
+
+/* ==================== MOBILE LANDSCAPE LEFT BAR ==================== */
+
+.landscape-leftbar {
+  display: none; /* Hidden by default, shown only in landscape mode */
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .landscape-leftbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--landscape-leftbar-width);
+    height: 100vh;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    background: #1f1f1f;
+    border-right: 1px solid rgba(148, 148, 148, 0.6);
+  }
+
+  :root[data-theme="light"] .landscape-leftbar {
+    background: #f3f4f6;
+    border-right-color: rgba(148, 163, 184, 0.6);
+  }
+
+  /* Left bar toggle button at TOP */
+  .landscape-leftbar-toggle {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    color: var(--text-main);
+    flex-shrink: 0;
+  }
+
+  /* Left bar logo in MIDDLE with animation */
+  .landscape-leftbar-logo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    width: 100%;
+  }
+
+  .landscape-leftbar-logo img {
+    max-width: 38px;
+    max-height: 38px;
+    width: auto;
+    height: auto;
+    animation: slideUpFade 0.4s ease-out;
+    animation-delay: 0s;
+    animation-fill-mode: both;
+  }
+
+  /* Landscape logo theme toggle animation */
+  .landscape-leftbar-logo img.animate {
+    animation: slideUpFade 0.4s ease-out;
+    animation-delay: 0s;
+    animation-fill-mode: both;
+  }
+
+  /* Left bar theme toggle at BOTTOM */
+  .landscape-leftbar .theme-toggle {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+  }
+
+  .landscape-leftbar .theme-toggle span {
+    font-size: 0.9rem;
+  }
+
+  /* Hide standard header in landscape mode */
+  .app-header {
+    display: none !important;
+  }
+
+  /* CRITICAL: Adjust sidebar for left bar */
+  .sidebar {
+    top: 0 !important;
+    left: var(--landscape-leftbar-width) !important;
+    height: 100vh !important;
+    width: 80vw !important;
+    max-width: 360px !important;
+    transform: translateX(-100%) !important;
+  }
+
+  .sidebar[data-open="true"] {
+    transform: translateX(0) !important;
+  }
+
+  /* Adjust main content for left bar */
+  .app-shell .main-content {
+    margin-left: var(--landscape-leftbar-width) !important;
+    padding: 8px 12px !important; /* Top: 4px, Sides: 12px */
+  }
+
+  .main-content .page-root {
+    padding: 2px 2px 12px !important; /* Top: 0px, Sides: 2px, Bottom: 12px */
+  }
+
+  /* CRITICAL: Card padding override with high specificity */
+  .page-root .card {
+    margin-top: 2px !important; /* Minimal top margin */
+    padding: 6px 20px 18px !important; /* Top: 6px, Sides: 20px, Bottom: 18px */
+    border-radius: 14px !important;
+  }
+
+  /* Also target content headers for tighter spacing */
+  .card .content-header,
+  .card .calculator-header {
+    margin-bottom: 12px !important;
+  }
 }
 
 /* ==================== SIDEBAR NAVIGATION ==================== */

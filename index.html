@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data總">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -20,7 +20,7 @@
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      integrity="sha512-Evv84Mr4kqVG youNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
@@ -56,6 +56,40 @@
 
   <body>
     <div class="app-shell">
+      <!-- Mobile Landscape Left Bar (44px vertical sidebar) -->
+      <div class="landscape-leftbar">
+        <!-- Toggle button at top -->
+        <button
+          id="landscapeToggle"
+          class="landscape-leftbar-toggle sidebar-toggle"
+          type="button"
+          aria-label="Toggle navigation"
+          aria-expanded="false"
+        >
+          <span class="sidebar-toggle-icon"></span>
+        </button>
+
+        <!-- Logo in middle -->
+        <div class="landscape-leftbar-logo">
+          <img
+            id="landscapeLogo"
+            src="./assets/logo-dark.png"
+            alt="Logo"
+            loading="eager"
+          />
+        </div>
+
+        <!-- Theme toggle at bottom -->
+        <button
+          id="landscapeThemeToggle"
+          class="theme-toggle"
+          type="button"
+          aria-label="Toggle theme"
+        >
+          <span id="landscapeThemeIcon">☾</span>
+        </button>
+      </div>
+
       <!-- Header Section -->
       <header class="app-header">
         <div class="header-bar">

@@ -11,10 +11,20 @@ import { isDesktopOrTablet } from '../core/utils.js';
 let isCurrentlyHovering = false;
 
 /**
+ * Check if in landscape mode
+ */
+function isLandscapeMode() {
+  return window.matchMedia('(max-height: 600px) and (orientation: landscape)').matches;
+}
+
+/**
  * Apply sidebar width based on current hover state
  * Uses pre-computed cached values from preloader
  */
 export function applySidebarWidth() {
+  // Skip width application in landscape mode (CSS handles it)
+  if (isLandscapeMode()) return;
+  
   if (!isDesktopOrTablet()) return;
   if (dom.sidebar.getAttribute("data-open") !== "true") return;
 
@@ -35,16 +45,41 @@ export function toggleSidebar() {
   const isOpen = dom.sidebar.getAttribute("data-open") === "true";
   const next = !isOpen;
 
+  // In landscape mode, use simpler toggle (CSS handles positioning)
+  if (isLandscapeMode()) {
+    dom.sidebar.setAttribute("data-open", String(next));
+    dom.sidebarToggle.setAttribute("data-open", String(next));
+    
+    const landscapeToggle = document.getElementById('landscapeToggle');
+    if (landscapeToggle) {
+      landscapeToggle.setAttribute("data-open", String(next));
+    }
+    return;
+  }
+
   if (isDesktopOrTablet()) {
     if (next) {
       dom.sidebar.setAttribute("data-open", "true");
       dom.sidebarToggle.setAttribute("data-open", "true");
+      
+      // Sync landscape toggle if exists
+      const landscapeToggle = document.getElementById('landscapeToggle');
+      if (landscapeToggle) {
+        landscapeToggle.setAttribute("data-open", "true");
+      }
+      
       dom.sidebar.style.width = state.baseSidebarWidth + "px";
     } else {
       const currentWidth = dom.sidebar.getBoundingClientRect().width;
       dom.sidebar.style.width = currentWidth + "px";
       dom.sidebar.setAttribute("data-open", "false");
       dom.sidebarToggle.setAttribute("data-open", "false");
+      
+      // Sync landscape toggle if exists
+      const landscapeToggle = document.getElementById('landscapeToggle');
+      if (landscapeToggle) {
+        landscapeToggle.setAttribute("data-open", "false");
+      }
 
       // Reset hover state when closing
       isCurrentlyHovering = false;
@@ -58,6 +93,12 @@ export function toggleSidebar() {
   } else {
     dom.sidebar.setAttribute("data-open", String(next));
     dom.sidebarToggle.setAttribute("data-open", String(next));
+    
+    // Sync landscape toggle if exists
+    const landscapeToggle = document.getElementById('landscapeToggle');
+    if (landscapeToggle) {
+      landscapeToggle.setAttribute("data-open", String(next));
+    }
   }
 }
 
@@ -73,6 +114,9 @@ export function clearSidebarActive() {
  * Handle sidebar mouse enter event
  */
 function handleSidebarMouseEnter() {
+  // Skip hover behavior in landscape mode
+  if (isLandscapeMode()) return;
+  
   if (!isDesktopOrTablet()) return;
   if (dom.sidebar.getAttribute("data-open") !== "true") return;
 
@@ -90,6 +134,9 @@ function handleSidebarMouseEnter() {
  * Handle sidebar mouse leave event
  */
 function handleSidebarMouseLeave(e) {
+  // Skip hover behavior in landscape mode
+  if (isLandscapeMode()) return;
+  
   if (!isDesktopOrTablet()) return;
   if (dom.sidebar.getAttribute("data-open") !== "true") return;
 
@@ -107,7 +154,16 @@ function handleSidebarMouseLeave(e) {
  * Initialize sidebar event listeners
  */
 export function initSidebar() {
+  // Main sidebar toggle
   dom.sidebarToggle.addEventListener("click", toggleSidebar);
+  
+  // Landscape left bar sidebar toggle
+  const landscapeToggle = document.getElementById('landscapeToggle');
+  if (landscapeToggle) {
+    landscapeToggle.addEventListener("click", toggleSidebar);
+  }
+  
+  // Hover behavior
   dom.sidebar.addEventListener("mouseenter", handleSidebarMouseEnter);
   dom.sidebar.addEventListener("mouseleave", handleSidebarMouseLeave);
 }
