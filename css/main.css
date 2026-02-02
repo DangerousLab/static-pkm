@@ -1,0 +1,7 @@
+/**
+ * CSS Entry Point for Bundling
+ * Consolidates all CSS files into single minified output
+ */
+
+@import './styles.css';
+@import './modules.css';

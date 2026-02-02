@@ -624,9 +624,6 @@ node_modules/
 *.log
 
 # Build Outputs
-javascript/app.min.js.map
-css/app.min.css.map
-css/main.css
 
 # OS Files
 .DS_Store
