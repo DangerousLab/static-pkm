@@ -330,12 +330,22 @@ body {
 }
 
 @media (max-height: 600px) and (orientation: landscape) {
+  /* Fixed viewport dimensions */
   html, body {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
     margin: 0;
     padding: 0;
+  }
+
+  /* Body background extends into safe areas */
+  body {
+    background: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%) !important;
+  }
+  
+  :root[data-theme="light"] body {
+    background: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%) !important;
   }
 
   .app-shell {
@@ -345,7 +355,34 @@ body {
     position: relative;
   }
 
-  /* Left bar - positioned based on notch side */
+  /* Notch area blocker - covers notch with solid color */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: env(safe-area-inset-left, 0px);
+    height: 100vh;
+    background: #1f1f1f;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  :root[data-notch-side="right"] body::before {
+    left: auto;
+    right: 0;
+    width: env(safe-area-inset-right, 0px);
+  }
+
+  :root[data-notch-side="none"] body::before {
+    display: none;
+  }
+
+  :root[data-theme="light"] body::before {
+    background: #f3f4f6;
+  }
+
+  /* Left bar - positioned based on notch detection */
   .landscape-leftbar {
     position: fixed;
     top: env(safe-area-inset-top, 0px);
@@ -362,7 +399,7 @@ body {
     border-right: 1px solid rgba(148, 148, 148, 0.6);
   }
 
-  /* Left bar when notch is on RIGHT or no notch */
+  /* Left bar when notch is on RIGHT or no notch detected */
   :root[data-notch-side="right"] .landscape-leftbar,
   :root[data-notch-side="none"] .landscape-leftbar {
     left: 0;
@@ -426,6 +463,29 @@ body {
     font-size: 0.9rem;
   }
 
+  /* Visual debug indicator (optional - remove in production) */
+  .landscape-leftbar::before {
+    content: 'LEFT';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    color: rgba(0, 0, 255, 0.3);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  :root[data-notch-side="right"] .landscape-leftbar::before {
+    content: 'RIGHT';
+    color: rgba(255, 0, 0, 0.3);
+  }
+
+  :root[data-notch-side="none"] .landscape-leftbar::before {
+    content: 'NONE';
+    color: rgba(0, 255, 0, 0.3);
+  }
+
   .app-header {
     display: none !important;
   }
@@ -440,6 +500,7 @@ body {
     max-width: 360px !important;
     transform: translateX(-100%) !important;
     z-index: 20 !important;
+    overflow: hidden !important;
   }
 
   /* Sidebar - notch on RIGHT or no notch */
@@ -458,12 +519,14 @@ body {
     top: env(safe-area-inset-top, 0px) !important;
     left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
     right: 0 !important;
-    bottom: env(safe-area-inset-bottom, 0px) !important;
+    bottom: 0 !important;
     width: auto !important;
     margin: 0 !important;
     padding: 4px 8px !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto;
     overflow-x: hidden;
+    background: transparent !important;
   }
 
   /* Main content - notch on RIGHT */
@@ -481,6 +544,7 @@ body {
   .main-content .page-root {
     padding: 2px 2px 12px !important;
     max-width: 100%;
+    background: transparent !important;
   }
 
   .page-root .card {
