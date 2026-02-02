@@ -11,6 +11,7 @@ import { renderSidebar } from './modules/navigation.js';
 import { openNode } from './modules/content-loader.js';
 import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
 import { initSearch, rebuildSearchIndex } from './modules/search.js';
+import { initSafeAreaDetector } from './modules/safe-area-detector.js';
 
 (function () {
   "use strict";
@@ -28,6 +29,7 @@ import { initSearch, rebuildSearchIndex } from './modules/search.js';
     
     // Initialize DOM references first
     initDOMRefs();
+    initSafeAreaDetector();
 
     // Initialize all modules
     initTheme();
