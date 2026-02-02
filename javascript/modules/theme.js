@@ -10,22 +10,18 @@ const imageCache = {
   'logo-dark': null,
   'logo-light': null,
   'banner-dark': null,
-  'banner-light': null,
-  'favicon-dark': null,
-  'favicon-light': null
+  'banner-light': null
 };
 
 /**
- * Preload all theme images including favicons
+ * Preload all theme images (logos and banners only)
  */
 function preloadThemeImages() {
   const images = [
     { key: 'logo-dark', src: './assets/logo-dark.png' },
     { key: 'logo-light', src: './assets/logo-light.png' },
     { key: 'banner-dark', src: './assets/banner-dark.png' },
-    { key: 'banner-light', src: './assets/banner-light.png' },
-    { key: 'favicon-dark', src: './assets/favicon/favicon-dark.svg' },
-    { key: 'favicon-light', src: './assets/favicon/favicon-light.svg' }
+    { key: 'banner-light', src: './assets/banner-light.png' }
   ];
 
   images.forEach(({ key, src }) => {
@@ -34,7 +30,7 @@ function preloadThemeImages() {
     imageCache[key] = img;
   });
 
-  console.log('[Theme] Theme assets preloaded (logos, banners, favicons)');
+  console.log('[Theme] Theme assets preloaded');
 }
 
 /**
@@ -46,67 +42,6 @@ export function setThemeMetaColor(theme) {
   if (themeColorMeta) {
     themeColorMeta.setAttribute("content", theme === "dark" ? "#1f1f1f" : "#f3f4f6");
   }
-}
-
-/**
- * Update favicon based on theme
- * @param {string} theme - 'dark' or 'light'
- */
-function updateFavicon(theme) {
-  console.log('[Theme] Updating favicon for theme:', theme);
-  
-  // Update SVG favicon (primary method for modern browsers)
-  const svgIcons = document.querySelectorAll('link[rel="icon"][type="image/svg+xml"]');
-  svgIcons.forEach(icon => {
-    const href = icon.getAttribute('href');
-    const isDarkIcon = href.includes('favicon-dark.svg');
-    const isLightIcon = href.includes('favicon-light.svg');
-    
-    // Update the active icon's href to force browser refresh
-    if ((theme === 'dark' && isDarkIcon) || (theme === 'light' && isLightIcon)) {
-      const newHref = theme === 'dark' 
-        ? './assets/favicon/favicon-dark.svg' 
-        : './assets/favicon/favicon-light.svg';
-      
-      // Force refresh by temporarily removing and re-adding
-      const tempHref = icon.href;
-      icon.href = '';
-      setTimeout(() => {
-        icon.href = tempHref === newHref ? newHref + '?refresh=' + Date.now() : newHref;
-      }, 0);
-    }
-  });
-  
-  // Update Apple Touch Icon for iOS devices
-  const appleTouchIcons = document.querySelectorAll('link[rel="apple-touch-icon"]');
-  appleTouchIcons.forEach(icon => {
-    const mediaQuery = icon.getAttribute('media');
-    if (
-      (theme === 'dark' && mediaQuery?.includes('dark')) ||
-      (theme === 'light' && mediaQuery?.includes('light'))
-    ) {
-      // iOS will automatically pick the right one based on media query
-      // Force refresh if needed
-      const currentHref = icon.href;
-      icon.href = '';
-      setTimeout(() => { icon.href = currentHref; }, 0);
-    }
-  });
-  
-  // Update Android/PWA icons
-  const pngIcons = document.querySelectorAll('link[rel="icon"][type="image/png"]');
-  pngIcons.forEach(icon => {
-    const mediaQuery = icon.getAttribute('media');
-    if (
-      (theme === 'dark' && mediaQuery?.includes('dark')) ||
-      (theme === 'light' && mediaQuery?.includes('light'))
-    ) {
-      // Android will pick the right one based on media query
-      const currentHref = icon.href;
-      icon.href = '';
-      setTimeout(() => { icon.href = currentHref; }, 0);
-    }
-  });
 }
 
 /**
@@ -214,7 +149,6 @@ export function toggleTheme() {
   
   setThemeMetaColor(next);
   updateThemeAssets(next);
-  updateFavicon(next);
 
   const event = new CustomEvent("themechange", { detail: { theme: next } });
   document.dispatchEvent(event);
@@ -228,7 +162,7 @@ export function toggleTheme() {
  * Initialize theme system
  */
 export function initTheme() {
-  // Preload all theme images immediately (including favicons)
+  // Preload all theme images immediately
   preloadThemeImages();
 
   // Main theme toggle
@@ -250,5 +184,4 @@ export function initTheme() {
   }
   
   setThemeMetaColor(initialTheme);
-  updateFavicon(initialTheme);
 }
