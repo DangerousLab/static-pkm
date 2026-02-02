@@ -106,9 +106,10 @@ export function loadModule(node, done) {
 
       let instance = null;
       try {
+        console.log('[ContentLoader] Creating module instance:', node.id);
         instance = factory({ root: innerRoot, themeController }) || {};
       } catch (err) {
-        console.error(err);
+        console.error('[ContentLoader] Module instantiation failed:', err);
         dom.card.innerHTML = "\n\nUnable to load module.";
         dom.card.classList.remove("preload");
         dom.card.classList.add("loaded");
@@ -117,30 +118,21 @@ export function loadModule(node, done) {
       }
 
       requestAnimationFrame(() => {
-        const heading = innerRoot.querySelector("h1");
-        if (heading && heading.textContent) {
-          state.moduleDisplayNames[node.id] = heading.textContent.trim();
-
-          const item = dom.sidebarNav.querySelector(
-            '.nav-item[data-type="' + node.type + '"][data-id="' + node.id + '"]'
-          );
-          if (item) {
-            const labelEl = item.querySelector(".nav-label");
-            if (labelEl) labelEl.textContent = state.moduleDisplayNames[node.id];
-          }
-        }
-
+        // Removed: Redundant sidebar label update
+        // Tree generator already extracted <h1> at build time
+        // Sidebar label should remain stable from tree.json
+        
         typesetMath(innerRoot);
         dom.card.classList.remove("preload");
         dom.card.classList.add("loaded");
         
-        console.log('[ContentLoader] Module loaded');
+        console.log('[ContentLoader] Module loaded successfully:', node.id);
       });
 
       done(instance);
     })
     .catch((err) => {
-      console.error(err);
+      console.error('[ContentLoader] Module loading failed:', err);
       dom.card.innerHTML = "\n\nUnable to load module.";
       dom.card.classList.remove("preload");
       dom.card.classList.add("loaded");
