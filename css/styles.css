@@ -1,12 +1,5 @@
 /* ==================== CSS VARIABLES ==================== */
 :root {
-  /* Existing variables... */
-  --bg: #3c3c3c;
-  --bg-card: #303030;
-  /* ... rest of your variables ... */
-}
-
-:root {
   --bg: #3c3c3c;
   --bg-card: #303030;
   --bg-panel: #262626;
