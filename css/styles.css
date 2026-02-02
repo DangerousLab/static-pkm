@@ -56,6 +56,34 @@ body {
   background: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
 }
 
+/* ==================== WEBAPP STATUS BAR THEMING ==================== */
+
+/* Theme-aware status bar background for portrait webapp mode */
+html {
+  background: #1f1f1f; /* Dark theme default */
+}
+
+:root[data-theme="light"] html {
+  background: #f3f4f6; /* Light theme */
+}
+
+/* Ensure safe area top (status bar area) matches theme */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #1f1f1f;
+  z-index: 100;
+  pointer-events: none;
+}
+
+:root[data-theme="light"] body::after {
+  background: #f3f4f6;
+}
+
 /* ==================== APP SHELL LAYOUT ==================== */
 
 .app-shell {
