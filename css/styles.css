@@ -1,4 +1,15 @@
 /* ==================== CSS VARIABLES ==================== */
+:root {
+  /* Safe area insets for notched devices */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  
+  /* Existing variables... */
+  --bg: #3c3c3c;
+  /* ... rest of your variables ... */
+}
 
 :root {
   --bg: #3c3c3c;
@@ -324,12 +335,20 @@ body {
 }
 
 @media (max-height: 600px) and (orientation: landscape) {
+  /* Add safe area padding to body to keep all content away from notches */
+  body {
+    padding-left: var(--safe-area-left);
+    padding-right: var(--safe-area-right);
+    padding-top: var(--safe-area-top);
+    padding-bottom: var(--safe-area-bottom);
+  }
+
   .landscape-leftbar {
     position: fixed;
-    top: 0;
-    left: 0;
+    top: var(--safe-area-top); /* Start below top notch/bar */
+    left: var(--safe-area-left); /* Start after left notch */
     width: var(--landscape-leftbar-width);
-    height: 100vh;
+    height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom)); /* Full height minus safe areas */
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -405,11 +424,11 @@ body {
     display: none !important;
   }
 
-  /* CRITICAL: Adjust sidebar for left bar */
+  /* Sidebar positioning - starts after left bar, within safe area */
   .sidebar {
-    top: 0 !important;
-    left: var(--landscape-leftbar-width) !important;
-    height: 100vh !important;
+    top: var(--safe-area-top) !important;
+    left: calc(var(--landscape-leftbar-width) + var(--safe-area-left)) !important;
+    height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom)) !important;
     width: 80vw !important;
     max-width: 360px !important;
     transform: translateX(-100%) !important;
@@ -419,24 +438,22 @@ body {
     transform: translateX(0) !important;
   }
 
-  /* Adjust main content for left bar */
+  /* Main content - positioned within safe area */
   .app-shell .main-content {
-    margin-left: var(--landscape-leftbar-width) !important;
-    padding: 8px 12px !important; /* Top: 4px, Sides: 12px */
+    margin-left: calc(var(--landscape-leftbar-width) + var(--safe-area-left)) !important;
+    padding: 6px 12px !important;
   }
 
   .main-content .page-root {
-    padding: 2px 2px 12px !important; /* Top: 0px, Sides: 2px, Bottom: 12px */
+    padding: 2px 2px 12px !important;
   }
 
-  /* CRITICAL: Card padding override with high specificity */
   .page-root .card {
-    margin-top: 2px !important; /* Minimal top margin */
-    padding: 6px 20px 18px !important; /* Top: 6px, Sides: 20px, Bottom: 18px */
+    margin-top: 4px !important;
+    padding: 10px 20px 18px !important;
     border-radius: 14px !important;
   }
 
-  /* Also target content headers for tighter spacing */
   .card .content-header,
   .card .calculator-header {
     margin-bottom: 12px !important;
