@@ -335,20 +335,33 @@ body {
 }
 
 @media (max-height: 600px) and (orientation: landscape) {
-  /* Add safe area padding to body to keep all content away from notches */
-  body {
-    padding-left: var(--safe-area-left);
-    padding-right: var(--safe-area-right);
-    padding-top: var(--safe-area-top);
-    padding-bottom: var(--safe-area-bottom);
+  /* Prevent body scrolling and set fixed dimensions */
+  html, body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* App shell takes full viewport */
+  .app-shell {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .landscape-leftbar {
     position: fixed;
-    top: var(--safe-area-top); /* Start below top notch/bar */
-    left: var(--safe-area-left); /* Start after left notch */
+    top: env(safe-area-inset-top, 0px);
+    left: env(safe-area-inset-left, 0px);
     width: var(--landscape-leftbar-width);
-    height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom)); /* Full height minus safe areas */
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -424,33 +437,69 @@ body {
     display: none !important;
   }
 
-  /* Sidebar positioning - starts after left bar, within safe area */
+  /* Sidebar backdrop - ONLY covers the sidebar area when closed */
+  /* Only visible in standalone/webapp mode (not in browser) */
+  .sidebar::before {
+    content: '';
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px));
+    width: 80vw; /* Same as sidebar width */
+    max-width: 360px; /* Same as sidebar max-width */
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    z-index: -1; /* Behind sidebar content */
+    pointer-events: none;
+    opacity: 0; /* Hidden by default */
+  }
+
+  /* Show backdrop only in standalone mode (webapp) when sidebar is closed */
+  @media (display-mode: standalone) {
+    .sidebar[data-open="false"]::before {
+      opacity: 1;
+    }
+  }
+
+  :root[data-theme="light"] .sidebar::before {
+    background: #f9fafb;
+  }
+
+  /* Sidebar positioning */
   .sidebar {
-    top: var(--safe-area-top) !important;
-    left: calc(var(--landscape-leftbar-width) + var(--safe-area-left)) !important;
-    height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom)) !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
     width: 80vw !important;
     max-width: 360px !important;
     transform: translateX(-100%) !important;
+    z-index: 20;
   }
 
   .sidebar[data-open="true"] {
     transform: translateX(0) !important;
   }
 
-  /* Main content - positioned within safe area */
+  /* Main content - ALWAYS in same position, sidebar overlays it */
   .app-shell .main-content {
-    margin-left: calc(var(--landscape-leftbar-width) + var(--safe-area-left)) !important;
-    padding: 6px 12px !important;
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    right: env(safe-area-inset-right, 0px);
+    bottom: env(safe-area-inset-bottom, 0px);
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .main-content .page-root {
     padding: 2px 2px 12px !important;
+    max-width: 100%;
   }
 
   .page-root .card {
     margin-top: 4px !important;
-    padding: 10px 20px 18px !important;
+    padding: 10px 16px 18px !important;
     border-radius: 14px !important;
   }
 
