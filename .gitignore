@@ -13,3 +13,17 @@ node_modules/
 
 # Backups
 backup-*/
+
+# Rollup Build System
+node_modules/
+*.log
+
+# OS Files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backup-*/
