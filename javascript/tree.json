@@ -39,7 +39,7 @@
         {
           "type": "module",
           "id": "nitricCalculator",
-          "title": "NitricCalculator",
+          "title": "Nitric Acid Stoichiometry Calculator",
           "tags": [],
           "file": "Home/Tools/nitricCalculator.js"
         }
