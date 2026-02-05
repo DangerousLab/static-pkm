@@ -59,3 +59,19 @@ node_modules/
 
 # Backups
 backup-*/
+
+# Rollup Build System
+node_modules/
+*.log
+
+# Build Outputs
+
+# OS Files
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backup-*/
