@@ -2,8 +2,8 @@
 
 ################################################################################
 # Unstablon PKM - Rollup Build System Setup Script (CSS + JS Bundling)
-# Version: 4.1
-# Date: 2026-02-04
+# Version: 4.2
+# Date: 2026-02-05
 #
 # Features:
 # - CSS minification and bundling (styles.css + modules.css → app.min.css)
@@ -143,6 +143,81 @@ backup_existing_files() {
     if [ -d "$backup_dir" ]; then
         print_info "Backup saved at: $backup_dir/"
     fi
+}
+
+################################################################################
+# Create MathJax Download Script
+################################################################################
+
+create_mathjax_downloader() {
+    print_header "Creating MathJax Downloader Script"
+
+    mkdir -p scripts
+
+    cat > scripts/download-mathjax.mjs << 'MATHJAXDOWNLOADER'
+#!/usr/bin/env node
+
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.join(__dirname, '..');
+const VENDOR_DIR = path.join(ROOT, 'vendor', 'mathjax');
+const MATHJAX_URL = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+const OUTPUT_FILE = path.join(VENDOR_DIR, 'tex-mml-chtml.js');
+
+console.log('\nDownloading MathJax bundle from jsdelivr CDN');
+console.log(`Destination: ${path.relative(ROOT, OUTPUT_FILE)}\n`);
+
+if (!fs.existsSync(VENDOR_DIR)) {
+  fs.mkdirSync(VENDOR_DIR, { recursive: true });
+}
+
+console.log('Downloading tex-mml-chtml.js...');
+
+https.get(MATHJAX_URL, (response) => {
+  if (response.statusCode !== 200) {
+    console.error(`Download failed: HTTP ${response.statusCode}`);
+    process.exit(1);
+  }
+
+  const file = fs.createWriteStream(OUTPUT_FILE);
+  let downloadedBytes = 0;
+
+  response.on('data', (chunk) => {
+    downloadedBytes += chunk.length;
+    process.stdout.write(`\r  Downloaded: ${(downloadedBytes / 1024).toFixed(0)} KB`);
+  });
+
+  response.pipe(file);
+
+  file.on('finish', () => {
+    file.close();
+    const fileSizeKB = (fs.statSync(OUTPUT_FILE).size / 1024).toFixed(0);
+
+    console.log('\n\nMathJax bundle downloaded successfully');
+    console.log(`File: tex-mml-chtml.js`);
+    console.log(`Size: ${fileSizeKB} KB`);
+    console.log(`Location: vendor/mathjax/tex-mml-chtml.js`);
+    console.log('\nConfiguration: Local JS bundle, CDN fonts\n');
+  });
+
+  file.on('error', (err) => {
+    console.error('\nError writing file:', err.message);
+    fs.unlink(OUTPUT_FILE, () => {});
+    process.exit(1);
+  });
+
+}).on('error', (err) => {
+  console.error('\nError downloading file:', err.message);
+  process.exit(1);
+});
+MATHJAXDOWNLOADER
+
+    chmod +x scripts/download-mathjax.mjs
+    print_success "Created scripts/download-mathjax.mjs"
 }
 
 ################################################################################
@@ -661,7 +736,7 @@ create_documentation() {
     print_header "Creating Documentation"
 
     cat > ROLLUP-GUIDE.md << 'GUIDE'
-# 🚀 Rollup Build System Guide (CSS + JS)
+# Rollup Build System Guide (CSS + JS)
 
 ## Commands
 
@@ -687,7 +762,7 @@ npm run setup:mathjax  # Download MathJax vendor files
 
 ## What Gets Committed
 
-✅ Commit:
+Commit:
 - index.html
 - javascript/app.js (source)
 - javascript/app.min.js (built)
@@ -696,7 +771,7 @@ npm run setup:mathjax  # Download MathJax vendor files
 - css/app.min.css (built)
 - vendor/mathjax/ (self-hosted MathJax)
 
-❌ Don't commit:
+Do not commit:
 - javascript/app.min.js.map
 - css/app.min.css.map
 - css/main.css
@@ -704,18 +779,18 @@ npm run setup:mathjax  # Download MathJax vendor files
 
 ## Vendor Dependencies
 
-Third-party libraries are self-hosted in `vendor/` for performance:
+Third-party libraries are self-hosted in vendor/ for performance:
 
-- **MathJax**: LaTeX equation rendering
-  - Update: `npm run setup:mathjax`
-  - Location: `vendor/mathjax/`
+- MathJax: LaTeX equation rendering
+  - Update: npm run setup:mathjax
+  - Location: vendor/mathjax/
 
 ## Performance
 
-- CSS: 2 files → 1 minified (~60-70% smaller)
-- JS: Minified + console.log removed
+- CSS: 2 files to 1 minified (60-70% smaller)
+- JS: Minified with console.log removed
 - MathJax: Self-hosted (~60% smaller with brotli)
-- Fewer HTTP requests = faster loads
+- Fewer HTTP requests, faster loads
 GUIDE
 
     print_success "Created ROLLUP-GUIDE.md"
@@ -815,7 +890,7 @@ generate_initial_build() {
 ################################################################################
 
 print_summary() {
-    print_header "Setup Complete! 🎉"
+    print_header "Setup Complete"
 
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}  Rollup Build System (CSS + JS) Successfully Installed${NC}"
@@ -831,6 +906,7 @@ print_summary() {
     echo "  ✓ scripts/prod-server.mjs"
     echo "  ✓ scripts/watch-and-build.mjs"
     echo "  ✓ scripts/test-dual-server.mjs"
+    echo "  ✓ scripts/download-mathjax.mjs"
     echo "  ✓ package.json"
     echo "  ✓ ROLLUP-GUIDE.md"
     echo ""
@@ -845,7 +921,7 @@ print_summary() {
     echo ""
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}  🚀 Quick Start${NC}"
+    echo -e "${BLUE}  Quick Start${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     echo "  Test both modes:"
@@ -863,15 +939,15 @@ print_summary() {
     echo ""
 
     print_info "Features:"
-    echo "  ✅ CSS bundling (2 files → 1 minified)"
-    echo "  ✅ JavaScript minification"
-    echo "  ✅ In-memory dev server"
-    echo "  ✅ Dual-mode testing"
-    echo "  ✅ Auto-rebuild on changes"
-    echo "  ✅ Self-hosted MathJax (vendor/)"
+    echo "  ✓ CSS bundling (2 files to 1 minified)"
+    echo "  ✓ JavaScript minification"
+    echo "  ✓ In-memory dev server"
+    echo "  ✓ Dual-mode testing"
+    echo "  ✓ Auto-rebuild on changes"
+    echo "  ✓ Self-hosted MathJax (vendor/)"
     echo ""
 
-    echo -e "${GREEN}🎉 Ready! Run 'npm run test' to start.${NC}"
+    echo -e "${GREEN}Ready to start. Run 'npm run test' to begin.${NC}"
     echo ""
 }
 
@@ -885,7 +961,7 @@ main() {
     echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.1            ║${NC}"
+    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.2            ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
     echo -e "${BLUE}║   CSS + JS Bundling + Vendor Management + Dev Server        ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
@@ -894,6 +970,7 @@ main() {
 
     preflight_checks
     backup_existing_files
+    create_mathjax_downloader
     create_css_entry
     create_postcss_config
     create_rollup_config_js

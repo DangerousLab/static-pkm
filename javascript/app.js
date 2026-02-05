@@ -12,6 +12,7 @@ import { openNode } from './modules/content-loader.js';
 import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
 import { initSearch, rebuildSearchIndex } from './modules/search.js';
 import { initSafeAreaDetector } from './modules/safe-area-detector.js';
+import * as MathJaxUtil from './utilities/mathJax.js';
 
 (function () {
   "use strict";
@@ -21,12 +22,16 @@ import { initSafeAreaDetector } from './modules/safe-area-detector.js';
   // Register global module ready notification
   window.__moduleReady = notifyModuleReady;
 
+  // Expose MathJax utility globally for non-module scripts (e.g., preloaded calculators)
+  window.MathJaxUtility = MathJaxUtil;
+  console.log('[App] MathJax utility exposed globally');
+
   /**
    * Initialize application on page load
    */
   window.addEventListener("load", () => {
     console.log('[App] Page loaded, initializing DOM references');
-    
+
     // Initialize DOM references first
     initDOMRefs();
     initSafeAreaDetector();
@@ -114,7 +119,7 @@ import { initSafeAreaDetector } from './modules/safe-area-detector.js';
    */
   document.addEventListener("DOMContentLoaded", () => {
     initDOMRefs();
-    
+
     if (dom.card) {
       dom.card.addEventListener("click", () => {
         if (isMediumViewport() && dom.sidebar.getAttribute("data-open") === "true") {

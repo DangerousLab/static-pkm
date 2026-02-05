@@ -6,6 +6,7 @@ let mathJaxLoadingPromise = null;
 
 /**
  * Load MathJax globally (lazy-loaded on first use)
+ * Hybrid approach: JS from local, fonts from CDN
  * Safe to call multiple times - only loads once
  * @returns {Promise<void>}
  */
@@ -18,7 +19,7 @@ export async function loadMathJax() {
     return mathJaxLoadingPromise;
   }
 
-  console.log('[MathJax Utility] Loading MathJax...');
+  console.log('[MathJax Utility] Loading MathJax (hybrid mode)...');
 
   mathJaxLoadingPromise = new Promise((resolve, reject) => {
     // Configure MathJax before loading
@@ -28,7 +29,8 @@ export async function loadMathJax() {
         displayMath: [["\\[", "\\]"], ["$$", "$$"]]
       },
       chtml: {
-        fontURL: './vendor/mathjax/fonts' // Self-hosted fonts
+        // Use CDN for fonts (default jsdelivr path)
+        fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
       },
       options: {
         skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"]
@@ -37,19 +39,20 @@ export async function loadMathJax() {
         ready: () => {
           window.MathJax.startup.defaultReady();
           mathJaxLoaded = true;
-          console.log('[MathJax Utility] MathJax loaded successfully');
+          console.log('[MathJax Utility] MathJax loaded (JS: local, fonts: CDN)');
           resolve();
         }
       }
     };
 
-    // Load from self-hosted location
+    // Load main bundle from local vendor directory
     const script = document.createElement('script');
     script.src = './vendor/mathjax/tex-mml-chtml.js';
     script.async = true;
     script.onerror = () => {
-      console.error('[MathJax Utility] Failed to load MathJax');
-      reject(new Error('Failed to load MathJax'));
+      console.error('[MathJax Utility] Failed to load MathJax bundle');
+      console.error('[MathJax Utility] Make sure to run: npm run setup:mathjax');
+      reject(new Error('Failed to load MathJax bundle'));
     };
     document.head.appendChild(script);
   });
