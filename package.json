@@ -13,7 +13,8 @@
     "dev": "node scripts/dev-server.mjs",
     "preview": "node scripts/prod-server.mjs",
     "watch": "node scripts/watch-and-build.mjs",
-    "clean": "rm -f javascript/app.min.js* css/app.min.css*"
+    "clean": "rm -f javascript/app.min.js* css/app.min.css*",
+    "setup:mathjax": "node scripts/download-mathjax.mjs"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",

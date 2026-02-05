@@ -15,11 +15,12 @@ Opens:
 Press Ctrl+C to stop all servers.
 
 ### Individual Commands
-npm run dev       # Dev server only
-npm run preview   # Prod server only  
-npm run watch     # File watcher only
-npm run build:css # Build CSS only
-npm run build:js  # Build JS only
+npm run dev            # Dev server only
+npm run preview        # Prod server only  
+npm run watch          # File watcher only
+npm run build:css      # Build CSS only
+npm run build:js       # Build JS only
+npm run setup:mathjax  # Download MathJax vendor files
 
 ## What Gets Committed
 
@@ -30,6 +31,7 @@ npm run build:js  # Build JS only
 - css/styles.css (source)
 - css/modules.css (source)
 - css/app.min.css (built)
+- vendor/mathjax/ (self-hosted MathJax)
 
 ❌ Don't commit:
 - javascript/app.min.js.map
@@ -37,8 +39,17 @@ npm run build:js  # Build JS only
 - css/main.css
 - node_modules/
 
+## Vendor Dependencies
+
+Third-party libraries are self-hosted in `vendor/` for performance:
+
+- **MathJax**: LaTeX equation rendering
+  - Update: `npm run setup:mathjax`
+  - Location: `vendor/mathjax/`
+
 ## Performance
 
 - CSS: 2 files → 1 minified (~60-70% smaller)
 - JS: Minified + console.log removed
+- MathJax: Self-hosted (~60% smaller with brotli)
 - Fewer HTTP requests = faster loads
