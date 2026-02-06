@@ -301,6 +301,7 @@ html {
 
 /* Prevent hover interactions on logos that might trigger browser prefetching */
 .header-logo-img,
+.header-banner-img,
 .landscape-leftbar-logo img {
   pointer-events: none; /* Block all mouse interactions */
   user-select: none; /* Prevent selection */
