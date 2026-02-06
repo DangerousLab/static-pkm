@@ -244,8 +244,8 @@ CSSGENERATOR
 create_postcss_config() {
     print_header "Creating PostCSS Configuration"
 
-    cat > postcss.config.js << 'POSTCSSCONFIG'
-export default {
+    cat > postcss.config.cjs << 'POSTCSSCONFIG'
+module.exports = {
   plugins: {
     'postcss-import': {},
     'cssnano': {
@@ -263,7 +263,7 @@ export default {
 };
 POSTCSSCONFIG
 
-    print_success "Created postcss.config.js"
+    print_success "Created postcss.config.cjs"
 }
 
 ################################################################################
@@ -893,7 +893,7 @@ print_summary() {
     print_info "Files Created:"
     echo "  ✓ rollup.config.js"
     echo "  ✓ rollup.config.css.js"
-    echo "  ✓ postcss.config.js"
+    echo "  ✓ postcss.config.cjs"
     echo "  ✓ scripts/generate-css-entry.mjs (dynamic CSS discovery)"
     echo "  ✓ scripts/dev-server.mjs"
     echo "  ✓ scripts/prod-server.mjs"
