@@ -90,32 +90,15 @@ export function updateThemeAssets(theme) {
       headerTagline.style.animation = 'none';
     }
 
-    // Step 4: Switch source using cached images
-    const logoKey = theme === 'dark' ? 'logo-dark' : 'logo-light';
-    const bannerKey = theme === 'dark' ? 'banner-dark' : 'banner-light';
-    const cachedLogo = imageCache[logoKey];
-    const cachedBanner = imageCache[bannerKey];
+    // Step 4: Switch source using consistent URL paths
+    // CRITICAL FIX: Use direct paths to leverage browser cache
+    // Preloading ensures these are already in browser memory/disk cache
+    const logoPath = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
+    const bannerPath = theme === 'dark' ? './assets/banner-dark.png' : './assets/banner-light.png';
 
-    // Use cached image if available and fully loaded
-    if (cachedLogo && cachedLogo.complete && cachedLogo.naturalWidth > 0) {
-      headerLogo.src = cachedLogo.src;
-    } else {
-      // Fallback to direct path if cache not ready
-      headerLogo.src = theme === 'dark' 
-        ? './assets/logo-dark.png' 
-        : './assets/logo-light.png';
-      console.warn('[Theme] Logo cache not ready, using fallback');
-    }
-
-    if (cachedBanner && cachedBanner.complete && cachedBanner.naturalWidth > 0) {
-      headerBanner.src = cachedBanner.src;
-    } else {
-      // Fallback to direct path if cache not ready
-      headerBanner.src = theme === 'dark' 
-        ? './assets/banner-dark.png' 
-        : './assets/banner-light.png';
-      console.warn('[Theme] Banner cache not ready, using fallback');
-    }
+    // Setting the exact same src forces browser to use memory cache
+    headerLogo.src = logoPath;
+    headerBanner.src = bannerPath;
 
     // Step 5: Re-enable animation and add animate class in next frame
     requestAnimationFrame(() => {
@@ -148,20 +131,10 @@ export function updateThemeAssets(theme) {
     // Step 3: Temporarily disable animation
     landscapeLogo.style.animation = 'none';
 
-    // Step 4: Switch source using cached image
-    const logoKey = theme === 'dark' ? 'logo-dark' : 'logo-light';
-    const cachedLogo = imageCache[logoKey];
-
-    // Use cached image if available and fully loaded
-    if (cachedLogo && cachedLogo.complete && cachedLogo.naturalWidth > 0) {
-      landscapeLogo.src = cachedLogo.src;
-    } else {
-      // Fallback to direct path if cache not ready
-      landscapeLogo.src = theme === 'dark' 
-        ? './assets/logo-dark.png' 
-        : './assets/logo-light.png';
-      console.warn('[Theme] Landscape logo cache not ready, using fallback');
-    }
+    // Step 4: Switch source using consistent URL path
+    // CRITICAL FIX: Use direct path to leverage browser cache
+    const logoPath = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
+    landscapeLogo.src = logoPath;
 
     // Step 5: Re-enable animation
     requestAnimationFrame(() => {
