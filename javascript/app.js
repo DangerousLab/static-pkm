@@ -29,15 +29,15 @@ import * as MathJaxUtil from './utilities/mathJax.js';
   /**
    * Initialize application on page load
    */
-  window.addEventListener("load", () => {
+  window.addEventListener("load", async () => {
     console.log('[App] Page loaded, initializing DOM references');
 
     // Initialize DOM references first
     initDOMRefs();
     initSafeAreaDetector();
 
-    // Initialize all modules
-    initTheme();
+    // Initialize all modules (await theme to ensure assets are preloaded)
+    await initTheme();
     initSidebar();
     initSearch();
 

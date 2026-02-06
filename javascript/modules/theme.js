@@ -15,6 +15,7 @@ const imageCache = {
 
 /**
  * Preload all theme images (logos and banners only)
+ * Returns a Promise that resolves when all images are loaded
  */
 function preloadThemeImages() {
   const images = [
@@ -24,13 +25,27 @@ function preloadThemeImages() {
     { key: 'banner-light', src: './assets/banner-light.png' }
   ];
 
-  images.forEach(({ key, src }) => {
-    const img = new Image();
-    img.src = src;
-    imageCache[key] = img;
+  // Create promises for each image load
+  const loadPromises = images.map(({ key, src }) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        imageCache[key] = img;
+        console.log(`[Theme] Preloaded ${key}`);
+        resolve();
+      };
+      img.onerror = () => {
+        console.warn(`[Theme] Failed to preload ${key}`);
+        imageCache[key] = img; // Store anyway, fallback to string path
+        resolve(); // Don't block on error
+      };
+      img.src = src;
+    });
   });
 
-  console.log('[Theme] Theme assets preloaded');
+  return Promise.all(loadPromises).then(() => {
+    console.log('[Theme] All theme assets preloaded and ready');
+  });
 }
 
 /**
@@ -38,7 +53,7 @@ function preloadThemeImages() {
  */
 export function setThemeMetaColor(theme) {
   const themeColorMeta = document.getElementById('theme-color-meta');
-  
+
   if (themeColorMeta) {
     themeColorMeta.setAttribute("content", theme === "dark" ? "#1f1f1f" : "#f3f4f6");
   }
@@ -52,7 +67,7 @@ export function updateThemeAssets(theme) {
   const headerBanner = document.getElementById('headerBanner');
   const headerTagline = document.querySelector('.header-tagline');
   const landscapeLogo = document.getElementById('landscapeLogo');
-  
+
   if (headerLogo && headerBanner) {
     // Step 1: Remove existing animations by removing class
     headerLogo.classList.remove('animate');
@@ -60,30 +75,48 @@ export function updateThemeAssets(theme) {
     if (headerTagline) {
       headerTagline.classList.remove('animate');
     }
-    
+
     // Step 2: Force reflow to ensure animation can restart
     void headerLogo.offsetWidth;
     void headerBanner.offsetWidth;
     if (headerTagline) {
       void headerTagline.offsetWidth;
     }
-    
+
     // Step 3: Temporarily disable animation on elements
     headerLogo.style.animation = 'none';
     headerBanner.style.animation = 'none';
     if (headerTagline) {
       headerTagline.style.animation = 'none';
     }
-    
-    // Step 4: Switch source immediately
-    headerLogo.src = theme === 'dark' 
-      ? './assets/logo-dark.png' 
-      : './assets/logo-light.png';
-    
-    headerBanner.src = theme === 'dark' 
-      ? './assets/banner-dark.png' 
-      : './assets/banner-light.png';
-    
+
+    // Step 4: Switch source using cached images
+    const logoKey = theme === 'dark' ? 'logo-dark' : 'logo-light';
+    const bannerKey = theme === 'dark' ? 'banner-dark' : 'banner-light';
+    const cachedLogo = imageCache[logoKey];
+    const cachedBanner = imageCache[bannerKey];
+
+    // Use cached image if available and fully loaded
+    if (cachedLogo && cachedLogo.complete && cachedLogo.naturalWidth > 0) {
+      headerLogo.src = cachedLogo.src;
+    } else {
+      // Fallback to direct path if cache not ready
+      headerLogo.src = theme === 'dark' 
+        ? './assets/logo-dark.png' 
+        : './assets/logo-light.png';
+      console.warn('[Theme] Logo cache not ready, using fallback');
+    }
+
+    if (cachedBanner && cachedBanner.complete && cachedBanner.naturalWidth > 0) {
+      headerBanner.src = cachedBanner.src;
+    } else {
+      // Fallback to direct path if cache not ready
+      headerBanner.src = theme === 'dark' 
+        ? './assets/banner-dark.png' 
+        : './assets/banner-light.png';
+      console.warn('[Theme] Banner cache not ready, using fallback');
+    }
+
     // Step 5: Re-enable animation and add animate class in next frame
     requestAnimationFrame(() => {
       // Remove inline style to restore CSS animation
@@ -92,7 +125,7 @@ export function updateThemeAssets(theme) {
       if (headerTagline) {
         headerTagline.style.animation = '';
       }
-      
+
       // Add animate class to trigger animation
       requestAnimationFrame(() => {
         headerLogo.classList.add('animate');
@@ -108,18 +141,28 @@ export function updateThemeAssets(theme) {
   if (landscapeLogo) {
     // Step 1: Remove existing animation
     landscapeLogo.classList.remove('animate');
-    
+
     // Step 2: Force reflow
     void landscapeLogo.offsetWidth;
-    
+
     // Step 3: Temporarily disable animation
     landscapeLogo.style.animation = 'none';
-    
-    // Step 4: Switch source
-    landscapeLogo.src = theme === 'dark' 
-      ? './assets/logo-dark.png' 
-      : './assets/logo-light.png';
-    
+
+    // Step 4: Switch source using cached image
+    const logoKey = theme === 'dark' ? 'logo-dark' : 'logo-light';
+    const cachedLogo = imageCache[logoKey];
+
+    // Use cached image if available and fully loaded
+    if (cachedLogo && cachedLogo.complete && cachedLogo.naturalWidth > 0) {
+      landscapeLogo.src = cachedLogo.src;
+    } else {
+      // Fallback to direct path if cache not ready
+      landscapeLogo.src = theme === 'dark' 
+        ? './assets/logo-dark.png' 
+        : './assets/logo-light.png';
+      console.warn('[Theme] Landscape logo cache not ready, using fallback');
+    }
+
     // Step 5: Re-enable animation
     requestAnimationFrame(() => {
       landscapeLogo.style.animation = '';
@@ -137,16 +180,16 @@ export function toggleTheme() {
   const current = dom.htmlEl.getAttribute("data-theme") || "dark";
   const next = current === "dark" ? "light" : "dark";
   dom.htmlEl.setAttribute("data-theme", next);
-  
+
   // Update main theme icon
   dom.themeIcon.textContent = next === "dark" ? "☾" : "☼";
-  
+
   // Update landscape theme icon
   const landscapeThemeIcon = document.getElementById('landscapeThemeIcon');
   if (landscapeThemeIcon) {
     landscapeThemeIcon.textContent = next === "dark" ? "☾" : "☼";
   }
-  
+
   setThemeMetaColor(next);
   updateThemeAssets(next);
 
@@ -160,10 +203,11 @@ export function toggleTheme() {
 
 /**
  * Initialize theme system
+ * Returns a Promise that resolves when theme is fully initialized
  */
-export function initTheme() {
-  // Preload all theme images immediately
-  preloadThemeImages();
+export async function initTheme() {
+  // Preload all theme images and wait for completion
+  await preloadThemeImages();
 
   // Main theme toggle
   dom.themeToggleBtn.addEventListener("click", toggleTheme);
@@ -176,12 +220,12 @@ export function initTheme() {
 
   const initialTheme = dom.htmlEl.getAttribute("data-theme") || "dark";
   dom.themeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
-  
+
   // Set initial landscape theme icon
   const landscapeThemeIcon = document.getElementById('landscapeThemeIcon');
   if (landscapeThemeIcon) {
     landscapeThemeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
   }
-  
+
   setThemeMetaColor(initialTheme);
 }
