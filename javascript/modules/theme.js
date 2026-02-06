@@ -1,6 +1,7 @@
 /**
  * Theme management module
  * Handles dark/light theme toggling and asset switching with preloading
+ * PRODUCTION FIX: Uses DOM element cloning to avoid HTTP requests
  */
 
 import { dom, state, themeController } from '../core/state.js';
@@ -60,13 +61,49 @@ export function setThemeMetaColor(theme) {
 }
 
 /**
+ * Replace image element with cached version (NO HTTP request)
+ * @param {HTMLImageElement} targetImg - The img element to replace
+ * @param {string} cacheKey - Key in imageCache
+ * @param {string} fallbackSrc - Fallback URL if cache fails
+ */
+function replaceWithCachedImage(targetImg, cacheKey, fallbackSrc) {
+  const cachedImg = imageCache[cacheKey];
+
+  if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+    // Clone the cached image to get a fresh DOM element
+    const newImg = cachedImg.cloneNode(false);
+
+    // Copy all attributes from target (except src which is already correct)
+    Array.from(targetImg.attributes).forEach(attr => {
+      if (attr.name !== 'src') {
+        newImg.setAttribute(attr.name, attr.value);
+      }
+    });
+
+    // Copy computed classes
+    newImg.className = targetImg.className;
+
+    // Replace in DOM (this uses the cached bitmap, NO HTTP request)
+    targetImg.parentNode.replaceChild(newImg, targetImg);
+
+    console.log(`[Theme] Replaced ${targetImg.id} with cached image (0 HTTP requests)`);
+    return newImg;
+  } else {
+    // Fallback: set src directly (will trigger HTTP request)
+    console.warn(`[Theme] Cache miss for ${cacheKey}, using fallback (HTTP request)`);
+    targetImg.src = fallbackSrc;
+    return targetImg;
+  }
+}
+
+/**
  * Update logo and banner based on theme with slide-up animation
  */
 export function updateThemeAssets(theme) {
-  const headerLogo = document.getElementById('headerLogo');
-  const headerBanner = document.getElementById('headerBanner');
+  let headerLogo = document.getElementById('headerLogo');
+  let headerBanner = document.getElementById('headerBanner');
   const headerTagline = document.querySelector('.header-tagline');
-  const landscapeLogo = document.getElementById('landscapeLogo');
+  let landscapeLogo = document.getElementById('landscapeLogo');
 
   if (headerLogo && headerBanner) {
     // Step 1: Remove existing animations by removing class
@@ -90,15 +127,15 @@ export function updateThemeAssets(theme) {
       headerTagline.style.animation = 'none';
     }
 
-    // Step 4: Switch source using consistent URL paths
-    // CRITICAL FIX: Use direct paths to leverage browser cache
-    // Preloading ensures these are already in browser memory/disk cache
-    const logoPath = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
-    const bannerPath = theme === 'dark' ? './assets/banner-dark.png' : './assets/banner-light.png';
+    // Step 4: Replace with cached images (ZERO HTTP requests)
+    const logoKey = theme === 'dark' ? 'logo-dark' : 'logo-light';
+    const bannerKey = theme === 'dark' ? 'banner-dark' : 'banner-light';
+    const logoFallback = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
+    const bannerFallback = theme === 'dark' ? './assets/banner-dark.png' : './assets/banner-light.png';
 
-    // Setting the exact same src forces browser to use memory cache
-    headerLogo.src = logoPath;
-    headerBanner.src = bannerPath;
+    // Replace elements (updates references since new elements are created)
+    headerLogo = replaceWithCachedImage(headerLogo, logoKey, logoFallback);
+    headerBanner = replaceWithCachedImage(headerBanner, bannerKey, bannerFallback);
 
     // Step 5: Re-enable animation and add animate class in next frame
     requestAnimationFrame(() => {
@@ -131,10 +168,11 @@ export function updateThemeAssets(theme) {
     // Step 3: Temporarily disable animation
     landscapeLogo.style.animation = 'none';
 
-    // Step 4: Switch source using consistent URL path
-    // CRITICAL FIX: Use direct path to leverage browser cache
-    const logoPath = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
-    landscapeLogo.src = logoPath;
+    // Step 4: Replace with cached image (ZERO HTTP requests)
+    const logoKey = theme === 'dark' ? 'logo-dark' : 'logo-light';
+    const logoFallback = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
+
+    landscapeLogo = replaceWithCachedImage(landscapeLogo, logoKey, logoFallback);
 
     // Step 5: Re-enable animation
     requestAnimationFrame(() => {
