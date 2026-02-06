@@ -2,19 +2,13 @@
 node_modules/
 *.log
 
-# Build outputs
+# Build outputs (auto-generated)
 css/main.css
 css/app.min.css
 css/app.min.css.map
 javascript/app.min.js
 javascript/app.min.js.map
 javascript/tree.json
-
-# Build system scripts
-
-
-# Build configurations
-
 
 # Build documentation
 ROLLUP-GUIDE.md
@@ -28,7 +22,3 @@ ROLLUP-GUIDE.md
 
 # Backups
 backup-*/
-
-# Keep vendor/ committed for easier deployment
-# To ignore vendor files, uncomment below:
-# vendor/
