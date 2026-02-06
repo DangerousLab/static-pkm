@@ -299,6 +299,33 @@ html {
   }
 }
 
+/* Prevent hover interactions on logos that might trigger browser prefetching */
+.header-logo-img,
+.landscape-leftbar-logo img {
+  pointer-events: none; /* Block all mouse interactions */
+  user-select: none; /* Prevent selection */
+  -webkit-user-drag: none; /* Prevent dragging */
+  -webkit-touch-callout: none; /* Prevent iOS callout */
+}
+
+/* Optimize animations to prevent browser revalidation */
+.header-logo-img,
+.header-banner-img,
+.landscape-leftbar-logo img {
+  will-change: transform, opacity; /* Hint to browser for optimization */
+  backface-visibility: hidden; /* Force hardware acceleration */
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0); /* Force GPU layer */
+  -webkit-transform: translateZ(0);
+}
+
+/* Remove will-change after animation completes to free resources */
+.header-logo-img.animate,
+.header-banner-img.animate,
+.landscape-leftbar-logo img.animate {
+  will-change: transform, opacity;
+}
+
 /* Theme Toggle Button */
 .theme-toggle {
   justify-self: end;

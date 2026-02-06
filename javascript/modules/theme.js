@@ -1,7 +1,7 @@
 /**
  * Theme management module
  * Handles dark/light theme toggling and asset switching with preloading
- * PRODUCTION FIX: Uses DOM element cloning to avoid HTTP requests
+ * PRODUCTION FIX v2: Addresses hover-triggered HTTP requests
  */
 
 import { dom, state, themeController } from '../core/state.js';
@@ -13,6 +13,9 @@ const imageCache = {
   'banner-dark': null,
   'banner-light': null
 };
+
+// Track if animation is in progress to debounce
+let animationInProgress = false;
 
 /**
  * Preload all theme images (logos and banners only)
@@ -62,6 +65,7 @@ export function setThemeMetaColor(theme) {
 
 /**
  * Replace image element with cached version (NO HTTP request)
+ * ENHANCED: Additional safeguards for production stability
  * @param {HTMLImageElement} targetImg - The img element to replace
  * @param {string} cacheKey - Key in imageCache
  * @param {string} fallbackSrc - Fallback URL if cache fails
@@ -70,6 +74,12 @@ function replaceWithCachedImage(targetImg, cacheKey, fallbackSrc) {
   const cachedImg = imageCache[cacheKey];
 
   if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+    // Check if src is already correct (avoid unnecessary DOM operations)
+    if (targetImg.src === cachedImg.src) {
+      console.log(`[Theme] ${targetImg.id} already using correct cached image, skipping replace`);
+      return targetImg;
+    }
+
     // Clone the cached image to get a fresh DOM element
     const newImg = cachedImg.cloneNode(false);
 
@@ -82,6 +92,10 @@ function replaceWithCachedImage(targetImg, cacheKey, fallbackSrc) {
 
     // Copy computed classes
     newImg.className = targetImg.className;
+
+    // PRODUCTION FIX: Block all interactions to prevent hover prefetching
+    newImg.style.pointerEvents = 'none';
+    newImg.style.userSelect = 'none';
 
     // Replace in DOM (this uses the cached bitmap, NO HTTP request)
     targetImg.parentNode.replaceChild(newImg, targetImg);
@@ -97,9 +111,31 @@ function replaceWithCachedImage(targetImg, cacheKey, fallbackSrc) {
 }
 
 /**
+ * Clean up animation state after completion
+ * Removes will-change to free GPU resources
+ */
+function cleanupAnimation(element) {
+  if (!element) return;
+
+  // Remove will-change after animation completes
+  element.addEventListener('animationend', function handler() {
+    element.style.willChange = 'auto';
+    element.removeEventListener('animationend', handler);
+  }, { once: true });
+}
+
+/**
  * Update logo and banner based on theme with slide-up animation
  */
 export function updateThemeAssets(theme) {
+  // Debounce: prevent rapid successive calls during hover
+  if (animationInProgress) {
+    console.log('[Theme] Animation in progress, skipping update');
+    return;
+  }
+
+  animationInProgress = true;
+
   let headerLogo = document.getElementById('headerLogo');
   let headerBanner = document.getElementById('headerBanner');
   const headerTagline = document.querySelector('.header-tagline');
@@ -153,6 +189,18 @@ export function updateThemeAssets(theme) {
         if (headerTagline) {
           headerTagline.classList.add('animate');
         }
+
+        // Clean up GPU resources after animation
+        cleanupAnimation(headerLogo);
+        cleanupAnimation(headerBanner);
+        if (headerTagline) {
+          cleanupAnimation(headerTagline);
+        }
+
+        // Reset debounce flag after animation starts
+        setTimeout(() => {
+          animationInProgress = false;
+        }, 50);
       });
     });
   }
@@ -179,6 +227,7 @@ export function updateThemeAssets(theme) {
       landscapeLogo.style.animation = '';
       requestAnimationFrame(() => {
         landscapeLogo.classList.add('animate');
+        cleanupAnimation(landscapeLogo);
       });
     });
   }
