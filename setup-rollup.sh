@@ -2,17 +2,23 @@
 
 ################################################################################
 # Unstablon PKM - Rollup Build System Setup Script (CSS + JS Bundling)
-# Version: 4.2
-# Date: 2026-02-05
+# Version: 4.3
+# Date: 2026-02-06
 #
 # Features:
-# - CSS minification and bundling (styles.css + modules.css → app.min.css)
+# - Dynamic CSS entry point generation (no hardcoding)
+# - CSS minification and bundling (auto-discovered files → app.min.css)
 # - JavaScript bundling (app.js → app.min.js)
 # - In-memory dev server (no temp files)
 # - Dual-server testing (ports 3000 dev, 3001 prod)
 # - Auto-rebuild on file changes (JS + CSS)
-# - Vendor dependency management
 # - Interleaved server logs
+#
+# Changes in v4.3:
+# - Removed hardcoded CSS entry point
+# - Added dynamic generate-css-entry.mjs script
+# - Updated package.json with generate:css-entry script
+# - Removed MathJax vendor references
 #
 # Usage:
 #   1. Download this file
@@ -146,23 +152,89 @@ backup_existing_files() {
 }
 
 ################################################################################
-# Create CSS Entry Point
+# Create Dynamic CSS Entry Generator Script
 ################################################################################
 
-create_css_entry() {
-    print_header "Creating CSS Entry Point"
+create_css_entry_generator() {
+    print_header "Creating Dynamic CSS Entry Generator"
 
-    cat > css/main.css << 'CSSMAIN'
+    mkdir -p scripts
+
+    cat > scripts/generate-css-entry.mjs << 'CSSGENERATOR'
+#!/usr/bin/env node
+
 /**
- * CSS Entry Point for Bundling
- * Consolidates all CSS files into single minified output
+ * Dynamic CSS Entry Point Generator
+ * Auto-discovers CSS source files and creates main.css import file
+ * 
+ * Features:
+ * - No hardcoding - scans css/ directory
+ * - Excludes build outputs (*.min.css, *.map)
+ * - Excludes itself (main.css)
+ * - Consistent alphabetical order
  */
 
-@import './styles.css';
-@import './modules.css';
-CSSMAIN
+import { readdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
-    print_success "Created css/main.css"
+const CSS_DIR = 'css';
+const OUTPUT_FILE = 'main.css';
+
+console.log('[CSS Entry] Auto-discovering CSS source files...');
+
+// Automatically discover all CSS source files
+const cssFiles = readdirSync(CSS_DIR)
+  .filter(file => {
+    // Include only .css files
+    if (!file.endsWith('.css')) return false;
+
+    // Exclude the output file itself
+    if (file === OUTPUT_FILE) return false;
+
+    // Exclude minified files
+    if (file.endsWith('.min.css')) return false;
+
+    // Exclude source maps
+    if (file.endsWith('.css.map')) return false;
+
+    return true;
+  })
+  .sort(); // Consistent alphabetical order
+
+if (cssFiles.length === 0) {
+  console.error('[CSS Entry] ❌ No CSS source files found in css/ directory');
+  process.exit(1);
+}
+
+console.log(`[CSS Entry] ✅ Discovered ${cssFiles.length} CSS file(s):`);
+cssFiles.forEach(file => console.log(`[CSS Entry]    - ${file}`));
+
+// Generate import statements
+const imports = cssFiles.map(file => `@import './${file}';`).join('\n');
+
+const content = `/**
+ * Auto-generated CSS Entry Point - DO NOT EDIT
+ * Generated: ${new Date().toISOString()}
+ * 
+ * This file is dynamically created by scripts/generate-css-entry.mjs
+ * It imports all CSS source files for bundling into app.min.css
+ * 
+ * Discovered ${cssFiles.length} CSS source file(s)
+ */
+
+${imports}
+`;
+
+// Write the file
+const outputPath = join(CSS_DIR, OUTPUT_FILE);
+writeFileSync(outputPath, content, 'utf-8');
+
+console.log(`[CSS Entry] ✅ Generated ${CSS_DIR}/${OUTPUT_FILE}`);
+console.log('[CSS Entry] Ready for Rollup bundling');
+CSSGENERATOR
+
+    chmod +x scripts/generate-css-entry.mjs
+    print_success "Created scripts/generate-css-entry.mjs (dynamic CSS discovery)"
 }
 
 ################################################################################
@@ -574,6 +646,8 @@ update_package_json() {
   "private": true,
   "type": "module",
   "scripts": {
+    "generate:css-entry": "node scripts/generate-css-entry.mjs",
+    "prebuild:css": "npm run generate:css-entry",
     "build": "npm run build:tree && npm run build:css && npm run build:js",
     "build:js": "rollup -c rollup.config.js",
     "build:css": "rollup -c rollup.config.css.js",
@@ -582,7 +656,7 @@ update_package_json() {
     "dev": "node scripts/dev-server.mjs",
     "preview": "node scripts/prod-server.mjs",
     "watch": "node scripts/watch-and-build.mjs",
-    "clean": "rm -f javascript/app.min.js* css/app.min.css*"
+    "clean": "rm -f javascript/app.min.js* css/app.min.css* css/main.css"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
@@ -603,7 +677,7 @@ update_package_json() {
 }
 PACKAGEJSON
 
-    print_success "Created package.json"
+    print_success "Created package.json with dynamic CSS entry generation"
 }
 
 ################################################################################
@@ -618,19 +692,13 @@ update_gitignore() {
 node_modules/
 *.log
 
-# Build outputs
+# Build outputs (auto-generated)
 css/main.css
 css/app.min.css
 css/app.min.css.map
 javascript/app.min.js
 javascript/app.min.js.map
 javascript/tree.json
-
-# Build system scripts
-
-
-# Build configurations
-
 
 # Build documentation
 ROLLUP-GUIDE.md
@@ -644,10 +712,6 @@ ROLLUP-GUIDE.md
 
 # Backups
 backup-*/
-
-# Keep vendor/ committed for easier deployment
-# To ignore vendor files, uncomment below:
-# vendor/
 GITIGNORE
 
     print_success "Created .gitignore"
@@ -663,6 +727,19 @@ create_documentation() {
 
     cat > ROLLUP-GUIDE.md << 'GUIDE'
 # Rollup Build System Guide (CSS + JS)
+
+## Dynamic CSS Entry Point
+
+The CSS build system automatically discovers all CSS source files:
+
+- **No hardcoding** - scans `css/` directory
+- **Auto-excludes** build outputs (*.min.css, main.css)
+- **Alphabetical order** - consistent imports
+
+To add a new CSS file:
+1. Create `css/your-new-file.css`
+2. Run `npm run build`
+3. Done! It's automatically included
 
 ## Commands
 
@@ -684,6 +761,7 @@ npm run preview        # Prod server only
 npm run watch          # File watcher only
 npm run build:css      # Build CSS only
 npm run build:js       # Build JS only
+npm run generate:css-entry  # Generate CSS entry point
 
 ## What Gets Committed
 
@@ -694,21 +772,17 @@ Commit:
 - css/styles.css (source)
 - css/modules.css (source)
 - css/app.min.css (built)
+- scripts/*.mjs (build scripts)
 
-Do not commit:
+Do not commit (auto-generated):
 - javascript/app.min.js.map
 - css/app.min.css.map
 - css/main.css
 - node_modules/
 
-## Vendor Dependencies
-
-Third-party libraries are self-hosted in vendor/ for performance:
-
-
 ## Performance
 
-- CSS: 2 files to 1 minified (60-70% smaller)
+- CSS: Auto-discovered files → 1 minified bundle (60-70% smaller)
 - JS: Minified with console.log removed
 - Fewer HTTP requests, faster loads
 GUIDE
@@ -779,6 +853,14 @@ generate_initial_build() {
         npm run build:tree && print_success "Generated tree.json" || print_warning "Could not generate tree.json"
     fi
 
+    print_info "Generating CSS entry point..."
+    if npm run generate:css-entry; then
+        print_success "Generated css/main.css"
+    else
+        print_error "CSS entry generation failed"
+        exit 1
+    fi
+
     print_info "Building CSS bundle..."
     if npm run build:css; then
         print_success "Built css/app.min.css"
@@ -812,7 +894,7 @@ print_summary() {
     echo "  ✓ rollup.config.js"
     echo "  ✓ rollup.config.css.js"
     echo "  ✓ postcss.config.js"
-    echo "  ✓ css/main.css"
+    echo "  ✓ scripts/generate-css-entry.mjs (dynamic CSS discovery)"
     echo "  ✓ scripts/dev-server.mjs"
     echo "  ✓ scripts/prod-server.mjs"
     echo "  ✓ scripts/watch-and-build.mjs"
@@ -822,11 +904,15 @@ print_summary() {
     echo ""
 
     print_info "Build Output:"
+    echo "  ✓ css/main.css (auto-generated from CSS sources)"
     echo "  ✓ css/app.min.css"
     echo "  ✓ javascript/app.min.js"
     echo ""
 
-    print_info "Vendor Dependencies:"
+    print_info "Dynamic CSS Discovery:"
+    echo "  ✓ No hardcoded file list"
+    echo "  ✓ Auto-discovers CSS files in css/ directory"
+    echo "  ✓ Add new CSS files anytime - automatically included"
     echo ""
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -845,11 +931,12 @@ print_summary() {
     echo ""
 
     print_info "Features:"
-    echo "  ✓ CSS bundling (2 files to 1 minified)"
+    echo "  ✓ Dynamic CSS bundling (auto-discovered → 1 minified)"
     echo "  ✓ JavaScript minification"
     echo "  ✓ In-memory dev server"
     echo "  ✓ Dual-mode testing"
     echo "  ✓ Auto-rebuild on changes"
+    echo "  ✓ No hardcoding (follows project principles)"
     echo ""
 
     echo -e "${GREEN}Ready to start. Run 'npm run test' to begin.${NC}"
@@ -866,16 +953,16 @@ main() {
     echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.2            ║${NC}"
+    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.3            ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║   CSS + JS Bundling + Vendor Management + Dev Server        ║${NC}"
+    echo -e "${BLUE}║   Dynamic CSS Discovery + JS Bundling + Dev Server          ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     preflight_checks
     backup_existing_files
-    create_css_entry
+    create_css_entry_generator
     create_postcss_config
     create_rollup_config_js
     create_rollup_config_css
