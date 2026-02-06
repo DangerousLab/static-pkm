@@ -39,7 +39,7 @@ export async function loadMathJax() {
         ready: () => {
           window.MathJax.startup.defaultReady();
           mathJaxLoaded = true;
-          console.log('[MathJax Utility] MathJax loaded (JS: local, fonts: CDN)');
+          console.log('[MathJax Utility] MathJax loaded from CDN');
           resolve();
         }
       }
@@ -47,11 +47,10 @@ export async function loadMathJax() {
 
     // Load main bundle from local vendor directory
     const script = document.createElement('script');
-    script.src = './vendor/mathjax/tex-mml-chtml.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
     script.async = true;
     script.onerror = () => {
-      console.error('[MathJax Utility] Failed to load MathJax bundle');
-      console.error('[MathJax Utility] Make sure to run: npm run setup:mathjax');
+      console.error('[MathJax Utility] Failed to load MathJax from CDN');
       reject(new Error('Failed to load MathJax bundle'));
     };
     document.head.appendChild(script);

@@ -43,8 +43,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Setup vendor packages (MathJax)
-        run: npm run setup:mathjax
+      - name: Setup vendor packages
         continue-on-error: false
 
       - name: Build production files
