@@ -58,9 +58,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Add all build artifacts
-          git add javascript/tree.json
-          git add javascript/app.min.js javascript/app.min.js.map
-          git add css/app.min.css css/app.min.css.map
+          git add -f javascript/tree.json
+          git add -f javascript/app.min.js
+          git add -f css/app.min.css
 
           # Add vendor packages (customized third-party libraries only)
           git add vendor/
