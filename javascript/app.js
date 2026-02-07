@@ -10,7 +10,7 @@ import { initSidebar, toggleSidebar } from './modules/sidebar.js';
 import { renderSidebar } from './modules/navigation.js';
 import { openNode } from './modules/content-loader.js';
 import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
-import { initSearch, rebuildSearchIndex } from './modules/search.js';
+import { rebuildSearchIndex } from './modules/search.js'; 
 import { initSafeAreaDetector } from './modules/safe-area-detector.js';
 import * as MathJaxUtil from './utilities/mathJax.js';
 import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa-detector.js';
@@ -73,7 +73,6 @@ import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa
     // Initialize all modules (await theme to ensure assets are preloaded)
     await initTheme();
     initSidebar();
-    initSearch();
 
     console.log('[App] Fetching navigation tree');
 
@@ -85,13 +84,13 @@ import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa
         }
         return res.json();
       })
-      .then((tree) => {
+      .then(async (tree) => { 
         console.log('[App] Navigation tree loaded');
         state.navigationTree = tree;
 
         const initialFolder = getInitialFolder(state.navigationTree);
 
-        renderSidebar(initialFolder);
+        await renderSidebar(initialFolder); 
         preloadFolderModules(initialFolder);
 
         // Build search index after tree is loaded

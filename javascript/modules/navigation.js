@@ -4,7 +4,7 @@
  */
 
 import { dom, state } from '../core/state.js';
-import { findNodeByPath, findLeafById, getTypeIcon } from '../core/utils.js';
+import { findNodeByPath, findLeafById, getTypeIcon, ensureIconsLoaded } from '../core/utils.js';
 import { clearSidebarActive, applySidebarWidth, toggleSidebar } from './sidebar.js';
 import { preloadFolderModules } from './preloader.js';
 import { openNode } from './content-loader.js';
@@ -55,17 +55,23 @@ export function renderBreadcrumb() {
  * Navigate to a folder - unified function for all folder navigation
  * This triggers all necessary actions: render sidebar, preload, calculate width
  */
-export function navigateToFolder(folderNode) {
+export async function navigateToFolder(folderNode) {  // ← CHANGED: Added async
   console.log('[Navigation] Navigating to folder:', folderNode.path || 'Home');
-  renderSidebar(folderNode);
+  await renderSidebar(folderNode);  // ← CHANGED: Added await
   preloadFolderModules(folderNode);
 }
 
-/**
- * Render sidebar navigation for a folder
- */
-export function renderSidebar(folderNode) {
+export async function renderSidebar(folderNode) {
   console.log('[Navigation] Rendering sidebar for folder:', folderNode.path || 'Home');
+  
+  // Only load icons if sidebar content is initialized (user has opened sidebar)
+  // This prevents loading FontAwesome on initial page load
+  if (typeof window !== 'undefined') { 
+    const sidebarModule = await import('./sidebar.js');
+    if (sidebarModule.isSidebarContentInitialized && sidebarModule.isSidebarContentInitialized()) {
+      await ensureIconsLoaded();
+    }
+  }
   
   state.currentFolder = folderNode;
   dom.sidebarNav.innerHTML = "";

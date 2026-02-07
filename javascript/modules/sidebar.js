@@ -6,9 +6,13 @@
 
 import { dom, state } from '../core/state.js';
 import { isDesktopOrTablet } from '../core/utils.js';
+import { loadFontAwesome } from '../utilities/dynamic-loader.js';
 
 // Track hover state explicitly
 let isCurrentlyHovering = false;
+
+// Track if sidebar content has been initialized
+let sidebarContentInitialized = false;
 
 /**
  * Check if in landscape mode
@@ -41,9 +45,16 @@ export function applySidebarWidth() {
 /**
  * Toggle sidebar open/closed state
  */
-export function toggleSidebar() {
+export async function toggleSidebar() { 
   const isOpen = dom.sidebar.getAttribute("data-open") === "true";
   const next = !isOpen;
+  
+  // Initialize sidebar content on first open
+  if (next && !sidebarContentInitialized) { 
+    console.log('[Sidebar] First open - initializing content with icons');
+    await initSidebarSearch();  // Load FontAwesome + inject search HTML
+    sidebarContentInitialized = true;
+  }
 
   // In landscape mode, use simpler toggle (CSS handles positioning)
   if (isLandscapeMode()) {
@@ -151,9 +162,66 @@ function handleSidebarMouseLeave(e) {
 }
 
 /**
+ * Initialize sidebar search UI
+ * Injects search HTML and loads icons
+ */
+async function initSidebarSearch() {  // ← ADDED: New function
+  const searchContainer = document.querySelector('.sidebar-search');
+  if (!searchContainer) {
+    console.warn('[Sidebar] .sidebar-search container not found');
+    return;
+  }
+  
+  console.log('[Sidebar] Initializing search UI with icons');
+  
+  // Load FontAwesome first
+  await loadFontAwesome();
+  
+  // Inject search HTML
+  searchContainer.innerHTML = `
+    <div class="search-input-wrapper">
+      <span class="search-icon">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </span>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="Search (Ctrl+K)"
+        aria-label="Search any pages"
+        autocomplete="off"
+      />
+      <button
+        id="searchClear"
+        class="search-clear"
+        type="button"
+        aria-label="Clear search"
+        style="display: none;"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="searchResults" class="search-results" style="display: none;"></div>
+  `;
+  
+  // Update DOM refs for search elements (they didn't exist at initial page load)
+  dom.searchInput = document.getElementById('searchInput');
+  dom.searchClear = document.getElementById('searchClear');
+  dom.searchResults = document.getElementById('searchResults');
+  
+  console.log('[Sidebar] Search UI initialized with updated DOM refs');
+  
+  // Initialize search event listeners now that HTML exists
+  const { initSearch } = await import('./search.js'); 
+  initSearch();
+  console.log('[Sidebar] Search event listeners attached');
+}
+
+
+/**
  * Initialize sidebar event listeners
  */
-export function initSidebar() {
+export function initSidebar() { 
   // Main sidebar toggle
   dom.sidebarToggle.addEventListener("click", toggleSidebar);
   
@@ -166,4 +234,11 @@ export function initSidebar() {
   // Hover behavior
   dom.sidebar.addEventListener("mouseenter", handleSidebarMouseEnter);
   dom.sidebar.addEventListener("mouseleave", handleSidebarMouseLeave);
+}
+
+/**
+ * Check if sidebar content has been initialized
+ */
+export function isSidebarContentInitialized() {  // ← ADDED: Export state checker
+  return sidebarContentInitialized;
 }
