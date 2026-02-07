@@ -9,6 +9,10 @@ css/app.min.css.map
 javascript/app.min.js
 javascript/app.min.js.map
 javascript/tree.json
+javascript/cache-manifest.json
+
+# HTTPS certificates (local testing only)
+.cert/
 
 # Build documentation
 ROLLUP-GUIDE.md

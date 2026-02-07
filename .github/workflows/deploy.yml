@@ -12,74 +12,69 @@ on:
       - 'rollup.config*.js'
       - 'package.json'
       - 'package-lock.json'
-      # Exclude build artifacts to prevent infinite loops
+      - 'cache-scan.config.json'  # ← ADD THIS
+      
+      # Exclude build artifacts
       - '!javascript/app.min.js'
       - '!javascript/app.min.js.map'
       - '!javascript/tree.json'
+      - '!javascript/cache-manifest.json'
       - '!css/app.min.css'
       - '!css/app.min.css.map'
       - '!css/main.css'
-
-  # Allow manual trigger from Actions tab
+  
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate CSS entry point
-        run: |
-          echo "📦 Generating dynamic CSS entry point..."
-          npm run generate:css-entry
-          echo "✅ CSS entry point generated"
-
+      
+      # REMOVE THIS STEP - prebuild runs automatically
+      # - name: Generate CSS entry point
+      #   run: npm run generate:css-entry
+      
       - name: Build production files
-        run: npm run build
-
+        run: npm run build  # ← prebuild runs automatically, postbuild generates cache
+      
       - name: Commit build artifacts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Add all build artifacts
+          
           git add -f javascript/tree.json
           git add -f javascript/app.min.js
+          git add -f javascript/cache-manifest.json
           git add -f css/app.min.css
-
-          # Add vendor packages (customized third-party libraries only)
           git add vendor/
-
-          # Note: css/main.css is NOT committed (auto-generated, in .gitignore)
-
-          # Check if there are changes to commit
+          
           if git diff --staged --quiet; then
-            echo "✅ No changes to commit - build artifacts already up to date"
+            echo "✅ No changes to commit"
           else
-            echo "📦 Committing updated build artifacts..."
+            echo "📦 Committing build artifacts..."
             git commit -m "chore: auto-build production assets [skip ci]"
             git push
-            echo "✅ Build artifacts committed successfully"
+            echo "✅ Build artifacts committed"
           fi
-
+      
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
-          exclude_assets: '.github,node_modules,scripts,rollup.config.js,rollup.config.css.js,postcss.config.cjs,package.json,package-lock.json,*.md,backup-*'
+          exclude_assets: '.github,node_modules,scripts,rollup.config.js,postcss.config.cjs,package.json,package-lock.json,*.md,backup-*,.cert'

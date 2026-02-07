@@ -16,8 +16,9 @@ console.log('   http://localhost:3000');
 console.log('   Uses: javascript/app.js + css/styles.css + css/modules.css\n');
 
 console.log('🚀 Production Server');
-console.log('   http://localhost:3001');
-console.log('   Uses: javascript/app.min.js + css/app.min.css\n');
+console.log('   https://localhost:3001 (or https://YOUR_IP:3001)');
+console.log('   Uses: javascript/app.min.js + css/app.min.css');
+console.log('   HTTPS enabled for PWA testing\n');
 
 console.log('🔄 File Watcher');
 console.log('   Auto-rebuilds on changes in javascript/ and css/\n');

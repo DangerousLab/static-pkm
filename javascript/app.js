@@ -13,11 +13,45 @@ import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
 import { initSearch, rebuildSearchIndex } from './modules/search.js';
 import { initSafeAreaDetector } from './modules/safe-area-detector.js';
 import * as MathJaxUtil from './utilities/mathJax.js';
+import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa-detector.js';
 
 (function () {
   "use strict";
 
   console.log('[App] Initializing application...');
+
+  // Conditionally load manifest to prevent Opera GX icon fetching bug
+  function loadManifestConditionally() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isAlreadyPWA = isPWA();
+    
+    if (isMobile || isAlreadyPWA) {
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = './manifest.json';
+      document.head.appendChild(link);
+      console.log('[App] Manifest loaded (mobile or PWA mode)');
+    } else {
+      console.log('[App] Manifest skipped (desktop browser mode - prevents icon spam)');
+    }
+  }
+
+  // Load manifest conditionally FIRST
+  loadManifestConditionally();
+
+  // PWA detection and service worker registration
+  if (isPWA()) {
+    console.log('[App] Running as PWA in', getPWADisplayMode(), 'mode');
+    registerServiceWorker().then(registered => {
+      if (registered) {
+        console.log('[App] PWA offline mode enabled');
+      }
+    }).catch(error => {
+      console.error('[App] PWA initialization failed:', error);
+    });
+  } else {
+    console.log('[App] Running in browser mode (service worker disabled)');
+  }
 
   // Register global module ready notification
   window.__moduleReady = notifyModuleReady;

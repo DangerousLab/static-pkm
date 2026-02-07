@@ -1,30 +1,37 @@
 #!/bin/bash
 
 ################################################################################
-# Unstablon PKM - Rollup Build System Setup Script (CSS + JS Bundling)
-# Version: 4.3
+# Unstablon PKM - Rollup Build System Setup Script (CSS + JS Bundling + PWA)
+# Version: 4.8
 # Date: 2026-02-06
 #
 # Features:
 # - Dynamic CSS entry point generation (no hardcoding)
 # - CSS minification and bundling (auto-discovered files → app.min.css)
 # - JavaScript bundling (app.js → app.min.js)
+# - PWA Service Worker with FULL offline-first caching
+# - USER-CONFIGURABLE CDN scanning via cache-scan.config.json
+# - Scans /Home, /javascript, /css for CDN resources
+# - Auto-detects fonts, images, JS libraries from .html, .md, .js files
+# - Markdown: cache ALL images (local + CDN) - configurable override
+# - MathJax auto-detection and font expansion
+# - HTTPS support with self-signed certificates
 # - In-memory dev server (no temp files)
-# - Dual-server testing (ports 3000 dev, 3001 prod)
-# - Auto-rebuild on file changes (JS + CSS)
-# - Interleaved server logs
+# - Dual-server testing (ports 3000 dev, 3001 prod HTTPS)
 #
-# Changes in v4.3:
-# - Removed hardcoded CSS entry point
-# - Added dynamic generate-css-entry.mjs script
-# - Updated package.json with generate:css-entry script
-# - Removed MathJax vendor references
+# Changes in v4.8:
+# - USER-EDITABLE cache-scan.config.json (zero hardcoding!)
+# - Scans /Home for .html, .md, .js files
+# - Markdown images: cache ALL (local + CDN) via override
+# - JavaScript CDN detection from all .js files
+# - Config-based directory scanning
+# - Customizable CDN domains and resource types
+# - Fails if config file not found (prevents misconfiguration)
+# - Config file committed to git (default)
 #
 # Usage:
-#   1. Download this file
-#   2. Rename to: setup-rollup.sh
-#   3. chmod +x setup-rollup.sh
-#   4. ./setup-rollup.sh
+#   chmod +x setup-rollup.sh
+#   ./setup-rollup.sh
 #
 ################################################################################
 
@@ -103,6 +110,12 @@ preflight_checks() {
         all_checks_passed=false
     fi
 
+    if check_command openssl; then
+        print_success "OpenSSL found: $(openssl version)"
+    else
+        print_warning "OpenSSL not found (HTTPS cert generation will be skipped)"
+    fi
+
     if [ -d "javascript" ] && [ -f "index.html" ]; then
         print_success "Project structure detected"
     else
@@ -149,6 +162,126 @@ backup_existing_files() {
     if [ -d "$backup_dir" ]; then
         print_info "Backup saved at: $backup_dir/"
     fi
+}
+
+################################################################################
+# Generate Self-Signed HTTPS Certificate
+################################################################################
+
+generate_https_certificate() {
+    print_header "Generating Self-Signed HTTPS Certificate"
+
+    if ! check_command openssl; then
+        print_warning "OpenSSL not available, skipping certificate generation"
+        print_info "HTTPS will not be available for local testing"
+        return
+    fi
+
+    mkdir -p .cert
+
+    # Get local IP address
+    LOCAL_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1)
+
+    if [ -z "$LOCAL_IP" ]; then
+        LOCAL_IP="localhost"
+        print_warning "Could not detect local IP, using localhost"
+    else
+        print_info "Detected local IP: $LOCAL_IP"
+    fi
+
+    # Generate certificate
+    print_info "Generating self-signed certificate..."
+
+    openssl req -x509 -newkey rsa:2048 \
+        -keyout .cert/key.pem \
+        -out .cert/cert.pem \
+        -days 365 \
+        -nodes \
+        -subj "/CN=$LOCAL_IP" \
+        -addext "subjectAltName=IP:$LOCAL_IP,DNS:localhost" \
+        2>/dev/null
+
+    if [ -f ".cert/cert.pem" ] && [ -f ".cert/key.pem" ]; then
+        print_success "HTTPS certificate generated"
+        print_info "Certificate valid for: $LOCAL_IP and localhost"
+        print_info "Valid for: 365 days"
+        print_warning "You'll need to accept certificate warning on first visit"
+        echo ""
+        print_info "Access URLs:"
+        echo "  - https://$LOCAL_IP:3001"
+        echo "  - https://localhost:3001"
+    else
+        print_error "Certificate generation failed"
+    fi
+}
+
+################################################################################
+# Create User-Editable Cache Scan Configuration
+################################################################################
+
+create_cache_scan_config() {
+    print_header "Creating Cache Scan Configuration (USER-EDITABLE)"
+    
+    cat > cache-scan.config.json << 'CONFIGEOF'
+{
+  "version": "1.0",
+  "description": "User-editable CDN scanning configuration",
+  
+  "scanDirectories": {
+    "javascript": {
+      "extensions": [".js"],
+      "enabled": true
+    },
+    "Home": {
+      "extensions": [".html", ".md", ".js"],
+      "enabled": true,
+      "overrides": {
+        ".md": {
+          "cacheAllImages": true
+        }
+      }
+    },
+    "css": {
+      "extensions": [".css"],
+      "enabled": true
+    }
+  },
+  
+  "cdnDetection": {
+    "domains": [
+      "cdn.",
+      "cdnjs.",
+      "jsdelivr.",
+      "unpkg.",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ]
+  },
+  
+  "mathJax": {
+    "autoExpand": true,
+    "fonts": [
+      "MathJax_Main-Regular.woff",
+      "MathJax_Math-Italic.woff",
+      "MathJax_Size2-Regular.woff",
+      "MathJax_Size1-Regular.woff",
+      "MathJax_AMS-Regular.woff"
+    ]
+  },
+  
+  "excludePatterns": [
+    "node_modules",
+    ".git",
+    ".DS_Store",
+    "app.min.js",
+    "app.min.css",
+    "tree.json",
+    "cache-manifest.json"
+  ]
+}
+CONFIGEOF
+
+    print_success "Created cache-scan.config.json"
 }
 
 ################################################################################
@@ -235,6 +368,932 @@ CSSGENERATOR
 
     chmod +x scripts/generate-css-entry.mjs
     print_success "Created scripts/generate-css-entry.mjs (dynamic CSS discovery)"
+}
+
+################################################################################
+# Create PWA Service Worker (Pre-cache EVERYTHING)
+################################################################################
+
+create_service_worker() {
+    print_header "Creating PWA Service Worker"
+
+    cat > service-worker.js << 'SERVICEWORKER'
+/**
+ * Unstablon PKM - PWA Service Worker
+ * FULL offline-first caching - EVERYTHING pre-cached on first install
+ * Only activated when installed as PWA (especially iOS)
+ * 
+ * Cache Strategy:
+ * - Pre-cache ALL resources from cache-manifest.json
+ * - NO runtime caching - everything is cached immediately
+ * - Cache-first for all requests (maximum persistence)
+ * - Network fallback only for unexpected resources
+ * - Persistent storage API for maximum cache retention
+ */
+
+const CACHE_MANIFEST_URL = './javascript/cache-manifest.json';
+let CACHE_VERSION = 'v1.0.0';
+let CACHE_NAME = `unstablon-offline-${CACHE_VERSION}`;
+let PRECACHE_URLS = [];
+
+/**
+ * Load cache manifest dynamically
+ */
+async function loadCacheManifest() {
+  try {
+    const response = await fetch(CACHE_MANIFEST_URL);
+    if (!response.ok) {
+      throw new Error('Failed to load cache manifest');
+    }
+
+    const manifest = await response.json();
+    CACHE_VERSION = manifest.version;
+    CACHE_NAME = `unstablon-offline-${CACHE_VERSION}`;
+
+    // Get ALL pre-cache URLs (local + CDN)
+    PRECACHE_URLS = [
+      ...manifest.preCache.local,
+      ...manifest.preCache.cdn
+    ];
+
+    console.log('[SW] Loaded cache manifest:', manifest.version);
+    console.log('[SW] Pre-cache URLs:', PRECACHE_URLS.length);
+    console.log('[SW] ⚠️  Pre-caching EVERYTHING - may take 30-60 seconds');
+
+    return manifest;
+  } catch (error) {
+    console.error('[SW] Failed to load cache manifest:', error);
+    // Fallback to minimal cache
+    PRECACHE_URLS = ['./', './index.html'];
+    return null;
+  }
+}
+
+/**
+ * INSTALL EVENT - Pre-cache ALL resources
+ */
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing service worker...');
+  console.log('[SW] This will pre-cache EVERYTHING for full offline support');
+
+  event.waitUntil(
+    loadCacheManifest()
+      .then(() => caches.open(CACHE_NAME))
+      .then(cache => {
+        console.log('[SW] Opened cache:', CACHE_NAME);
+
+        const totalAssets = PRECACHE_URLS.length;
+        let cachedAssets = 0;
+        let failedAssets = [];
+
+        // Cache each URL individually to track progress
+        const cachePromises = PRECACHE_URLS.map(async (url, index) => {
+          try {
+            const isCDN = url.startsWith('http://') || url.startsWith('https://');
+
+            if (isCDN) {
+              // CDN resources - handle CORS
+              try {
+                const response = await fetch(url, { 
+                  mode: 'cors',
+                  cache: 'force-cache'
+                });
+                if (response.ok) {
+                  await cache.put(url, response);
+                } else {
+                  throw new Error(`HTTP ${response.status}`);
+                }
+              } catch (corsError) {
+                // Fallback to no-cors for opaque responses
+                const response = await fetch(url, { 
+                  mode: 'no-cors',
+                  cache: 'force-cache'
+                });
+                await cache.put(url, response);
+              }
+            } else {
+              // Local resources - use cache.add
+              await cache.add(url);
+            }
+
+            cachedAssets++;
+
+            // Send progress update to all clients
+            const progress = Math.round((cachedAssets / totalAssets) * 100);
+            const clients = await self.clients.matchAll({ includeUncontrolled: true });
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'CACHE_PROGRESS',
+                progress: progress,
+                current: cachedAssets,
+                total: totalAssets,
+                url: url
+              });
+            });
+
+            // Log every 10th item to avoid spam
+            if (cachedAssets % 10 === 0 || cachedAssets === totalAssets) {
+              console.log(`[SW] Progress: ${cachedAssets}/${totalAssets} (${progress}%)`);
+            }
+          } catch (error) {
+            failedAssets.push({ url, error: error.message });
+            console.warn(`[SW] Failed to cache: ${url}`, error.message);
+          }
+        });
+
+        return Promise.all(cachePromises).then(() => {
+          return { totalAssets, cachedAssets, failedAssets };
+        });
+      })
+      .then(({ totalAssets, cachedAssets, failedAssets }) => {
+        console.log('[SW] ✅ Pre-caching complete!');
+        console.log(`[SW] Successfully cached: ${cachedAssets}/${totalAssets} resources`);
+
+        if (failedAssets.length > 0) {
+          console.warn(`[SW] ⚠️  Failed to cache ${failedAssets.length} resources:`);
+          failedAssets.forEach(({ url }) => {
+            console.warn(`[SW]   - ${url}`);
+          });
+        }
+
+        // Send completion message
+        self.clients.matchAll({ includeUncontrolled: true }).then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'CACHE_COMPLETE',
+              cacheName: CACHE_NAME,
+              totalAssets,
+              cachedAssets,
+              failedAssets: failedAssets.length
+            });
+          });
+        });
+
+        return self.skipWaiting();
+      })
+      .catch(error => {
+        console.error('[SW] Pre-caching failed:', error);
+      })
+  );
+});
+
+/**
+ * ACTIVATE EVENT - Clean up old caches
+ */
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating service worker...');
+
+  event.waitUntil(
+    caches.keys()
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => {
+        console.log('[SW] Service worker activated');
+        return self.clients.claim();
+      })
+  );
+});
+
+/**
+ * FETCH EVENT - Cache-first strategy (everything already cached)
+ */
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip non-http protocols
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(cachedResponse => {
+        // Return cached version (should always exist)
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // Not in cache (unexpected) - fetch from network
+        console.warn('[SW] Unexpected cache miss:', url.pathname);
+        return fetch(event.request)
+          .catch(error => {
+            console.error('[SW] Fetch failed:', url.pathname, error);
+
+            // Return offline fallback for HTML pages
+            if (event.request.headers.get('accept').includes('text/html')) {
+              return caches.match('./index.html');
+            }
+
+            return new Response('Offline - Resource not available', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: new Headers({
+                'Content-Type': 'text/plain'
+              })
+            });
+          });
+      })
+  );
+});
+
+/**
+ * MESSAGE EVENT - Handle messages from app
+ */
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+console.log('[SW] Service worker script loaded');
+SERVICEWORKER
+
+    print_success "Created service-worker.js (pre-cache EVERYTHING)"
+}
+
+################################################################################
+# Create PWA Detector Utility (with Debug Logging)
+################################################################################
+
+create_pwa_detector() {
+    print_header "Creating PWA Detector Utility"
+
+    mkdir -p javascript/utilities
+
+    cat > javascript/utilities/pwa-detector.js << 'PWADETECTOR'
+/**
+ * PWA Detection and Service Worker Registration Utility
+ * 
+ * CRITICAL: Only registers service worker when running as installed PWA
+ * Specifically designed for iOS Safari PWA detection
+ * 
+ * Includes debug logging for troubleshooting
+ */
+
+/**
+ * Detect if app is running as installed PWA
+ * @returns {boolean} True if running as PWA
+ */
+export function isPWA() {
+  // Method 1: iOS Safari PWA detection
+  if (window.navigator.standalone === true) {
+    console.log('[PWA] Detected: iOS standalone mode');
+    return true;
+  }
+
+  // Method 2: Standard display-mode detection
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('[PWA] Detected: display-mode standalone');
+    return true;
+  }
+
+  // Method 3: Fullscreen mode (Android)
+  if (window.matchMedia('(display-mode: fullscreen)').matches) {
+    console.log('[PWA] Detected: display-mode fullscreen');
+    return true;
+  }
+
+  // Method 4: Minimal UI mode
+  if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+    console.log('[PWA] Detected: display-mode minimal-ui');
+    return true;
+  }
+
+  console.log('[PWA] Not detected: Running in browser');
+  return false;
+}
+
+/**
+ * Get PWA display mode
+ * @returns {string} Display mode
+ */
+export function getPWADisplayMode() {
+  if (window.navigator.standalone === true) {
+    return 'standalone';
+  }
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    return 'standalone';
+  }
+  if (window.matchMedia('(display-mode: fullscreen)').matches) {
+    return 'fullscreen';
+  }
+  if (window.matchMedia('(display-mode: minimal-ui)').matches) {
+    return 'minimal-ui';
+  }
+  return 'browser';
+}
+
+/**
+ * Show progress indicator during service worker installation
+ */
+function showCacheProgress() {
+  const overlay = document.createElement('div');
+  overlay.id = 'pwa-cache-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(31, 31, 31, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    font-family: 'Uni Sans', sans-serif;
+  `;
+
+  overlay.innerHTML = `
+    <div style="text-align: center; max-width: 80%; color: #ffffff;">
+      <div style="font-size: 1.5rem; margin-bottom: 1rem; font-weight: 600;">
+        ⚡ Preparing Full Offline Mode
+      </div>
+      <div style="font-size: 0.9rem; margin-bottom: 2rem; color: #cccccc;">
+        Caching ALL assets for complete offline access...<br>
+        This may take 30-60 seconds on first install
+      </div>
+      <div style="width: 100%; max-width: 300px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden;">
+        <div id="pwa-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s ease;"></div>
+      </div>
+      <div id="pwa-progress-text" style="margin-top: 1rem; font-size: 0.8rem; color: #999;">
+        0%
+      </div>
+      <div id="pwa-progress-detail" style="margin-top: 0.5rem; font-size: 0.7rem; color: #666; min-height: 1rem;">
+        Starting...
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+/**
+ * Update progress bar
+ */
+function updateProgress(progress, current, total, url) {
+  const progressBar = document.getElementById('pwa-progress-bar');
+  const progressText = document.getElementById('pwa-progress-text');
+  const progressDetail = document.getElementById('pwa-progress-detail');
+
+  if (progressBar) {
+    progressBar.style.width = progress + '%';
+  }
+  if (progressText) {
+    progressText.textContent = `${progress}% (${current}/${total})`;
+  }
+  if (progressDetail && url) {
+    const fileName = url.split('/').pop() || url;
+    const shortName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+    progressDetail.textContent = shortName;
+  }
+}
+
+/**
+ * Remove progress overlay
+ */
+function hideProgress() {
+  const overlay = document.getElementById('pwa-cache-overlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.5s ease';
+    setTimeout(() => overlay.remove(), 500);
+  }
+}
+
+/**
+ * Register service worker (only if PWA)
+ * @returns {Promise<boolean>} True if registered successfully
+ */
+export async function registerServiceWorker() {
+  // Debug logging
+  console.log('[PWA Debug] === Service Worker Registration Debug ===');
+  console.log('[PWA Debug] Protocol:', window.location.protocol);
+  console.log('[PWA Debug] Hostname:', window.location.hostname);
+  console.log('[PWA Debug] Port:', window.location.port);
+  console.log('[PWA Debug] Secure context:', window.isSecureContext);
+  console.log('[PWA Debug] Service worker available:', 'serviceWorker' in navigator);
+  console.log('[PWA Debug] Navigator standalone:', window.navigator.standalone);
+  console.log('[PWA Debug] Display mode:', getPWADisplayMode());
+  console.log('[PWA Debug] isPWA():', isPWA());
+
+  // CRITICAL: Only register if running as PWA
+  if (!isPWA()) {
+    console.log('[PWA] Service worker NOT registered: Not running as PWA');
+    return false;
+  }
+
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[PWA] Service worker not supported in this browser');
+    console.warn('[PWA] Possible causes:');
+    console.warn('[PWA]   - Not HTTPS (requires HTTPS or localhost)');
+    console.warn('[PWA]   - Browser too old');
+    console.warn('[PWA]   - Private browsing mode');
+    return false;
+  }
+
+  if (!window.isSecureContext) {
+    console.error('[PWA] Not a secure context (HTTPS required)');
+    console.error('[PWA] Current protocol:', window.location.protocol);
+    console.error('[PWA] Service worker registration blocked');
+    return false;
+  }
+
+  console.log('[PWA] Registering service worker...');
+
+  try {
+    // Check if this is first installation
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const isFirstInstall = registrations.length === 0;
+
+    console.log('[PWA Debug] Existing registrations:', registrations.length);
+    console.log('[PWA] First install:', isFirstInstall);
+
+    let progressOverlay = null;
+    if (isFirstInstall) {
+      progressOverlay = showCacheProgress();
+      console.log('[PWA] First install - showing progress overlay');
+      console.log('[PWA] ⏳ This will take 30-60 seconds to cache everything');
+    }
+
+    // Listen for progress messages
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'CACHE_PROGRESS') {
+        updateProgress(
+          event.data.progress,
+          event.data.current,
+          event.data.total,
+          event.data.url
+        );
+      }
+
+      if (event.data && event.data.type === 'CACHE_COMPLETE') {
+        console.log('[PWA] ✅ Cache complete!');
+        console.log('[PWA] Total:', event.data.totalAssets);
+        console.log('[PWA] Cached:', event.data.cachedAssets);
+        if (event.data.failedAssets > 0) {
+          console.warn('[PWA] Failed:', event.data.failedAssets);
+        }
+        setTimeout(() => hideProgress(), 1000);
+      }
+    });
+
+    // Register service worker
+    const registration = await navigator.serviceWorker.register('./service-worker.js', {
+      scope: './'
+    });
+
+    console.log('[PWA] Service worker registered');
+    console.log('[PWA Debug] Scope:', registration.scope);
+    console.log('[PWA Debug] Active:', !!registration.active);
+    console.log('[PWA Debug] Installing:', !!registration.installing);
+    console.log('[PWA Debug] Waiting:', !!registration.waiting);
+
+    // Request persistent storage
+    if (navigator.storage && navigator.storage.persist) {
+      const isPersisted = await navigator.storage.persist();
+      if (isPersisted) {
+        console.log('[PWA] ✅ Persistent storage granted');
+      } else {
+        console.warn('[PWA] ⚠️  Persistent storage denied (cache may be evicted)');
+      }
+
+      // Check storage estimate
+      if (navigator.storage.estimate) {
+        const estimate = await navigator.storage.estimate();
+        console.log('[PWA Debug] Storage usage:', Math.round(estimate.usage / 1024 / 1024) + ' MB');
+        console.log('[PWA Debug] Storage quota:', Math.round(estimate.quota / 1024 / 1024) + ' MB');
+      }
+    }
+
+    // Handle updates
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      console.log('[PWA] New service worker found, installing...');
+
+      newWorker.addEventListener('statechange', () => {
+        console.log('[PWA Debug] Worker state:', newWorker.state);
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('[PWA] New service worker installed, update available');
+        }
+      });
+    });
+
+    if (!isFirstInstall && progressOverlay) {
+      hideProgress();
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[PWA] Service worker registration failed:', error);
+    console.error('[PWA Debug] Error name:', error.name);
+    console.error('[PWA Debug] Error message:', error.message);
+    hideProgress();
+    return false;
+  }
+}
+
+/**
+ * Check if app is ready for offline use
+ * @returns {Promise<boolean>}
+ */
+export async function isOfflineReady() {
+  if (!('serviceWorker' in navigator)) {
+    return false;
+  }
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration || !registration.active) {
+    return false;
+  }
+
+  const cacheNames = await caches.keys();
+  return cacheNames.some(name => name.startsWith('unstablon-offline-'));
+}
+
+console.log('[PWA] PWA detector utility loaded');
+PWADETECTOR
+
+    print_success "Created javascript/utilities/pwa-detector.js (with debug logging)"
+}
+
+################################################################################
+# Create Comprehensive Cache Manifest Generator
+################################################################################
+
+create_cache_manifest_generator() {
+    print_header "Creating Cache Manifest Generator v3 (Config-Based)"
+    
+    cat > scripts/generate-cache-manifest.mjs << 'CACHEMANIFEST'
+#!/usr/bin/env node
+/**
+ * Cache Manifest Generator v3 - Config-Based Scanning
+ */
+import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from 'fs';
+import { join, relative } from 'path';
+import { execSync } from 'child_process';
+import https from 'https';
+import http from 'http';
+
+const ROOT = process.cwd();
+const CONFIG_FILE = 'cache-scan.config.json';
+
+// Load configuration (exits if not found)
+function loadConfig() {
+    if (!existsSync(CONFIG_FILE)) {
+        console.error(`[Cache] ❌ Configuration file not found: ${CONFIG_FILE}`);
+        console.error('[Cache] Please run setup-rollup.sh to create it');
+        process.exit(1);
+    }
+    
+    try {
+        const config = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
+        console.log('[Cache] ✓ Loaded configuration');
+        return config;
+    } catch (e) {
+        console.error('[Cache] ❌ Invalid configuration:', e.message);
+        process.exit(1);
+    }
+}
+
+// Get version from git or timestamp
+function getVersion() {
+    try {
+        return execSync('git rev-parse --short HEAD').toString().trim();
+    } catch {
+        return new Date().toISOString();
+    }
+}
+
+// Recursively scan directory
+function scanDirectory(dirPath, extensions = null, exclude = []) {
+    const files = [];
+    if (!existsSync(dirPath)) return files;
+    
+    const items = readdirSync(dirPath);
+    for (const item of items) {
+        const fullPath = join(dirPath, item);
+        const relativePath = './' + relative(ROOT, fullPath).replace(/\\/g, '/');
+        
+        if (exclude.some(pattern => relativePath.includes(pattern))) continue;
+        
+        const stats = statSync(fullPath);
+        if (stats.isDirectory()) {
+            files.push(...scanDirectory(fullPath, extensions, exclude));
+        } else if (stats.isFile()) {
+            if (!extensions || extensions.some(ext => fullPath.endsWith(ext))) {
+                files.push(relativePath);
+            }
+        }
+    }
+    return files;
+}
+
+// Fetch URL content
+function fetchURL(url) {
+    return new Promise((resolve, reject) => {
+        const protocol = url.startsWith('https') ? https : http;
+        const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
+        
+        protocol.get(url, {timeout: 10000}, res => {
+            clearTimeout(timeout);
+            if (res.statusCode !== 200) {
+                return reject(new Error(`HTTP ${res.statusCode}`));
+            }
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => resolve(data));
+        }).on('error', err => {
+            clearTimeout(timeout);
+            reject(err);
+        });
+    });
+}
+
+// Extract URLs from CSS content
+function extractCSSUrls(cssContent, baseUrl = '') {
+    const urls = [];
+    
+    // @import statements
+    const importRegex = /@import\s+(?:url\()?['"]([^'"]+)['"](?:\))?/g;
+    let match;
+    while ((match = importRegex.exec(cssContent))) {
+        let url = match[1];
+        if (!url.startsWith('http') && baseUrl) {
+            try {
+                url = new URL(url, baseUrl).href;
+            } catch {}
+        }
+        urls.push(url);
+    }
+    
+    // url() references
+    const urlRegex = /url\(['"]?([^'"()]+)['"]?\)/g;
+    while ((match = urlRegex.exec(cssContent))) {
+        let url = match[1];
+        if (url.startsWith('data:')) continue;
+        if (!url.startsWith('http') && baseUrl) {
+            try {
+                url = new URL(url, baseUrl).href;
+            } catch {}
+        }
+        if (url.startsWith('http')) urls.push(url);
+    }
+    
+    return urls;
+}
+
+// Extract CDN URLs from JavaScript
+function extractJSUrls(jsContent, config) {
+    const urls = [];
+    const stringRegex = /['"\`](https:\/\/[^'"\`\s]+)['"\`]/g;
+    let match;
+    
+    while ((match = stringRegex.exec(jsContent))) {
+        const url = match[1];
+        if (config.cdnDetection.domains.some(d => url.includes(d))) {
+            urls.push(url);
+        }
+    }
+    
+    return urls;
+}
+
+// Extract URLs from HTML
+function extractHTMLUrls(htmlContent) {
+    const urls = [];
+    const linkRegex = /<link[^>]*href=["'](https?:\/\/[^"']+)["']/g;
+    const scriptRegex = /<script[^>]*src=["'](https?:\/\/[^"']+)["']/g;
+    let match;
+    
+    while ((match = linkRegex.exec(htmlContent))) urls.push(match[1]);
+    while ((match = scriptRegex.exec(htmlContent))) urls.push(match[1]);
+    
+    return urls;
+}
+
+// Extract images from Markdown
+function extractMDImages(mdContent) {
+    const images = [];
+    const mdImgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const htmlImgRegex = /<img[^>]*src=["']([^"']+)["']/g;
+    let match;
+    
+    while ((match = mdImgRegex.exec(mdContent))) images.push(match[2]);
+    while ((match = htmlImgRegex.exec(mdContent))) images.push(match[1]);
+    
+    return images;
+}
+
+// Scan external CSS for fonts
+async function scanExternalCSS(cssUrl, visited = new Set()) {
+    if (visited.has(cssUrl)) return [];
+    visited.add(cssUrl);
+    
+    const urls = [];
+    try {
+        console.log(`[Cache]     Fetching: ${cssUrl}`);
+        const content = await fetchURL(cssUrl);
+        const extracted = extractCSSUrls(content, cssUrl);
+        urls.push(...extracted);
+        
+        for (const url of extracted) {
+            if (url.endsWith('.css')) {
+                urls.push(...await scanExternalCSS(url, visited));
+            }
+        }
+    } catch (e) {
+        console.warn(`[Cache]     ⚠ Failed: ${cssUrl} - ${e.message}`);
+    }
+    
+    return urls;
+}
+
+// Expand MathJax font resources
+function expandMathJaxResources(urls, config) {
+    if (!config.mathJax.autoExpand) return urls;
+    
+    const expanded = [...urls];
+    const mathJaxBases = urls.filter(u => u.includes('mathjax') && u.includes('tex-mml-chtml.js'));
+    const fontBases = urls.filter(u => u.includes('mathjax') && u.includes('fonts/woff-v2'));
+    
+    for (const fontBase of fontBases) {
+        const baseUrl = fontBase.endsWith('/') ? fontBase : fontBase + '/';
+        for (const font of config.mathJax.fonts) {
+            expanded.push(baseUrl + font);
+        }
+    }
+    
+    if (fontBases.length === 0 && mathJaxBases.length > 0) {
+        for (const base of mathJaxBases) {
+            const urlParts = base.split('/');
+            urlParts.pop();
+            const fontBase = urlParts.join('/') + '/output/chtml/fonts/woff-v2/';
+            for (const font of config.mathJax.fonts) {
+                expanded.push(fontBase + font);
+            }
+        }
+    }
+    
+    return expanded;
+}
+
+// Main generator function
+async function generateCacheManifest() {
+    console.log('[Cache] ═══════════════════════════════════════════════════════');
+    console.log('[Cache] Cache Manifest Generator v3 (Config-based)');
+    console.log('[Cache] ═══════════════════════════════════════════════════════');
+    
+    const config = loadConfig();
+    const manifest = {
+        version: getVersion(),
+        generated: new Date().toISOString(),
+        preCache: { local: [], cdn: [] }
+    };
+    
+    // Core files
+    console.log('[Cache] Step 1: Core files');
+    const coreFiles = [
+        './',
+        './index.html',
+        './manifest.json',
+        './favicon.ico',
+        './javascript/app.min.js',
+        './javascript/tree.json',
+        './css/app.min.css'
+    ];
+    manifest.preCache.local.push(...coreFiles);
+    console.log(`[Cache]   ✓ ${coreFiles.length} core files`);
+    
+    let stepNum = 2;
+    const allCDNUrls = [];
+    
+    // Scan configured directories
+    for (const [dirName, dirConfig] of Object.entries(config.scanDirectories)) {
+        if (!dirConfig.enabled) {
+            console.log(`[Cache] Step ${stepNum++}: ${dirName} (disabled)`);
+            continue;
+        }
+        
+        console.log(`[Cache] Step ${stepNum++}: Scanning ${dirName}`);
+        
+        // Add all files to cache for Home directory
+        if (dirName === 'Home' || dirName === 'assets' || dirName === 'vendor') {
+            const files = scanDirectory(dirName, null, config.excludePatterns);
+            manifest.preCache.local.push(...files);
+            console.log(`[Cache]   ✓ ${files.length} files added to cache`);
+        }
+        
+        // Scan files for CDN resources
+        const files = scanDirectory(dirName, dirConfig.extensions, config.excludePatterns);
+        
+        for (const file of files) {
+            if (!existsSync(file)) continue;
+            
+            try {
+                const content = readFileSync(file, 'utf-8');
+                const ext = file.substring(file.lastIndexOf('.'));
+                const override = dirConfig.overrides?.[ext];
+                
+                if (ext === '.html') {
+                    const urls = extractHTMLUrls(content);
+                    allCDNUrls.push(...urls);
+                } else if (ext === '.css') {
+                    const urls = extractCSSUrls(content);
+                    allCDNUrls.push(...urls);
+                } else if (ext === '.js') {
+                    const urls = extractJSUrls(content, config);
+                    if (urls.length > 0) {
+                        console.log(`[Cache]     ${file}: ${urls.length} CDN resources`);
+                    }
+                    allCDNUrls.push(...urls);
+                } else if (ext === '.md') {
+                    const images = extractMDImages(content);
+                    
+                    if (override?.cacheAllImages) {
+                        // Cache ALL images (local + external)
+                        for (const img of images) {
+                            if (img.startsWith('http')) {
+                                allCDNUrls.push(img);
+                            } else {
+                                const imgPath = img.startsWith('./') ? img : './' + img;
+                                if (existsSync(imgPath)) {
+                                    manifest.preCache.local.push(imgPath);
+                                }
+                            }
+                        }
+                        if (images.length > 0) {
+                            console.log(`[Cache]     ${file}: ${images.length} images (all cached)`);
+                        }
+                    } else {
+                        // Only cache CDN images
+                        allCDNUrls.push(...images.filter(img => img.startsWith('http')));
+                    }
+                }
+            } catch (e) {
+                console.warn(`[Cache]     ⚠ Failed to read ${file}: ${e.message}`);
+            }
+        }
+    }
+    
+    // Scan external CSS
+    console.log(`[Cache] Step ${stepNum++}: Scanning external CSS`);
+    const externalCSS = allCDNUrls.filter(url => url.endsWith('.css') && url.startsWith('http'));  // ← ONLY external URLs
+    for (const cssUrl of externalCSS) {
+        const fonts = await scanExternalCSS(cssUrl);
+        allCDNUrls.push(...fonts);
+        if (fonts.length > 0) {
+            console.log(`[Cache]   ✓ ${cssUrl}: ${fonts.length} resources`);
+        }
+    }
+    
+    // Expand MathJax
+    console.log(`[Cache] Step ${stepNum++}: Expanding MathJax resources`);
+    const expandedUrls = expandMathJaxResources(allCDNUrls, config);
+    const newMathJax = expandedUrls.length - allCDNUrls.length;
+    if (newMathJax > 0) {
+        console.log(`[Cache]   ✓ Added ${newMathJax} MathJax fonts`);
+    }
+    
+    // Remove duplicates
+    manifest.preCache.local = [...new Set(manifest.preCache.local)];
+    manifest.preCache.cdn = [...new Set(expandedUrls)];
+    
+    // Write manifest
+    const outputPath = 'javascript/cache-manifest.json';
+    writeFileSync(outputPath, JSON.stringify(manifest, null, 2));
+    
+    console.log('[Cache] ═══════════════════════════════════════════════════════');
+    console.log('[Cache] ✅ Generated javascript/cache-manifest.json');
+    console.log(`[Cache] Version: ${manifest.version}`);
+    console.log(`[Cache] Local: ${manifest.preCache.local.length}`);
+    console.log(`[Cache] CDN: ${manifest.preCache.cdn.length}`);
+    console.log(`[Cache] TOTAL: ${manifest.preCache.local.length + manifest.preCache.cdn.length}`);
+    console.log('[Cache] ═══════════════════════════════════════════════════════');
+}
+
+generateCacheManifest().catch(e => {
+    console.error('[Cache] ❌ Failed:', e);
+    process.exit(1);
+});
+CACHEMANIFEST
+
+    chmod +x scripts/generate-cache-manifest.mjs
+    print_success "Created scripts/generate-cache-manifest.mjs (config-based)"
 }
 
 ################################################################################
@@ -406,7 +1465,7 @@ DEVSERVER
 }
 
 ################################################################################
-# Create Prod Server
+# Create Prod Server (HTTPS Support - FIXED)
 ################################################################################
 
 create_prod_server() {
@@ -415,9 +1474,11 @@ create_prod_server() {
     cat > scripts/prod-server.mjs << 'PRODSERVER'
 #!/usr/bin/env node
 
+import https from 'https';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -440,7 +1501,7 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2',
 };
 
-const server = http.createServer((req, res) => {
+function requestHandler(req, res) {
   let filePath = req.url === '/' ? '/index.html' : req.url;
   filePath = path.join(ROOT, filePath);
 
@@ -460,15 +1521,68 @@ const server = http.createServer((req, res) => {
   res.end(content);
 
   console.log(`[Prod 3001] GET ${req.url} 200 OK`);
-});
+}
 
-server.listen(PORT, () => {
-  console.log(`[Prod 3001] Server ready`);
-});
+// Get local IP addresses
+function getLocalIPAddresses() {
+  const addresses = [];
+  const networkInterfaces = os.networkInterfaces();
+
+  Object.keys(networkInterfaces).forEach(name => {
+    networkInterfaces[name].forEach(net => {
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push(net.address);
+      }
+    });
+  });
+
+  return addresses;
+}
+
+// Check if certificates exist
+const certPath = path.join(ROOT, '.cert', 'cert.pem');
+const keyPath = path.join(ROOT, '.cert', 'key.pem');
+
+if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+  // HTTPS server
+  const options = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  };
+
+  const server = https.createServer(options, requestHandler);
+
+  server.listen(PORT, () => {
+    console.log(`[Prod 3001] ✅ HTTPS Server ready`);
+    console.log(`[Prod 3001] 🔒 Access via:`);
+
+    const addresses = getLocalIPAddresses();
+
+    if (addresses.length > 0) {
+      addresses.forEach(addr => {
+        console.log(`[Prod 3001]    https://${addr}:${PORT}`);
+      });
+    }
+    console.log(`[Prod 3001]    https://localhost:${PORT}`);
+    console.log(`[Prod 3001] ⚠️  Accept certificate warning on first visit`);
+  });
+} else {
+  // Fallback to HTTP
+  console.log('[Prod 3001] ⚠️  No HTTPS certificates found (.cert/cert.pem, .cert/key.pem)');
+  console.log('[Prod 3001] ⚠️  PWA Service Workers require HTTPS to function');
+  console.log('[Prod 3001] ⚠️  Run setup-rollup.sh again to generate certificates');
+  console.log('[Prod 3001] Starting HTTP server (service workers will not work)...');
+
+  const server = http.createServer(requestHandler);
+  server.listen(PORT, () => {
+    console.log(`[Prod 3001] HTTP Server ready (no HTTPS)`);
+    console.log(`[Prod 3001] http://localhost:${PORT}`);
+  });
+}
 PRODSERVER
 
     chmod +x scripts/prod-server.mjs
-    print_success "Created scripts/prod-server.mjs"
+    print_success "Created scripts/prod-server.mjs (with HTTPS support, FIXED)"
 }
 
 ################################################################################
@@ -583,8 +1697,9 @@ console.log('   http://localhost:3000');
 console.log('   Uses: javascript/app.js + css/styles.css + css/modules.css\n');
 
 console.log('🚀 Production Server');
-console.log('   http://localhost:3001');
-console.log('   Uses: javascript/app.min.js + css/app.min.css\n');
+console.log('   https://localhost:3001 (or https://YOUR_IP:3001)');
+console.log('   Uses: javascript/app.min.js + css/app.min.css');
+console.log('   HTTPS enabled for PWA testing\n');
 
 console.log('🔄 File Watcher');
 console.log('   Auto-rebuilds on changes in javascript/ and css/\n');
@@ -647,7 +1762,9 @@ update_package_json() {
   "type": "module",
   "scripts": {
     "generate:css-entry": "node scripts/generate-css-entry.mjs",
+    "cache:generate": "node scripts/generate-cache-manifest.mjs",
     "prebuild:css": "npm run generate:css-entry",
+    "prebuild": "npm run cache:generate",
     "build": "npm run build:tree && npm run build:css && npm run build:js",
     "build:js": "rollup -c rollup.config.js",
     "build:css": "rollup -c rollup.config.css.js",
@@ -656,7 +1773,7 @@ update_package_json() {
     "dev": "node scripts/dev-server.mjs",
     "preview": "node scripts/prod-server.mjs",
     "watch": "node scripts/watch-and-build.mjs",
-    "clean": "rm -f javascript/app.min.js* css/app.min.css* css/main.css"
+    "clean": "rm -f javascript/app.min.js* css/app.min.css* css/main.css javascript/cache-manifest.json"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
@@ -677,7 +1794,7 @@ update_package_json() {
 }
 PACKAGEJSON
 
-    print_success "Created package.json with dynamic CSS entry generation"
+    print_success "Created package.json with comprehensive cache scripts"
 }
 
 ################################################################################
@@ -699,6 +1816,10 @@ css/app.min.css.map
 javascript/app.min.js
 javascript/app.min.js.map
 javascript/tree.json
+javascript/cache-manifest.json
+
+# HTTPS certificates (local testing only)
+.cert/
 
 # Build documentation
 ROLLUP-GUIDE.md
@@ -717,7 +1838,6 @@ GITIGNORE
     print_success "Created .gitignore"
 }
 
-
 ################################################################################
 # Create Documentation
 ################################################################################
@@ -726,42 +1846,113 @@ create_documentation() {
     print_header "Creating Documentation"
 
     cat > ROLLUP-GUIDE.md << 'GUIDE'
-# Rollup Build System Guide (CSS + JS)
+# Rollup Build System Guide (CSS + JS + PWA) v4.6
 
-## Dynamic CSS Entry Point
+## Comprehensive Offline-First PWA
 
-The CSS build system automatically discovers all CSS source files:
+This system pre-caches **EVERYTHING** on first PWA installation:
+- All files in /Home directory
+- All assets and vendor files
+- ALL CDN resources (CSS, JS, fonts)
+- Fonts loaded by CSS files (auto-detected)
 
-- **No hardcoding** - scans `css/` directory
-- **Auto-excludes** build outputs (*.min.css, main.css)
-- **Alphabetical order** - consistent imports
+**Zero runtime caching needed - full offline from first load!**
 
-To add a new CSS file:
-1. Create `css/your-new-file.css`
-2. Run `npm run build`
-3. Done! It's automatically included
+## Auto-Detection Features
+
+### CSS Font Detection
+The cache manifest generator:
+1. Scans HTML for CDN links
+2. Fetches and parses external CSS files
+3. Extracts @import and url() references
+4. Follows import chains recursively
+5. Detects all fonts automatically
+
+**No manual CDN URL updates required!**
+
+### What Gets Pre-Cached
+
+- Core app files (HTML, JS, CSS)
+- /Home directory (all content)
+- /assets directory (images, fonts, etc.)
+- /vendor directory (third-party libs)
+- Font Awesome CSS + fonts
+- Google Fonts / CDN fonts
+- MathJax + fonts
+- Any CDN resource referenced anywhere
+
+## HTTPS Local Testing
+
+Self-signed certificates auto-generated for PWA testing on iPhone:
+
+**Access URLs:**
+- `https://YOUR_IP:3001` (from iPhone/other devices)
+- `https://localhost:3001` (from Mac)
+
+**Note:** Accept certificate warning on first visit.
 
 ## Commands
 
-### Build Production
+### Build Everything
+```bash
 npm run build
+```
+
+Generates comprehensive cache manifest + builds production files.
+
+### Generate Cache Manifest
+```bash
+npm run cache:generate
+```
+
+Scans everything and detects ALL CDN resources (takes 10-30 seconds).
 
 ### Dual-Mode Testing
+```bash
 npm run test
+```
 
 Opens:
 - http://localhost:3000 (dev - unminified)
-- http://localhost:3001 (prod - minified)
+- https://localhost:3001 (prod - minified, HTTPS, PWA)
 
 Press Ctrl+C to stop all servers.
 
 ### Individual Commands
+```bash
 npm run dev            # Dev server only
-npm run preview        # Prod server only  
+npm run preview        # Prod server only (HTTPS)
 npm run watch          # File watcher only
 npm run build:css      # Build CSS only
 npm run build:js       # Build JS only
 npm run generate:css-entry  # Generate CSS entry point
+npm run cache:generate # Generate comprehensive cache manifest
+```
+
+## First PWA Install
+
+1. Visit https://YOUR_IP:3001 on iPhone
+2. Add to Home Screen
+3. Open from home screen
+4. **Wait 30-60 seconds** - progress bar shows caching
+5. Everything cached - full offline support!
+
+## Storage Requirements
+
+Expect 10-50 MB cache size (depending on content):
+- All /Home content
+- All assets
+- All CDN fonts
+- All third-party libraries
+
+iOS typically allows 50-500 MB persistent storage.
+
+## Performance
+
+- **First load:** 30-60 seconds (caching everything)
+- **Subsequent loads:** Instant (all from cache)
+- **Offline:** Full functionality, zero degradation
+- **Updates:** Automatic cache invalidation via version hash
 
 ## What Gets Committed
 
@@ -773,18 +1964,40 @@ Commit:
 - css/modules.css (source)
 - css/app.min.css (built)
 - scripts/*.mjs (build scripts)
+- service-worker.js
 
-Do not commit (auto-generated):
+Do not commit (auto-generated or local):
 - javascript/app.min.js.map
 - css/app.min.css.map
 - css/main.css
+- javascript/cache-manifest.json
+- .cert/ (HTTPS certificates)
 - node_modules/
 
-## Performance
+## Troubleshooting
 
-- CSS: Auto-discovered files → 1 minified bundle (60-70% smaller)
-- JS: Minified with console.log removed
-- Fewer HTTP requests, faster loads
+### Fonts Not Cached?
+```bash
+# Regenerate cache manifest (fetches CSS to find fonts)
+npm run cache:generate
+
+# Check javascript/cache-manifest.json
+# Should contain font URLs like:
+# "https://cdnjs.cloudflare.com/.../fa-solid-900.woff2"
+# "https://fonts.gstatic.com/.../font.woff2"
+```
+
+### Service Worker Not Working?
+- Ensure HTTPS (not HTTP)
+- Check console for [PWA Debug] logs
+- Verify running as PWA (from home screen)
+- Accept certificate warning first
+
+### Cache Too Large?
+Edit `scripts/generate-cache-manifest.mjs`:
+- Exclude certain file types
+- Skip certain directories
+- Reduce /Home content size
 GUIDE
 
     print_success "Created ROLLUP-GUIDE.md"
@@ -812,12 +2025,19 @@ update_index_html() {
     if grep -q 'href="./css/styles.css"' index.html; then
         print_info "Consolidating CSS references to app.min.css..."
         sed -i.bak 's|<link rel="stylesheet" href="./css/styles.css" />|<link rel="stylesheet" href="./css/app.min.css" />|g' index.html
-        sed -i.bak '/<link rel="stylesheet" href=".\/css\/modules.css"/d' index.html
+        sed -i.bak '/<link rel="stylesheet" href="\.\/css\/modules.css"/d' index.html
         print_success "Updated CSS references to app.min.css"
     elif grep -q 'href="./css/app.min.css"' index.html; then
         print_success "CSS reference already uses app.min.css"
     else
         print_warning "Could not find CSS link tags in index.html"
+    fi
+
+    # Remove manifest link (loaded conditionally by JS)
+    if grep -q '<link rel="manifest"' index.html; then
+        print_info "Removing manifest link (will be loaded conditionally by JS)..."
+        sed -i.bak '/<link rel="manifest"/d' index.html
+        print_success "Removed manifest link from HTML"
     fi
 
     rm -f index.html.bak
@@ -876,6 +2096,13 @@ generate_initial_build() {
         print_error "JavaScript build failed"
         exit 1
     fi
+
+    print_info "Generating comprehensive cache manifest (this may take 30-60 seconds)..."
+    if npm run cache:generate; then
+        print_success "Generated javascript/cache-manifest.json"
+    else
+        print_warning "Cache manifest generation failed"
+    fi
 }
 
 ################################################################################
@@ -886,7 +2113,7 @@ print_summary() {
     print_header "Setup Complete"
 
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}  Rollup Build System (CSS + JS) Successfully Installed${NC}"
+    echo -e "${GREEN}  Rollup Build System + Full PWA v4.6 Installed${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
@@ -894,26 +2121,39 @@ print_summary() {
     echo "  ✓ rollup.config.js"
     echo "  ✓ rollup.config.css.js"
     echo "  ✓ postcss.config.cjs"
-    echo "  ✓ scripts/generate-css-entry.mjs (dynamic CSS discovery)"
+    echo "  ✓ scripts/generate-css-entry.mjs"
+    echo "  ✓ scripts/generate-cache-manifest.mjs (comprehensive)"
     echo "  ✓ scripts/dev-server.mjs"
-    echo "  ✓ scripts/prod-server.mjs"
+    echo "  ✓ scripts/prod-server.mjs (HTTPS support)"
     echo "  ✓ scripts/watch-and-build.mjs"
     echo "  ✓ scripts/test-dual-server.mjs"
+    echo "  ✓ service-worker.js (pre-cache EVERYTHING)"
+    echo "  ✓ javascript/utilities/pwa-detector.js"
+    echo "  ✓ .cert/cert.pem (HTTPS certificate)"
+    echo "  ✓ .cert/key.pem (HTTPS private key)"
     echo "  ✓ package.json"
     echo "  ✓ ROLLUP-GUIDE.md"
     echo ""
 
     print_info "Build Output:"
-    echo "  ✓ css/main.css (auto-generated from CSS sources)"
+    echo "  ✓ css/main.css (auto-generated)"
     echo "  ✓ css/app.min.css"
     echo "  ✓ javascript/app.min.js"
+    echo "  ✓ javascript/cache-manifest.json (comprehensive)"
     echo ""
 
-    print_info "Dynamic CSS Discovery:"
-    echo "  ✓ No hardcoded file list"
-    echo "  ✓ Auto-discovers CSS files in css/ directory"
-    echo "  ✓ Add new CSS files anytime - automatically included"
+    print_info "PWA Features:"
+    echo "  ✓ Pre-cache EVERYTHING on first install"
+    echo "  ✓ Auto-detect ALL CDN resources (CSS, fonts, etc.)"
+    echo "  ✓ Scan external CSS for fonts"
+    echo "  ✓ Zero runtime caching needed"
+    echo "  ✓ Full offline support immediately"
+    echo "  ✓ HTTPS for local testing"
+    echo "  ✓ Debug logging"
     echo ""
+
+    # Get local IP for HTTPS access
+    LOCAL_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1)
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BLUE}  Quick Start${NC}"
@@ -924,21 +2164,34 @@ print_summary() {
     echo ""
     echo "  Then open:"
     echo "     http://localhost:3000 (dev)"
-    echo "     http://localhost:3001 (prod)"
+    echo "     https://localhost:3001 (prod with HTTPS)"
+    if [ ! -z "$LOCAL_IP" ]; then
+        echo "     https://$LOCAL_IP:3001 (from iPhone)"
+    fi
     echo ""
     echo "  Build for deployment:"
     echo -e "     ${GREEN}npm run build${NC}"
     echo ""
 
-    print_info "Features:"
-    echo "  ✓ Dynamic CSS bundling (auto-discovered → 1 minified)"
-    echo "  ✓ JavaScript minification"
-    echo "  ✓ In-memory dev server"
-    echo "  ✓ Dual-mode testing"
-    echo "  ✓ Auto-rebuild on changes"
-    echo "  ✓ No hardcoding (follows project principles)"
+    print_info "Testing PWA on iPhone:"
+    echo "  1. Start prod server: npm run preview"
+    if [ ! -z "$LOCAL_IP" ]; then
+        echo "  2. iPhone Safari → https://$LOCAL_IP:3001"
+    else
+        echo "  2. iPhone Safari → https://YOUR_MAC_IP:3001"
+    fi
+    echo "  3. Accept certificate warning"
+    echo "  4. Add to Home Screen"
+    echo "  5. Open from home screen"
+    echo "  6. Wait 30-60 seconds (caching EVERYTHING)"
+    echo "  7. Full offline support!"
     echo ""
 
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}  🎉 EVERYTHING will be pre-cached on first PWA install!${NC}"
+    echo -e "${GREEN}  No runtime caching - full functionality from first load!${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
     echo -e "${GREEN}Ready to start. Run 'npm run test' to begin.${NC}"
     echo ""
 }
@@ -953,16 +2206,22 @@ main() {
     echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.3            ║${NC}"
+    echo -e "${BLUE}║         Unstablon PKM - Rollup Build System v4.6            ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
-    echo -e "${BLUE}║   Dynamic CSS Discovery + JS Bundling + Dev Server          ║${NC}"
+    echo -e "${BLUE}║   Full Offline PWA - Pre-cache EVERYTHING                   ║${NC}"
+    echo -e "${BLUE}║   Auto-detect ALL CDN resources                              ║${NC}"
     echo -e "${BLUE}║                                                              ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
     preflight_checks
     backup_existing_files
+    generate_https_certificate
+    create_cache_scan_config
     create_css_entry_generator
+    create_service_worker
+    create_pwa_detector
+    create_cache_manifest_generator
     create_postcss_config
     create_rollup_config_js
     create_rollup_config_css

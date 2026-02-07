@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "generate:css-entry": "node scripts/generate-css-entry.mjs",
+    "cache:generate": "node scripts/generate-cache-manifest.mjs",
     "prebuild:css": "npm run generate:css-entry",
+    "prebuild": "npm run cache:generate",
     "build": "npm run build:tree && npm run build:css && npm run build:js",
     "build:js": "rollup -c rollup.config.js",
     "build:css": "rollup -c rollup.config.css.js",
@@ -15,7 +17,7 @@
     "dev": "node scripts/dev-server.mjs",
     "preview": "node scripts/prod-server.mjs",
     "watch": "node scripts/watch-and-build.mjs",
-    "clean": "rm -f javascript/app.min.js* css/app.min.css* css/main.css"
+    "clean": "rm -f javascript/app.min.js* css/app.min.css* css/main.css javascript/cache-manifest.json"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
