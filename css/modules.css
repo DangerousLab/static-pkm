@@ -1,13 +1,18 @@
 /**
  * Shared Module CSS Patterns
  * File: css/modules.css
- * Version: 1.0
- * Last Updated: 2026-02-02
+ * Version: 1.1 (Phase 1 Updates)
+ * Last Updated: 2026-02-08
  * 
  * This file contains reusable CSS patterns used by multiple modules.
  * Only add patterns that are used by 3+ modules OR likely useful for future modules.
  * 
  * Naming Convention: Use 'shared-' prefix for all classes
+ * 
+ * PHASE 1 CHANGES:
+ * - Replaced hardcoded RGBA values with CSS variables
+ * - Replaced animation timing values with CSS variables
+ * - Added documentation comments
  */
 
 /* ============================================
@@ -44,7 +49,7 @@
   font-size: 0.9rem;
   color: var(--text-muted);
   line-height: 1.45;
-  max-width: 660px;
+  max-width: 660px; /* 45-60 characters per line for readability */
 }
 
 .shared-module-subtitle span {
@@ -58,15 +63,15 @@
    ============================================ */
 
 .shared-module-panel {
-  border-radius: 14px;
-  border: 1px solid rgba(160, 160, 160, 0.55);
+  border-radius: 14px; /* Medium-large - panels */
+  border: 1px solid var(--border-strong);
   background: var(--bg-panel);
   padding: 16px 16px 18px;
   margin-bottom: 12px;
 }
 
 :root[data-theme="light"] .shared-module-panel {
-  border-color: rgba(148, 163, 184, 0.7);
+  border-color: var(--border-strong);
   background: var(--bg-panel);
 }
 
@@ -99,18 +104,20 @@
 .shared-field {
   width: 100%;
   padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(180, 180, 180, 0.65);
+  border-radius: 8px; /* Small - inputs, buttons */
+  border: 1px solid var(--border-strong);
   background: var(--bg-input, var(--bg-panel));
   color: var(--text-main);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  transition: border-color var(--anim-fast) var(--ease-standard), 
+              box-shadow var(--anim-fast) var(--ease-standard), 
+              background var(--anim-fast) var(--ease-standard);
 }
 
 :root[data-theme="light"] .shared-field {
   background: #ffffff;
-  border-color: rgba(148, 163, 184, 0.8);
+  border-color: var(--border-medium);
 }
 
 .shared-field:focus {
@@ -124,7 +131,7 @@
 }
 
 .shared-field[readonly] {
-  background: var(--bg-disabled, rgba(128, 128, 128, 0.2));
+  background: var(--bg-disabled);
   cursor: default;
   opacity: 0.7;
 }
@@ -148,13 +155,13 @@
 
 .shared-btn {
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 8px; /* Small - inputs, buttons */
   border: 1px solid var(--border-subtle);
   background: var(--bg-panel);
   color: var(--text-main);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--anim-normal) var(--ease-standard);
   outline: none;
 }
 
@@ -185,6 +192,11 @@
 /* ============================================
    RESPONSIVE BREAKPOINTS
    Applied to all shared patterns
+
+   Breakpoint System:
+   - 600px: Mobile portrait (primary mobile breakpoint)
+   - 768px: Tablet (general tablet adjustments)
+   - 900px: Mobile landscape (orientation-specific)
    ============================================ */
 
 /* Tablet and small desktop */
@@ -200,7 +212,7 @@
 
   .shared-module-panel {
     padding: 14px 12px 16px;
-    border-radius: 12px;
+    border-radius: 12px; /* Medium - mobile cards */
     margin-bottom: 10px;
   }
 
@@ -237,7 +249,7 @@
 
   .shared-module-panel {
     padding: 12px 10px 14px;
-    border-radius: 12px;
+    border-radius: 12px; /* Medium - mobile cards */
     margin-bottom: 8px;
   }
 
@@ -296,4 +308,11 @@
  * - Add responsive breakpoints
  * - Use 'shared-' prefix for all classes
  * - Document which modules use each pattern
+ * 
+ * BORDER RADIUS SCALE:
+ * - 8px:  Small elements (inputs, buttons, small cards)
+ * - 12px: Mobile cards and panels
+ * - 14px: Desktop panels
+ * - 18px: Desktop cards (primary containers)
+ * - 999px: Pills, badges, circular elements
  */

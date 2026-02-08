@@ -1,5 +1,6 @@
 /* ==================== CSS VARIABLES ==================== */
 :root {
+  /* Base Colors */
   --bg: #3c3c3c;
   --bg-card: #303030;
   --bg-panel: #262626;
@@ -10,9 +11,34 @@
   --text-muted: #c4c4c4;
   --danger: #ff4b4b;
   --success: #4ade80;
+
+  /* Layout Variables */
   --sidebar-base: 240px;
   --header-height: 90px;
   --landscape-leftbar-width: 44px;
+
+  /* PHASE 1: New Color Variables */
+  --border-medium: rgba(148, 148, 148, 0.6);
+  --border-light: rgba(180, 180, 180, 0.5);
+  --border-strong: rgba(160, 160, 160, 0.55);
+  --bg-hover: rgba(80, 80, 80, 0.35);
+  --bg-disabled: rgba(128, 128, 128, 0.2);
+  --bg-highlight: rgba(224, 160, 31, 0.25);
+  --accent-gold: rgb(224, 160, 31);
+
+  /* PHASE 1: Animation Timing Variables */
+  --anim-fast: 0.15s;
+  --anim-normal: 0.2s;
+  --anim-slow: 0.4s;
+  --anim-delay-1: 0.075s;
+  --anim-delay-2: 0.15s;
+  --ease-standard: ease;
+  --ease-out: ease-out;
+
+  /* PHASE 1: Gradient Variables */
+  --gradient-bg: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%);
+  --gradient-sidebar: radial-gradient(circle at top left, rgba(31, 31, 31, 0.96), rgba(31, 31, 31, 0.9));
+  --gradient-card: radial-gradient(circle at top left, var(--bg-card), var(--bg-panel) 45%, #1a1a1a 100%);
 }
 
 /* Light Theme Variables */
@@ -27,6 +53,20 @@
   --text-muted: #6b7280;
   --danger: #dc2626;
   --success: #16a34a;
+
+  /* PHASE 1: Light Theme Color Variables */
+  --border-medium: rgba(148, 163, 184, 0.6);
+  --border-light: rgba(148, 163, 184, 0.5);
+  --border-strong: rgba(148, 163, 184, 0.7);
+  --bg-hover: rgba(148, 163, 184, 0.25);
+  --bg-disabled: rgba(148, 163, 184, 0.15);
+  --bg-highlight: rgba(224, 160, 31, 0.2);
+  --accent-gold: rgb(224, 160, 31);
+
+  /* PHASE 1: Light Theme Gradients */
+  --gradient-bg: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
+  --gradient-sidebar: radial-gradient(circle at top left, #f9fafb, #e5e7eb);
+  --gradient-card: radial-gradient(circle at top left, var(--bg-card), var(--bg-panel) 40%, #e5e7eb 100%);
 }
 
 /* ==================== GLOBAL STYLES ==================== */
@@ -39,16 +79,17 @@ body {
   margin: 0;
   min-height: 100vh;
   background-color: #1f1f1f; /* SOLID color first for iOS status bar */
-  background-image: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%); /* Gradient on top */
+  background-image: var(--gradient-bg);
   color: var(--text-main);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background var(--anim-normal) var(--ease-standard), 
+              color var(--anim-normal) var(--ease-standard);
 }
 
 :root[data-theme="light"] body {
   background-color: #f3f4f6; /* SOLID color for iOS status bar */
-  background-image: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
+  background-image: var(--gradient-bg);
 }
 
 /* ==================== WEBAPP STATUS BAR THEMING ==================== */
@@ -89,39 +130,39 @@ html {
 
 /* Initial load animations with staggered delays (uniform 75ms intervals) */
 .header-logo-img {
-  animation: slideUpFade 0.4s ease-out;
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
   animation-delay: 0s;
   animation-fill-mode: both;
 }
 
 .header-banner-img {
-  animation: slideUpFade 0.4s ease-out;
-  animation-delay: 0.075s;
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-1);
   animation-fill-mode: both;
 }
 
 .header-tagline {
-  animation: slideUpFade 0.4s ease-out;
-  animation-delay: 0.15s;
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-2);
   animation-fill-mode: both;
 }
 
 /* Theme toggle animations (same timing as initial load) */
 .header-logo-img.animate {
-  animation: slideUpFade 0.4s ease-out;
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
   animation-delay: 0s;
   animation-fill-mode: both;
 }
 
 .header-banner-img.animate {
-  animation: slideUpFade 0.4s ease-out;
-  animation-delay: 0.075s;
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-1);
   animation-fill-mode: both;
 }
 
 .header-tagline.animate {
-  animation: slideUpFade 0.4s ease-out;
-  animation-delay: 0.15s;
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-2);
   animation-fill-mode: both;
 }
 
@@ -137,18 +178,18 @@ html {
   justify-content: center;
   padding: 8px 16px;
   background: #1f1f1f;
-  border-bottom: 1px solid rgba(148, 148, 148, 0.6);
+  border-bottom: 1px solid var(--border-medium);
   min-height: var(--header-height);
 }
 
 :root[data-theme="light"] .app-header {
   background: #f3f4f6;
-  border-bottom-color: rgba(148, 163, 184, 0.5);
+  border-bottom-color: var(--border-light);
 }
 
 .header-bar {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1100px; /* Content width - prevents line length > 80 chars */
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -178,7 +219,7 @@ html {
   background: currentColor;
   border-radius: 999px;
   position: relative;
-  transition: background 0.15s ease;
+  transition: background var(--anim-fast) var(--ease-standard);
   flex-shrink: 0;
 }
 
@@ -191,8 +232,10 @@ html {
   height: 2px;
   background: currentColor;
   border-radius: 999px;
-  transition: transform 0.15s ease, opacity 0.15s ease, top 0.15s ease,
-    bottom 0.15s ease;
+  transition: transform var(--anim-fast) var(--ease-standard), 
+              opacity var(--anim-fast) var(--ease-standard), 
+              top var(--anim-fast) var(--ease-standard),
+              bottom var(--anim-fast) var(--ease-standard);
 }
 
 .sidebar-toggle-icon::before {
@@ -340,7 +383,9 @@ html {
   background: #262626;
   cursor: pointer;
   color: #f5f5f5;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  transition: background var(--anim-normal) var(--ease-standard), 
+              border-color var(--anim-normal) var(--ease-standard), 
+              transform 0.1s var(--ease-standard);
 }
 
 :root[data-theme="light"] .theme-toggle {
@@ -375,11 +420,7 @@ html {
 
   /* Body background extends into safe areas */
   body {
-    background: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%) !important;
-  }
-  
-  :root[data-theme="light"] body {
-    background: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%) !important;
+    background: var(--gradient-bg) !important;
   }
 
   .app-shell {
@@ -431,7 +472,7 @@ html {
     padding: 4px 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     background: #1f1f1f;
-    border-right: 1px solid rgba(148, 148, 148, 0.6);
+    border-right: 1px solid var(--border-medium);
   }
 
   /* Left bar when notch is on RIGHT or no notch detected */
@@ -442,7 +483,7 @@ html {
 
   :root[data-theme="light"] .landscape-leftbar {
     background: #f3f4f6;
-    border-right-color: rgba(148, 163, 184, 0.6);
+    border-right-color: var(--border-medium);
   }
 
   .landscape-leftbar-toggle {
@@ -475,13 +516,13 @@ html {
     width: auto;
     height: auto;
     object-fit: contain;
-    animation: slideUpFade 0.4s ease-out;
+    animation: slideUpFade var(--anim-slow) var(--ease-out);
     animation-delay: 0s;
     animation-fill-mode: both;
   }
 
   .landscape-leftbar-logo img.animate {
-    animation: slideUpFade 0.4s ease-out;
+    animation: slideUpFade var(--anim-slow) var(--ease-out);
     animation-delay: 0s;
     animation-fill-mode: both;
   }
@@ -498,28 +539,7 @@ html {
     font-size: 0.9rem;
   }
 
-  /* Visual debug indicator (optional - remove in production) */
-  .landscape-leftbar::before {
-    content: 'LEFT';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 8px;
-    color: rgba(0, 0, 255, 0.3);
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  :root[data-notch-side="right"] .landscape-leftbar::before {
-    content: 'RIGHT';
-    color: rgba(255, 0, 0, 0.3);
-  }
-
-  :root[data-notch-side="none"] .landscape-leftbar::before {
-    content: 'NONE';
-    color: rgba(0, 255, 0, 0.3);
-  }
+  /* PHASE 1: Debug code removed - was lines 571-584 */
 
   .app-header {
     display: none !important;
@@ -532,7 +552,7 @@ html {
     left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
     height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
     width: 80vw !important;
-    max-width: 360px !important;
+    max-width: 360px !important; /* Mobile sidebar max width */
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     transform: translateX(-100%) !important;
     z-index: 20 !important;
@@ -608,21 +628,17 @@ html {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-right: 1px solid rgba(148, 148, 148, 0.6);
-  background: radial-gradient(
-    circle at top left,
-    rgba(31, 31, 31, 0.96),
-    rgba(31, 31, 31, 0.9)
-  );
+  border-right: 1px solid var(--border-medium);
+  background: var(--gradient-sidebar);
   backdrop-filter: blur(18px);
   transform: translateX(-100%);
   overflow: hidden;
-  transition: transform 0.22s ease-out;
+  transition: transform 0.22s var(--ease-out);
 }
 
 :root[data-theme="light"] .sidebar {
-  background: radial-gradient(circle at top left, #f9fafb, #e5e7eb);
-  border-right-color: rgba(148, 163, 184, 0.6);
+  background: var(--gradient-sidebar);
+  border-right-color: var(--border-medium);
 }
 
 @media (max-width: 640px) {
@@ -654,7 +670,7 @@ html {
 .sidebar-breadcrumb-part {
   cursor: pointer;
   color: var(--text-muted);
-  transition: color 0.15s ease;
+  transition: color var(--anim-fast) var(--ease-standard);
 }
 
 .sidebar-breadcrumb-part.current {
@@ -687,7 +703,8 @@ html {
   justify-content: flex-start;
   border: none;
   background: transparent;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition: background 0.18s var(--ease-standard), 
+              color 0.18s var(--ease-standard);
 }
 
 .nav-index {
@@ -727,7 +744,7 @@ html {
 
 .nav-item:hover .nav-index,
 .nav-item.active .nav-index {
-  color: rgb(224, 160, 31);
+  color: var(--accent-gold);
 }
 
 .nav-item:hover .nav-icon {
@@ -735,11 +752,11 @@ html {
 }
 
 .nav-item:hover {
-  background: rgba(80, 80, 80, 0.35);
+  background: var(--bg-hover);
 }
 
 :root[data-theme="light"] .nav-item:hover {
-  background: rgba(148, 163, 184, 0.25);
+  background: var(--bg-hover);
 }
 
 /* Sidebar Footer */
@@ -754,14 +771,14 @@ html {
 @media (min-width: 841px) {
   .sidebar[data-open="true"] {
     transform: translateX(0);
-    transition: transform 0.22s ease-out, width 0.2s ease-out;
+    transition: transform 0.22s var(--ease-out), width var(--anim-normal) var(--ease-out);
   }
 }
 
 @media (max-width: 840px) {
   .sidebar {
-    width: 80vw;
-    max-width: 360px;
+    width: 80vw; /* Mobile sidebar - 80% screen width */
+    max-width: 360px; /* Desktop sidebar - max readable width */
   }
 
   .sidebar[data-open="true"] {
@@ -786,15 +803,16 @@ html {
   align-items: center;
   gap: 6px;
   background: #262626;
-  border: 1px solid rgba(180, 180, 180, 0.5);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 6px 8px;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color var(--anim-normal) var(--ease-standard), 
+              background var(--anim-normal) var(--ease-standard);
 }
 
 :root[data-theme="light"] .search-input-wrapper {
   background: #ffffff;
-  border-color: rgba(148, 163, 184, 0.6);
+  border-color: var(--border-medium);
 }
 
 .search-input-wrapper:focus-within {
@@ -843,33 +861,34 @@ html {
   justify-content: center;
   border-radius: 50%;
   padding: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--anim-fast) var(--ease-standard), 
+              color var(--anim-fast) var(--ease-standard);
 }
 
 .search-clear:hover {
-  background: rgba(148, 148, 148, 0.2);
+  background: var(--bg-disabled);
   color: var(--text-main);
 }
 
 .search-results {
   margin-top: 8px;
-  max-height: 320px;
+  max-height: 320px; /* Search results max height */
   overflow-y: auto;
   border-radius: 8px;
   background: #1f1f1f;
-  border: 1px solid rgba(180, 180, 180, 0.4);
+  border: 1px solid var(--border-strong);
 }
 
 :root[data-theme="light"] .search-results {
   background: #ffffff;
-  border-color: rgba(148, 163, 184, 0.5);
+  border-color: var(--border-light);
 }
 
 .search-result-item {
   padding: 8px 10px;
   cursor: pointer;
   border-bottom: 1px solid rgba(148, 148, 148, 0.2);
-  transition: background 0.15s ease;
+  transition: background var(--anim-fast) var(--ease-standard);
 }
 
 .search-result-item:last-child {
@@ -878,12 +897,12 @@ html {
 
 .search-result-item:hover,
 .search-result-item.selected {
-  background: rgba(80, 80, 80, 0.35);
+  background: var(--bg-hover);
 }
 
 :root[data-theme="light"] .search-result-item:hover,
 :root[data-theme="light"] .search-result-item.selected {
-  background: rgba(148, 163, 184, 0.15);
+  background: var(--bg-hover);
 }
 
 .search-result-title {
@@ -914,14 +933,14 @@ html {
 }
 
 .search-match {
-  background: rgba(224, 160, 31, 0.25);
+  background: var(--bg-highlight);
   font-weight: 500;
   border-radius: 2px;
   padding: 0 2px;
 }
 
 :root[data-theme="light"] .search-match {
-  background: rgba(224, 160, 31, 0.2);
+  background: var(--bg-highlight);
 }
 
 /* ==================== MAIN CONTENT AREA ==================== */
@@ -934,20 +953,15 @@ html {
 }
 
 .page-root {
-  max-width: 980px;
+  max-width: 980px; /* Optimal reading width (66-75 chars per line) */
   width: 100%;
   padding: 8px 4px 24px;
 }
 
 .card {
   position: relative;
-  background: radial-gradient(
-    circle at top left,
-    var(--bg-card),
-    var(--bg-panel) 45%,
-    #1a1a1a 100%
-  );
-  border-radius: 18px;
+  background: var(--gradient-card);
+  border-radius: 18px; /* Large - desktop cards */
   border: 1px solid var(--border-subtle);
   padding: 28px 32px 30px;
   margin-top: 16px;
@@ -957,12 +971,7 @@ html {
 }
 
 :root[data-theme="light"] .card {
-  background: radial-gradient(
-    circle at top left,
-    var(--bg-card),
-    var(--bg-panel) 40%,
-    #e5e7eb 100%
-  );
+  background: var(--gradient-card);
   box-shadow: 0 18px 30px rgba(148, 163, 184, 0.35),
     0 0 0 1px rgba(148, 163, 184, 0.3);
 }
@@ -975,7 +984,7 @@ html {
 }
 
 .card.loaded {
-  animation: slideUpFade 0.4s ease-out 0s;
+  animation: slideUpFade var(--anim-slow) var(--ease-out) 0s;
   animation-fill-mode: both;
 }
 
@@ -1005,7 +1014,7 @@ html {
   .card {
     margin: 0.5rem 0.25rem; /* ~8px vertical, 4px horizontal */
     padding: 18px 14px 20px; /* Reduced from 28px 32px 30px */
-    border-radius: 14px; /* Slightly reduced */
+    border-radius: 14px; /* Medium-large - panels */
   }
 
   /* Sidebar: Moderate horizontal padding reduction */
