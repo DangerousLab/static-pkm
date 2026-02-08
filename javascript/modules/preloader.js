@@ -157,7 +157,7 @@ export function preloadFolderModules(folderNode) {
       if (window.requestIdleCallback) {
         requestIdleCallback(() => preloadNext(index + 1));
       } else {
-        setTimeout(() => preloadNext(index + 1), 0);
+        Promise.resolve().then(() => preloadNext(index + 1));
       }
       return;
     }
@@ -181,7 +181,7 @@ export function preloadFolderModules(folderNode) {
           if (window.requestIdleCallback) {
             requestIdleCallback(() => preloadNext(index + 1));
           } else {
-            setTimeout(() => preloadNext(index + 1), 0);
+            Promise.resolve().then(() => preloadNext(index + 1));
           }
           return;
         }
@@ -222,7 +222,7 @@ export function preloadFolderModules(folderNode) {
           if (window.requestIdleCallback) {
             requestIdleCallback(() => preloadNext(index + 1));
           } else {
-            setTimeout(() => preloadNext(index + 1), 0);
+            Promise.resolve().then(() => preloadNext(index + 1));
           }
         });
       });
@@ -234,7 +234,7 @@ export function preloadFolderModules(folderNode) {
       if (window.requestIdleCallback) {
         requestIdleCallback(() => preloadNext(index + 1));
       } else {
-        setTimeout(() => preloadNext(index + 1), 0);
+        Promise.resolve().then(() => preloadNext(index + 1));
       }
     };
 

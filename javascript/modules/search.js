@@ -219,17 +219,19 @@ function handleResultSelection(item) {
         openNode(item.node);
 
         // Highlight the active item in sidebar after opening
-        setTimeout(() => {
-          const navItem = dom.sidebarNav.querySelector(
-            '.nav-item[data-type="' + item.node.type + '"][data-id="' + item.node.id + '"]'
-          );
-          if (navItem) {
-            navItem.classList.add("active");
-            console.log('[Search] Activated nav item');
-          } else {
-            console.warn('[Search] Could not find nav item for', item.node.id);
-          }
-        }, 50);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const navItem = dom.sidebarNav.querySelector(
+              '.nav-item[data-type="' + item.node.type + '"][data-id="' + item.node.id + '"]'
+            );
+            if (navItem) {
+              navItem.classList.add("active");
+              console.log('[Search] Activated nav item');
+            } else {
+              console.warn('[Search] Could not find nav item for', item.node.id);
+            }
+          });
+        });
       });
     } else {
       console.error('[Search] Could not find valid parent folder');
@@ -244,7 +246,9 @@ function handleResultSelection(item) {
 
   // Close sidebar on mobile
   if (!isDesktopOrTablet()) {
-    setTimeout(() => toggleSidebar(), 300);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => toggleSidebar());
+    });
   }
 }
 

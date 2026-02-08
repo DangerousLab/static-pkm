@@ -3,6 +3,26 @@
  */
 
 export function initSafeAreaDetector() {
+  /**
+   * Wait for layout stabilization using requestAnimationFrame
+   * @param {number} frames - Number of frames to wait (1 frame ≈ 16.67ms at 60fps)
+   * @returns {Promise<void>}
+   */
+  function waitForLayout(frames = 1) {
+    return new Promise(resolve => {
+      let count = 0;
+      function tick() {
+        count++;
+        if (count >= frames) {
+          resolve();
+        } else {
+          requestAnimationFrame(tick);
+        }
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
   function detectNotchPosition() {
     // Only run in landscape mode
     const isLandscape = window.matchMedia('(max-height: 600px) and (orientation: landscape)').matches;
@@ -77,29 +97,48 @@ export function initSafeAreaDetector() {
   }
 
   // Initial detection
-  setTimeout(detectNotchPosition, 200);
+  waitForLayout(12).then(detectNotchPosition);
 
   // Re-detect on orientation change
   if (window.screen && window.screen.orientation) {
     window.screen.orientation.addEventListener('change', () => {
       console.log('[SafeArea] Screen orientation changed');
-      setTimeout(detectNotchPosition, 300);
+      waitForLayout(18).then(detectNotchPosition);
     });
   }
 
   // Fallback: orientationchange event
   window.addEventListener('orientationchange', () => {
     console.log('[SafeArea] Orientation change event fired');
-    setTimeout(detectNotchPosition, 300);
+    waitForLayout(18).then(detectNotchPosition);
   });
 
   // Backup: resize event
-  let resizeTimeout;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      console.log('[SafeArea] Resize detected, checking orientation');
-      detectNotchPosition();
-    }, 250);
+  let resizeAbortController = null;
+  window.addEventListener('resize', async () => {
+    // Cancel previous resize detection
+    if (resizeAbortController) {
+      resizeAbortController.abort();
+    }
+    
+    resizeAbortController = new AbortController();
+    const signal = resizeAbortController.signal;
+    
+    try {
+      // Wait ~250ms (15 frames at 60fps)
+      await Promise.race([
+        waitForLayout(15),
+        new Promise((_, reject) => {
+          signal.addEventListener('abort', () => reject(new Error('aborted')));
+        })
+      ]);
+      
+      if (!signal.aborted) {
+        console.log('[SafeArea] Resize detected, checking orientation');
+        detectNotchPosition();
+      }
+    } catch (err) {
+      // Resize was cancelled by newer event
+    }
   });
 }

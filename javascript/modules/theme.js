@@ -257,7 +257,11 @@ export function toggleTheme() {
   document.dispatchEvent(event);
 
   if (state.activeInstance && typeof state.activeInstance.onThemeChange === "function") {
-    setTimeout(() => state.activeInstance.onThemeChange(next), 50);
+    requestAnimationFrame(() => {
+      if (state.activeInstance && typeof state.activeInstance.onThemeChange === "function") {
+        state.activeInstance.onThemeChange(next);
+      }
+    });
   }
 }
 

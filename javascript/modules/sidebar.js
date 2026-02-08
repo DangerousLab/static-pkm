@@ -95,11 +95,12 @@ export async function toggleSidebar() {
       // Reset hover state when closing
       isCurrentlyHovering = false;
 
-      setTimeout(() => {
-        if (dom.sidebar.getAttribute("data-open") !== "true") {
+      dom.sidebar.addEventListener('transitionend', function handler(e) {
+        if (e.propertyName === 'transform' && dom.sidebar.getAttribute("data-open") !== "true") {
           dom.sidebar.style.width = "";
         }
-      }, 250);
+        dom.sidebar.removeEventListener('transitionend', handler);
+      });
     }
   } else {
     dom.sidebar.setAttribute("data-open", String(next));
