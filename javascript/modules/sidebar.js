@@ -6,7 +6,7 @@
 
 import { dom, state } from '../core/state.js';
 import { isDesktopOrTablet } from '../core/utils.js';
-import { loadFontAwesome } from '../utilities/dynamic-loader.js';
+import { loadFontAwesome } from '../utilities/fontawesome-loader.js';
 
 // Track hover state explicitly
 let isCurrentlyHovering = false;

@@ -12,7 +12,7 @@ import { openNode } from './modules/content-loader.js';
 import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
 import { rebuildSearchIndex } from './modules/search.js'; 
 import { initSafeAreaDetector } from './modules/safe-area-detector.js';
-import * as MathJaxUtil from './utilities/mathJax.js';
+import * as MathJaxUtil from './utilities/mathjax-loader.js';
 import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa-detector.js';
 
 (function () {

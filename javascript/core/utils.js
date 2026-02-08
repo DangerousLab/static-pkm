@@ -4,7 +4,7 @@
  */
 
 import { state } from './state.js';
-import { loadFontAwesome } from '../utilities/dynamic-loader.js';  // ← ADDED
+import { loadFontAwesome } from '../utilities/fontawesome-loader.js';
 
 // Track if icons have been initialized
 let iconsInitialized = false;  // ← ADDED
@@ -13,7 +13,7 @@ let iconsInitialized = false;  // ← ADDED
  * Ensure FontAwesome is loaded before using icons
  * Call this before any function that uses getTypeIcon()
  */
-export async function ensureIconsLoaded() {  // ← ADDED: New function
+export async function ensureIconsLoaded() {
   if (iconsInitialized) return;
   
   console.log('[Utils] Ensuring icons are loaded for navigation');
