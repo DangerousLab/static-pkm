@@ -4,7 +4,8 @@
  */
 
 import { dom, state } from '../core/state.js';
-import { findNodeByPath, findParentFolder, getTypeIcon, isDesktopOrTablet } from '../core/utils.js';
+import { findNodeByPath, findParentFolder, isDesktopOrTablet } from '../core/utils.js';
+import { getTypeIcon } from '../loader/fontawesome-loader.js';
 import { navigateToFolder } from './navigation.js';
 import { clearSidebarActive, toggleSidebar } from './sidebar.js';
 import { openNode } from './content-loader.js';

@@ -4,22 +4,6 @@
  */
 
 import { state } from './state.js';
-import { loadFontAwesome } from '../utilities/fontawesome-loader.js';
-
-// Track if icons have been initialized
-let iconsInitialized = false;  // ← ADDED
-
-/**
- * Ensure FontAwesome is loaded before using icons
- * Call this before any function that uses getTypeIcon()
- */
-export async function ensureIconsLoaded() {
-  if (iconsInitialized) return;
-  
-  console.log('[Utils] Ensuring icons are loaded for navigation');
-  await loadFontAwesome();
-  iconsInitialized = true;
-}
 
 /**
  * Find a node by its path in the navigation tree
@@ -124,25 +108,5 @@ export function notifyModuleReady(factoryName) {
     const factory = window[factoryName];
     callbacks.forEach(cb => cb(factory));
     state.moduleReadyCallbacks.delete(factoryName);
-  }
-}
-
-/**
- * Get icon for content type
- */
-export function getTypeIcon(type) {
-  switch (type) {
-    case "module":
-      return '<i class="fa-solid fa-gear"></i>';
-    case "page":
-      return '<i class="fa-regular fa-file"></i>';
-    case "document":
-      return '<i class="fa-regular fa-file-lines"></i>';
-    case "folder":
-      return '<i class="fa-regular fa-folder"></i>';
-    case "back":
-      return '<i class="fa-solid fa-caret-left"></i>';
-    default:
-      return '<i class="fa-solid fa-circle"></i>';
   }
 }

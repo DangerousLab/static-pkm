@@ -128,3 +128,49 @@ export async function loadIconsIfNeeded(content) {
     console.log('[DynamicLoader] No FontAwesome icons detected in content');
   }
 }
+
+/**
+ * Get icon HTML for common types
+ * Returns FontAwesome HTML without loading the library
+ * Caller is responsible for ensuring icons are loaded
+ */
+export function getTypeIcon(type) {
+  switch (type) {
+    case "module":
+      return '<i class="fa-solid fa-gear"></i>';
+    case "page":
+      return '<i class="fa-regular fa-file"></i>';
+    case "document":
+      return '<i class="fa-regular fa-file-lines"></i>';
+    case "folder":
+      return '<i class="fa-regular fa-folder"></i>';
+    case "back":
+      return '<i class="fa-solid fa-caret-left"></i>';
+    default:
+      return '<i class="fa-solid fa-circle"></i>';
+  }
+}
+
+/**
+ * Get custom icon HTML
+ * @param {string} iconClass - FontAwesome class (e.g., 'fa-solid fa-heart')
+ */
+export function getIcon(iconClass) {
+  return `<i class="${iconClass}"></i>`;
+}
+
+/**
+ * Render content with auto-loaded icons
+ * Detects if content needs icons and loads them automatically
+ * @param {string|HTMLElement} content - Content to render
+ * @param {HTMLElement} container - Container to render into
+ */
+export async function renderWithIcons(content, container) {
+  await loadIconsIfNeeded(content);
+  
+  if (typeof content === 'string') {
+    container.innerHTML = content;
+  } else if (content instanceof HTMLElement) {
+    container.appendChild(content);
+  }
+}

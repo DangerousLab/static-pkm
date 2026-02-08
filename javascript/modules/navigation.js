@@ -4,10 +4,25 @@
  */
 
 import { dom, state } from '../core/state.js';
-import { findNodeByPath, findLeafById, getTypeIcon, ensureIconsLoaded } from '../core/utils.js';
+import { findNodeByPath, findLeafById } from '../core/utils.js';
 import { clearSidebarActive, applySidebarWidth, toggleSidebar } from './sidebar.js';
 import { openNode } from './content-loader.js';
 import { isDesktopOrTablet } from '../core/utils.js';
+import { loadFontAwesome, getTypeIcon } from '../loader/fontawesome-loader.js'; 
+
+// Track if icons have been loaded for navigation
+let iconsLoaded = false;
+
+/**
+ * Ensure FontAwesome is loaded before rendering navigation icons
+ */
+async function ensureIconsLoaded() {
+  if (iconsLoaded) return;
+  
+  console.log('[Navigation] Loading FontAwesome icons');
+  await loadFontAwesome();
+  iconsLoaded = true;
+}
 
 /**
  * Render breadcrumb navigation
