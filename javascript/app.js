@@ -12,6 +12,7 @@ import { openNode } from './modules/content-loader.js';
 import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
 import { rebuildSearchIndex } from './modules/search.js'; 
 import { initSafeAreaDetector } from './modules/safe-area-detector.js';
+import { initKeyboardShortcuts } from './modules/keyboard-shortcuts.js'; 
 import * as MathJaxUtil from './utilities/mathjax-loader.js';
 import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa-detector.js';
 
@@ -73,6 +74,7 @@ import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa
     // Initialize all modules (await theme to ensure assets are preloaded)
     await initTheme();
     initSidebar();
+    initKeyboardShortcuts(); 
 
     console.log('[App] Fetching navigation tree');
 

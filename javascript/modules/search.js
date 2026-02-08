@@ -339,19 +339,6 @@ export function initSearch() {
     dom.searchInput.focus();
   });
 
-  // Keyboard Shortcut: Ctrl+K or Cmd+K to Focus Search
-  document.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-      e.preventDefault();
-      dom.searchInput.focus();
-
-      // Open sidebar if closed
-      if (dom.sidebar.getAttribute("data-open") !== "true") {
-        toggleSidebar();
-      }
-    }
-  });
-
   // Close Search Results When Clicking Outside
   document.addEventListener("click", (e) => {
     if (!dom.searchInput.contains(e.target) &&
