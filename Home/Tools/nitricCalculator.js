@@ -193,7 +193,7 @@
               </div>
 
               <div class="shared-form-row">
-                <label for="acidPercent-nitric">Sulfuric acid concentration, \(p\) (% w/w H₂SO₄)</label>
+                <label for="acidPercent-nitric">Sulfuric acid concentration, \\(p\\) (% w/w H₂SO₄)</label>
                 <input id="acidPercent-nitric" class="shared-field" type="number" step="0.1" value="93"
                        placeholder="e.g. 93" />
               </div>
@@ -208,7 +208,7 @@
               </div>
 
               <div class="shared-form-row">
-                <label for="acidMass-nitric">Mass of sulfuric acid solution, \(M_{\mathrm{acid}}\) (g)</label>
+                <label for="acidMass-nitric">Mass of sulfuric acid solution, \\(M_{\\mathrm{acid}}\\) (g)</label>
                 <input id="acidMass-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
 
@@ -218,12 +218,12 @@
               </div>
 
               <div class="shared-form-row">
-                <label for="waterInAcid-nitric">Water already in acid, \(m_{\mathrm{H_2O,acid}}\) (g)</label>
+                <label for="waterInAcid-nitric">Water already in acid, \\(m_{\\mathrm{H_2O,acid}}\\) (g)</label>
                 <input id="waterInAcid-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
 
               <div class="shared-form-row">
-                <label for="waterMass-nitric">Required added water, \(M_{\mathrm{add}}\) (g)</label>
+                <label for="waterMass-nitric">Required added water, \\(M_{\\mathrm{add}}\\) (g)</label>
                 <input id="waterMass-nitric" class="shared-field" type="number" readonly placeholder="computed" />
               </div>
             </div>
