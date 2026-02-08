@@ -13,8 +13,8 @@ import { preloadFolderModules, getInitialFolder } from './modules/preloader.js';
 import { rebuildSearchIndex } from './modules/search.js'; 
 import { initSafeAreaDetector } from './modules/safe-area-detector.js';
 import { initKeyboardShortcuts } from './modules/keyboard-shortcuts.js'; 
-import * as MathJaxUtil from './utilities/mathjax-loader.js';
-import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa-detector.js';
+import * as MathJaxUtil from './loader/mathjax-loader.js';
+import { isPWA, getPWADisplayMode, registerServiceWorker } from './modules/pwa.js';
 
 (function () {
   "use strict";
