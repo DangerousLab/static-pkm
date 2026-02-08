@@ -57,7 +57,7 @@ function measureLabelsWidth(labelTexts) {
   const navIndexWidth = 24;      // "01", "02" etc
   const navIconWidth = 24;       // icon + margins
   const padding = 12;            // sidebar padding
-  const extraMargin = 30;        // safety margin
+  const extraMargin = 40;        // safety margin
   
   const totalNeeded = navIndexWidth + navIconWidth + maxLabelWidth + padding + extraMargin;
   
