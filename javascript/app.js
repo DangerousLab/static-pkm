@@ -96,6 +96,14 @@ import { isPWA, getPWADisplayMode, registerServiceWorker } from './utilities/pwa
         // Build search index after tree is loaded
         rebuildSearchIndex();
 
+        const { initPreloader } = await import('./modules/preloader.js');
+        const { initSearchEventListeners } = await import('./modules/search.js');
+        
+        initPreloader();
+        initSearchEventListeners();
+        
+        console.log('[App] Event-driven module communication initialized');
+
         // Default node: first module/page/document directly under that folder
         let defaultNode = null;
         if (initialFolder.children) {

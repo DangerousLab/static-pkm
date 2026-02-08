@@ -363,3 +363,27 @@ export function initSearch() {
     }
   });
 }
+
+/**
+ * Initialize search event listeners
+ * Call this from app.js after all modules are loaded
+ */
+export function initSearchEventListeners() {
+  // Listen for search index rebuild requests
+  window.addEventListener('searchIndexRebuildNeeded', () => {
+    console.log('[Search] Received searchIndexRebuildNeeded event');
+    rebuildSearchIndex();
+  });
+  
+  // Listen for sidebar render requests (to rebuild search index after)
+  window.addEventListener('sidebarRenderNeeded', (event) => {
+    const { folderNode } = event.detail;
+    console.log('[Search] Received sidebarRenderNeeded event');
+    // Import and call renderSidebar dynamically to avoid circular dependency at module load time
+    import('./navigation.js').then(nav => {
+      nav.renderSidebar(folderNode);
+    });
+  });
+  
+  console.log('[Search] Event listeners initialized');
+}

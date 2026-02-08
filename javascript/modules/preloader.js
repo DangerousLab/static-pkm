@@ -6,8 +6,6 @@
 
 import { state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
-import { renderSidebar } from './navigation.js';
-import { rebuildSearchIndex } from './search.js';
 
 /**
  * Measure actual width needed for label texts using temporary DOM element
@@ -127,9 +125,11 @@ export function preloadFolderModules(folderNode) {
     console.log('[Preloader] Using cached width for', folderPath);
   }
 
-  // Render sidebar immediately with calculated width
-  renderSidebar(folderNode);
-  rebuildSearchIndex();
+  window.dispatchEvent(new CustomEvent('sidebarRenderNeeded', {
+    detail: { folderNode }
+  }));
+  
+  window.dispatchEvent(new CustomEvent('searchIndexRebuildNeeded'));
 
   // Now preload modules in background (for faster loading when clicked)
   const modulesToPreload = folderNode.children.filter(
@@ -249,4 +249,19 @@ export function preloadFolderModules(folderNode) {
  */
 export function getInitialFolder(tree) {
   return tree;
+}
+
+/**
+ * Initialize preloader event listeners
+ * Call this from app.js after all modules are loaded
+ */
+export function initPreloader() {
+  // Listen for folder navigation events
+  window.addEventListener('folderNavigated', (event) => {
+    const { folderNode } = event.detail;
+    console.log('[Preloader] Received folderNavigated event');
+    preloadFolderModules(folderNode);
+  });
+  
+  console.log('[Preloader] Event listeners initialized');
 }

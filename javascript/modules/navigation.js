@@ -6,7 +6,6 @@
 import { dom, state } from '../core/state.js';
 import { findNodeByPath, findLeafById, getTypeIcon, ensureIconsLoaded } from '../core/utils.js';
 import { clearSidebarActive, applySidebarWidth, toggleSidebar } from './sidebar.js';
-import { preloadFolderModules } from './preloader.js';
 import { openNode } from './content-loader.js';
 import { isDesktopOrTablet } from '../core/utils.js';
 
@@ -55,10 +54,12 @@ export function renderBreadcrumb() {
  * Navigate to a folder - unified function for all folder navigation
  * This triggers all necessary actions: render sidebar, preload, calculate width
  */
-export async function navigateToFolder(folderNode) {  // ← CHANGED: Added async
+export async function navigateToFolder(folderNode) { 
   console.log('[Navigation] Navigating to folder:', folderNode.path || 'Home');
-  await renderSidebar(folderNode);  // ← CHANGED: Added await
-  preloadFolderModules(folderNode);
+  await renderSidebar(folderNode); 
+  window.dispatchEvent(new CustomEvent('folderNavigated', {
+    detail: { folderNode }
+  }));
 }
 
 export async function renderSidebar(folderNode) {
