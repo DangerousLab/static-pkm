@@ -1,7 +1,14 @@
-// nitricCalculator.js v2.1 - Updated with global MathJax utility integration
-(function (global) {
+// nitricCalculator.js v2.3 - Event-driven registration + dynamic rendering
+(function () {
+  'use strict';
+  
   function createNitricCalculator(options) {
-    const root = options.root;
+    const { root, dynamicRender } = options;
+    
+    // DEBUG: Check what we received
+    console.log('[NitricCalculator] options:', options);
+    console.log('[NitricCalculator] dynamicRender:', dynamicRender, typeof dynamicRender);
+    
     if (!root) throw new Error('Nitric calculator requires a root element.');
 
     console.log('[NitricCalculator] Initializing');
@@ -337,21 +344,8 @@
       scaleReactionComponent();
     }
 
-    async function updateCalculator() {
+    function updateCalculator() {
       console.log('[NitricCalculator] Updating calculations');
-
-      // Load MathJax using global utility (exposed by javascript/utilities/mathJax.js)
-      if (window.MathJaxUtility && window.MathJaxUtility.loadMathJax) {
-        try {
-          await window.MathJaxUtility.loadMathJax();
-        } catch (error) {
-          console.error('[NitricCalculator] Failed to load MathJax:', error);
-          eqInfoEl.innerHTML = '<span style="color:var(--danger);">Failed to load math renderer</span>';
-          return;
-        }
-      } else {
-        console.warn('[NitricCalculator] MathJax utility not found. Equations may not render.');
-      }
 
       const w = parseFloat(targetConcEl.value);
       const p = parseInput(acidPercentEl);
@@ -371,11 +365,8 @@
         acidVolumeEl.value = '';
         waterInAcidEl.value = '';
         waterMassEl.value = '';
-        if (window.MathJax && window.MathJax.typesetPromise) {
-          MathJax.typesetPromise().then(rescaleAll);
-        } else {
-          rescaleAll();
-        }
+        
+        rescaleAll();
         return;
       }
 
@@ -389,11 +380,8 @@
         acidVolumeEl.value = '';
         waterInAcidEl.value = '';
         waterMassEl.value = '';
-        if (window.MathJax && window.MathJax.typesetPromise) {
-          MathJax.typesetPromise().then(rescaleAll);
-        } else {
-          rescaleAll();
-        }
+
+        rescaleAll();
         return;
       }
 
@@ -490,11 +478,11 @@
         `Maximum yield of ${(w * 100).toFixed(1)}% nitric acid: <span style="font-weight:600;">${V_HNO3.toFixed(1)} mL</span><br/>` +
         `Density of ${(w * 100).toFixed(1)}% nitric acid at 25°C: <span style="font-weight:600;">${rhoHNO3.toPrecision(5)} g/mL</span>`;
 
-      if (window.MathJax && window.MathJax.typesetPromise) {
-        MathJax.typesetPromise().then(rescaleAll);
-      } else {
+      // Re-render math after dynamic updates
+      requestAnimationFrame(async () => {
+        await dynamicRender(container);
         rescaleAll();
-      }
+      });
     }
 
     function initEvents() {
@@ -550,8 +538,13 @@
     };
   }
 
-  global.createNitricCalculator = createNitricCalculator;
-  if (window.__moduleReady) {
-    window.__moduleReady('createNitricCalculator');
-  }
-})(window);
+  // Register globally
+  window.createNitricCalculator = createNitricCalculator;
+  
+  // Emit registration event (REQUIRED for event-driven loading)
+  window.dispatchEvent(new CustomEvent('moduleRegistered', {
+    detail: { factoryName: 'createNitricCalculator' }
+  }));
+  
+  console.log('[NitricCalculator] Module registered');
+})();

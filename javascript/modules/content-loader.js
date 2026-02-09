@@ -5,7 +5,7 @@
 
 import { dom, state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
-import { autoRender } from '../loader/index.js'; 
+import { autoRender, dynamicRender } from '../loader/index.js';
 
 /**
  * Typeset math expressions using MathJax
@@ -110,7 +110,7 @@ export function loadModule(node, done) {
       let instance = null;
       try {
         console.log('[ContentLoader] Creating module instance:', node.id);
-        instance = factory({ root: innerRoot, themeController }) || {};
+        instance = factory({ root: innerRoot, themeController, dynamicRender }) || {};
       } catch (err) {
         console.error('[ContentLoader] Module instantiation failed:', err);
         dom.card.innerHTML = "\n\nUnable to load module.";

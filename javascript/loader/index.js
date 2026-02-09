@@ -64,3 +64,26 @@ export async function autoRender(container) {
     console.log('[Loader] No passive content detected');
   }
 }
+
+/**
+ * Re-render passive content after dynamic DOM updates
+ * Assumes libraries are already loaded (use after initial autoRender)
+ * For user modules that update innerHTML dynamically
+ * @param {HTMLElement} container - Container with updated content
+ * @returns {Promise<void>}
+ */
+export async function dynamicRender(container) {
+  if (!container) return;
+  
+  console.log('[Loader] Dynamic re-render...');
+  
+  // Just re-typeset, don't reload libraries
+  // MathJax is already loaded from initial autoRender
+  if (window.MathJax?.typesetPromise) {
+    await typesetMath(container);
+    console.log('[Loader] Dynamic re-render complete');
+  }
+  
+  // Icons don't need re-rendering (CSS-based, no JS needed after load)
+  // Add other library re-renders here if needed in future
+}

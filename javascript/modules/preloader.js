@@ -6,6 +6,7 @@
 
 import { state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
+import { dynamicRender } from '../loader/index.js';
 
 /**
  * Measure actual width needed for label texts using temporary DOM element
@@ -197,7 +198,7 @@ export function preloadFolderModules(folderNode) {
 
         let instance = null;
         try {
-          instance = factory({ root: hiddenRoot, themeController }) || {};
+          instance = factory({ root: hiddenRoot, themeController, dynamicRender }) || {};
         } catch (err) {
           console.error(err);
         }
