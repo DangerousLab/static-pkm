@@ -4,12 +4,6 @@
   
   function createNitricCalculator(options) {
     const { root, dynamicRender } = options;
-    
-    // DEBUG: Check what we received
-    console.log('[NitricCalculator] options:', options);
-    console.log('[NitricCalculator] dynamicRender:', dynamicRender, typeof dynamicRender);
-    
-    if (!root) throw new Error('Nitric calculator requires a root element.');
 
     console.log('[NitricCalculator] Initializing');
 
