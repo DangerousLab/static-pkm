@@ -25,6 +25,13 @@ async function ensureIconsLoaded() {
 }
 
 /**
+ * Check if in landscape mode
+ */
+function isLandscapeMode() {
+  return window.matchMedia('(max-height: 600px) and (orientation: landscape)').matches;
+}
+
+/**
  * Render breadcrumb navigation
  */
 export function renderBreadcrumb() {
@@ -181,7 +188,7 @@ export async function renderSidebar(folderNode) {
         btn.classList.add("active");
         openNode(node);
 
-        if (!isDesktopOrTablet()) {
+        if (!isDesktopOrTablet() || isLandscapeMode()) {
           toggleSidebar();
         }
       }
