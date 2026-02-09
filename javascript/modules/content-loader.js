@@ -5,6 +5,7 @@
 
 import { dom, state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
+import { autoRender } from '../loader/index.js'; 
 
 /**
  * Typeset math expressions using MathJax
@@ -119,12 +120,9 @@ export function loadModule(node, done) {
         return;
       }
 
-      requestAnimationFrame(() => {
-        // Removed: Redundant sidebar label update
-        // Tree generator already extracted <h1> at build time
-        // Sidebar label should remain stable from tree.json
+      requestAnimationFrame(async () => { 
         
-        typesetMath(innerRoot);
+        await autoRender(innerRoot);
         dom.card.classList.remove("preload");
         dom.card.classList.add("loaded");
         
