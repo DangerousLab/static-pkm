@@ -46,33 +46,23 @@ export function createSandboxedDocument(instanceId, shadowRoot) {
     get(target, prop) {
       // Allow safe methods scoped to shadow root
       if (prop === 'querySelector') {
-        return (selector) => shadowRoot.querySelector(selector);
+        return shadowRoot.querySelector.bind(shadowRoot);
       }
       if (prop === 'querySelectorAll') {
-        return (selector) => shadowRoot.querySelectorAll(selector);
+        return shadowRoot.querySelectorAll.bind(shadowRoot);
       }
       if (prop === 'createElement') {
-        // Return sandboxed element that can't be appended to real document
-        const realCreateElement = document.createElement.bind(document);
-        return (tag) => {
-          const element = realCreateElement(tag);
-          
-          // Wrap element in proxy to block appendChild to document.head/body
-          return new Proxy(element, {
-            get(target, prop) {
-              if (prop === 'appendChild' && (target.tagName === 'STYLE' || target.tagName === 'SCRIPT')) {
-                return function(child) {
-                  console.warn(`[DOMIsolation] Blocked ${target.tagName}.appendChild from ${instanceId}`);
-                  return child;
-                };
-              }
-              return Reflect.get(target, prop);
-            }
-          });
-        };
+        // Return properly bound createElement
+        return document.createElement.bind(document);
       }
       if (prop === 'createTextNode') {
-        return (text) => document.createTextNode(text);
+        return document.createTextNode.bind(document);
+      }
+      if (prop === 'createDocumentFragment') {
+        return document.createDocumentFragment.bind(document);
+      }
+      if (prop === 'createComment') {
+        return document.createComment.bind(document);
       }
       
       // Block dangerous operations
@@ -88,14 +78,28 @@ export function createSandboxedDocument(instanceId, shadowRoot) {
 }
 
 export function createSandboxedWindow(instanceId) {
+  // Storage for module-specific properties (factory, moduleInfo, etc.)
+  const moduleStorage = {};
+  
   // Proxied window that restricts access
-  return new Proxy({}, {
+  return new Proxy(moduleStorage, {
     get(target, prop) {
-      // Allow safe globals
-      const safeGlobals = ['Math', 'JSON', 'Array', 'Object', 'String', 'Number', 'Boolean', 'Date', 'RegExp', 'Map', 'Set', 'Promise'];
+      // Allow safe globals (constructors and objects)
+      const safeGlobals = [
+        'Math', 'JSON', 'Array', 'Object', 'String', 'Number', 'Boolean', 
+        'Date', 'RegExp', 'Map', 'Set', 'Promise', 'Error', 'TypeError',
+        'RangeError', 'SyntaxError', 'parseInt', 'parseFloat', 'isNaN',
+        'isFinite', 'decodeURI', 'decodeURIComponent', 'encodeURI',
+        'encodeURIComponent'
+      ];
       
       if (safeGlobals.includes(prop)) {
         return window[prop];
+      }
+      
+      // Allow reading module-registered properties (factory functions, moduleInfo)
+      if (prop in target) {
+        return target[prop];
       }
       
       // Block dangerous operations
@@ -104,11 +108,49 @@ export function createSandboxedWindow(instanceId) {
         return undefined;
       }
       
+      // Allow event-related APIs
+      if (prop === 'CustomEvent') {
+        // Return constructor, not bound function!
+        return window.CustomEvent;
+      }
+      if (prop === 'dispatchEvent') {
+        return window.dispatchEvent.bind(window);
+      }
+      if (prop === 'addEventListener') {
+        return window.addEventListener.bind(window);
+      }
+      if (prop === 'removeEventListener') {
+        return window.removeEventListener.bind(window);
+      }
+      if (prop === 'Event') {
+        return window.Event;
+      }
+      
+      // Allow __moduleReady callback pattern (legacy modules)
+      if (prop === '__moduleReady' && typeof window.__moduleReady === 'function') {
+        return window.__moduleReady;
+      }
+      
       console.warn(`[DOMIsolation] Blocked window.${prop} from ${instanceId}`);
       return undefined;
     },
     
     set(target, prop, value) {
+      // Allow setting factory functions (createModuleName pattern)
+      if (prop.startsWith('create') && typeof value === 'function') {
+        console.log(`[DOMIsolation] Allowed factory registration: window.${prop} from ${instanceId}`);
+        target[prop] = value;
+        return true;
+      }
+      
+      // Allow setting moduleInfo
+      if (prop === 'moduleInfo' && typeof value === 'object') {
+        console.log(`[DOMIsolation] Allowed moduleInfo registration from ${instanceId}`);
+        target[prop] = value;
+        return true;
+      }
+      
+      // Block everything else
       console.warn(`[DOMIsolation] Blocked setting window.${prop} from ${instanceId}`);
       return false;
     }

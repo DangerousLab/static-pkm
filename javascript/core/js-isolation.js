@@ -31,7 +31,7 @@ export function evaluateModuleFactory(compartment, factoryName) {
   }
 }
 
-export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxedWindow, tunnel, themeController, dynamicRender, moduleFactory, options) {
+export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxedWindow, tunnel, themeController, dynamicRender) {
   return {
     // Sandboxed globals
     document: sandboxedDocument,
@@ -51,15 +51,29 @@ export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxed
     Map: Map,
     Set: Set,
     Promise: Promise,
+    Error: Error,
+    TypeError: TypeError,
+    RangeError: RangeError,
+    SyntaxError: SyntaxError,
+    
+    // Event constructors (needed for modules that dispatch events)
+    CustomEvent: CustomEvent,
+    Event: Event,
+    
+    // Utility functions
+    parseInt: parseInt,
+    parseFloat: parseFloat,
+    isNaN: isNaN,
+    isFinite: isFinite,
+    
+    // Animation frame (for rendering, NOT logic timing - allowed by project rules)
+    requestAnimationFrame: requestAnimationFrame.bind(window),
+    cancelAnimationFrame: cancelAnimationFrame.bind(window),
     
     // Utilities provided by app
     tunnel: tunnel,
     themeController: themeController,
     dynamicRender: dynamicRender,
-    
-    // Module factory and options (passed from outer realm)
-    __moduleFactory: moduleFactory,
-    __options: options,
     
     // Block dangerous globals
     eval: undefined,

@@ -5,7 +5,7 @@
  */
 
 import { state, themeController } from '../core/state.js';
-import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
+import { scriptUrlFromFile, factoryNameFromId, extractDisplayNameFromCode } from '../core/utils.js';
 import { dynamicRender } from '../loader/index.js';
 import { instanceManager } from '../core/instance-manager.js';
 import { createShadowRoot, createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
@@ -169,143 +169,43 @@ export function preloadFolderModules(folderNode) {
 
     console.log('[Preloader] Loading module', index + 1, '/', modulesToPreload.length, ':', mod.id);
 
-    const script = document.createElement("script");
-    script.src = scriptSrc;
-    script.defer = true;
-    script.dataset.moduleSrc = scriptSrc;
-
-    script.onload = () => {
-      state.loadedScripts.add(scriptSrc);
-
-      const factoryName = factoryNameFromId(mod.id);
-
-      waitForFactory(factoryName).then((factory) => {
-        if (typeof factory !== "function") {
-          console.warn("Factory " + factoryName + " is not a function for module " + mod.id + ". Skipping preload.");
-          state.preloadedModules.add(mod.id);
-          if (window.requestIdleCallback) {
-            requestIdleCallback(() => preloadNext(index + 1));
-          } else {
-            Promise.resolve().then(() => preloadNext(index + 1));
-          }
-          return;
+    // Fetch module code as text (service worker caches this!)
+    fetch(scriptSrc)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status}`);
         }
-
-        // Generate instance ID for preload
-        const instanceId = instanceManager.generateInstanceId(mod.id, null, 'preload');
+        return response.text();
+      })
+      .then(async (moduleCode) => {
+        state.loadedScripts.add(scriptSrc);
         
-        // Create hidden container for shadow DOM
-        const hiddenContainer = document.createElement('div');
-        hiddenContainer.style.position = 'absolute';
-        hiddenContainer.style.left = '-99999px';
-        hiddenContainer.style.top = '-99999px';
-        hiddenContainer.style.width = '1px';
-        hiddenContainer.style.height = '1px';
-        hiddenContainer.style.overflow = 'hidden';
-        document.body.appendChild(hiddenContainer);
-        
-        // Create isolated shadow DOM
-        const { shadowRoot, contentRoot } = createShadowRoot(hiddenContainer, instanceId);
-        
-        // Create sandboxed APIs
-        const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
-        const sandboxedWindow = createSandboxedWindow(instanceId);
-        const tunnel = messageTunnel.createInstanceAPI(instanceId);
-        
-        // Create options
-        const options = {
-          root: contentRoot,
-          themeController: themeController,
-          dynamicRender: dynamicRender,
-          instanceId: instanceId,
-          parentInstanceId: null,
-          tunnel: tunnel
-        };
-        
-        // Create secure compartment (including factory and options)
-        const compartmentGlobals = buildCompartmentGlobals(
-          instanceId,
-          sandboxedDocument,
-          sandboxedWindow,
-          tunnel,
-          themeController,
-          dynamicRender,
-          factory,   // ← Pass factory
-          options    // ← Pass options
-        );
-        
-        const compartment = createSecureCompartment(instanceId, compartmentGlobals);
-        instanceManager.registerCompartment(instanceId, compartment);
-
-        let instance = null;
-        try {
-          // Execute factory INSIDE compartment (__moduleFactory and __options available as globals)
-          const factoryCode = `
-            (function() {
-              if (typeof __moduleFactory !== 'function') {
-                throw new Error('Module factory not available in compartment');
-              }
-              return __moduleFactory(__options);
-            })()
-          `;
-          
-          instance = compartment.evaluate(factoryCode) || {};
-        } catch (err) {
-          console.error('[Preloader] Module instantiation failed:', err);
+        // Extract display name from code WITHOUT executing
+        const displayName = extractDisplayNameFromCode(moduleCode);
+        if (displayName) {
+          state.moduleDisplayNames[mod.id] = displayName;
+          console.log('[Preloader] Extracted display name for', mod.id, ':', displayName);
         }
-
-        // Register with instance manager
-        if (instance) {
-          instanceManager.register(instanceId, instance, {
-            moduleId: mod.id,
-            parentId: null,
-            cardId: 'preload',
-            rootElement: contentRoot,
-            shadowRoot: shadowRoot,
-            container: hiddenContainer
-          });
+        
+        state.preloadedModules.add(mod.id);
+        
+        // Continue to next module
+        if (window.requestIdleCallback) {
+          requestIdleCallback(() => preloadNext(index + 1));
+        } else {
+          Promise.resolve().then(() => preloadNext(index + 1));
         }
-
-        requestAnimationFrame(() => {
-          // Shadow DOM handles CSS isolation automatically
-          
-          const heading = contentRoot.querySelector("h1");
-          if (heading && heading.textContent) {
-            state.moduleDisplayNames[mod.id] = heading.textContent.trim();
-            console.log('[Preloader] Extracted display name for', mod.id, ':', state.moduleDisplayNames[mod.id]);
-          }
-
-          // Use instance manager for cleanup
-          if (instance) {
-            try {
-              instanceManager.destroy(instanceId);
-            } catch (e) {
-              console.error('[Preloader] Failed to destroy instance:', e);
-            }
-          }
-          document.body.removeChild(hiddenContainer);
-          state.preloadedModules.add(mod.id);
-
-          if (window.requestIdleCallback) {
-            requestIdleCallback(() => preloadNext(index + 1));
-          } else {
-            Promise.resolve().then(() => preloadNext(index + 1));
-          }
-        });
+      })
+      .catch(error => {
+        console.error('[Preloader] Failed to preload module:', scriptSrc, error);
+        state.preloadedModules.add(mod.id);
+        
+        if (window.requestIdleCallback) {
+          requestIdleCallback(() => preloadNext(index + 1));
+        } else {
+          Promise.resolve().then(() => preloadNext(index + 1));
+        }
       });
-    };
-
-    script.onerror = () => {
-      console.error("Failed to preload script:", scriptSrc);
-      state.preloadedModules.add(mod.id);
-      if (window.requestIdleCallback) {
-        requestIdleCallback(() => preloadNext(index + 1));
-      } else {
-        Promise.resolve().then(() => preloadNext(index + 1));
-      }
-    };
-
-    document.head.appendChild(script);
   }
 
   preloadNext(0);

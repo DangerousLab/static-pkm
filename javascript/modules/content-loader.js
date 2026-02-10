@@ -45,64 +45,56 @@ export function clearActiveInstance() {
 }
 
 /**
- * Load a script file once (with caching)
+ * Fetch module code as text (for compartment evaluation)
+ * Service worker will cache this automatically in PWA mode
  */
-export function loadScriptOnce(src) {
-  return new Promise((resolve, reject) => {
-    if (state.loadedScripts.has(src)) {
-      resolve();
-      return;
-    }
-
-    const existing = document.querySelector(
-      'script[data-module-src="' + src + '"]'
-    );
-    if (existing) {
-      state.loadedScripts.add(src);
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = src;
-    script.defer = true;
-    script.dataset.moduleSrc = src;
-
-    script.onload = () => {
-      state.loadedScripts.add(src);
-      resolve();
-    };
-    script.onerror = () => {
-      console.error("Failed to load script:", src);
-      reject(new Error("Failed to load script: " + src));
-    };
-
-    document.head.appendChild(script);
-  });
+export async function fetchModuleCode(src) {
+  console.log('[ContentLoader] Fetching module as text:', src);
+  
+  const response = await fetch(src);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch module: ${response.status} ${response.statusText}`);
+  }
+  
+  const code = await response.text();
+  console.log('[ContentLoader] Fetched', code.length, 'bytes');
+  
+  return code;
 }
 
 /**
- * Get factory function for a module
+ * Get factory function for a module by evaluating in compartment
+ * Returns { factory, moduleCode } to avoid re-fetching
  */
-export function getFactoryForModule(node) {
-  if (state.moduleFactories.has(node.id)) {
-    return Promise.resolve(state.moduleFactories.get(node.id));
-  }
-
+export async function getFactoryForModule(node, compartment) {
   const scriptSrc = scriptUrlFromFile(node.file);
   const factoryName = factoryNameFromId(node.id);
 
-  return loadScriptOnce(scriptSrc).then(() => {
-    return waitForFactory(factoryName).then((factory) => {
-      if (typeof factory !== "function") {
-        throw new Error(
-          "Factory " + factoryName + " is not a function for module " + node.id
-        );
-      }
-      state.moduleFactories.set(node.id, factory);
-      return factory;
-    });
-  });
+  // Fetch module code as text (service worker caches this in PWA!)
+  const moduleCode = await fetchModuleCode(scriptSrc);
+  
+  // Evaluate code inside compartment (compiled with sandboxed globals)
+  try {
+    compartment.evaluate(moduleCode);
+    console.log('[ContentLoader] Evaluated module code in compartment');
+  } catch (error) {
+    console.error('[ContentLoader] Failed to evaluate module code:', error);
+    throw new Error(`Module evaluation failed for ${node.id}: ${error.message}`);
+  }
+  
+  // Get factory from compartment's window (modules register on window.createModuleName)
+  const factory = compartment.globalThis.window[factoryName];
+  
+  if (typeof factory !== "function") {
+    console.error('[ContentLoader] Factory lookup failed. Available on window:', Object.keys(compartment.globalThis.window || {}));
+    throw new Error(
+      `Factory ${factoryName} not found or not a function in compartment for module ${node.id}`
+    );
+  }
+  
+  console.log('[ContentLoader] Factory extracted from compartment:', factoryName);
+  
+  return { factory, moduleCode };
 }
 
 /**
@@ -113,24 +105,39 @@ export function getFactoryForModule(node) {
 export function loadModule(node, done) {
   console.log('[ContentLoader] Loading module:', node.id);
   
-  getFactoryForModule(node)
-    .then((factory) => {
-      const instanceId = instanceManager.generateInstanceId(node.id, null, 'card1');
-      
-      // Create shadow root container
-      const container = document.createElement("div");
-      container.className = "module-container";
-      container.dataset.instanceId = instanceId;
-      dom.card.appendChild(container);
-      
-      // Create isolated shadow DOM
-      const { shadowRoot, contentRoot } = createShadowRoot(container, instanceId);
-      
-      // Create sandboxed APIs
-      const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
-      const sandboxedWindow = createSandboxedWindow(instanceId);
-      const tunnel = messageTunnel.createInstanceAPI(instanceId);
-      
+  // Create instance ID first
+  const instanceId = instanceManager.generateInstanceId(node.id, null, 'card1');
+  
+  // Create shadow root container
+  const container = document.createElement("div");
+  container.className = "module-container";
+  container.dataset.instanceId = instanceId;
+  dom.card.appendChild(container);
+  
+  // Create isolated shadow DOM
+  const { shadowRoot, contentRoot } = createShadowRoot(container, instanceId);
+  
+  // Create sandboxed APIs
+  const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
+  const sandboxedWindow = createSandboxedWindow(instanceId);
+  const tunnel = messageTunnel.createInstanceAPI(instanceId);
+  
+  // Create secure compartment with sandboxed globals (no factory/options yet!)
+  const compartmentGlobals = buildCompartmentGlobals(
+    instanceId,
+    sandboxedDocument,
+    sandboxedWindow,
+    tunnel,
+    themeController,
+    dynamicRender
+  );
+  
+  const compartment = createSecureCompartment(instanceId, compartmentGlobals);
+  instanceManager.registerCompartment(instanceId, compartment);
+
+  // Fetch and evaluate module code in compartment
+  getFactoryForModule(node, compartment)
+    .then(({ factory }) => {
       // Create options object
       const options = {
         root: contentRoot,
@@ -140,38 +147,17 @@ export function loadModule(node, done) {
         parentInstanceId: null,
         tunnel: tunnel
       };
-      
-      // Create secure compartment with sandboxed globals (including factory and options)
-      const compartmentGlobals = buildCompartmentGlobals(
-        instanceId,
-        sandboxedDocument,
-        sandboxedWindow,
-        tunnel,
-        themeController,
-        dynamicRender,
-        factory,   // ← Pass factory
-        options    // ← Pass options
-      );
-      
-      const compartment = createSecureCompartment(instanceId, compartmentGlobals);
-      instanceManager.registerCompartment(instanceId, compartment);
 
       let instance = null;
       try {
-        console.log('[ContentLoader] Creating module instance in secure compartment:', instanceId);
+        console.log('[ContentLoader] Creating module instance from compartment factory:', instanceId);
         
-        // Execute factory INSIDE compartment (__moduleFactory and __options available as globals)
-        const factoryCode = `
-          (function() {
-            if (typeof __moduleFactory !== 'function') {
-              throw new Error('Module factory not available in compartment');
-            }
-            return __moduleFactory(__options);
-          })()
-        `;
+        // Add options to compartment globals
+        compartment.globalThis.__options = options;
         
-        // Evaluate inside compartment (no endowments needed, everything in globals)
-        instance = compartment.evaluate(factoryCode) || {};
+        // Call factory INSIDE compartment (correct context for DOM methods!)
+        const factoryName = factoryNameFromId(node.id);
+        instance = compartment.evaluate(`window.${factoryName}(__options)`) || {};
         
       } catch (err) {
         console.error('[ContentLoader] Module instantiation failed:', err);

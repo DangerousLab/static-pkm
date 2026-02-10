@@ -110,3 +110,32 @@ export function notifyModuleReady(factoryName) {
     state.moduleReadyCallbacks.delete(factoryName);
   }
 }
+
+/**
+ * Extract display name from module code without executing it
+ * Looks for window.moduleInfo.displayName = "..." pattern
+ * @param {string} code - Module source code
+ * @returns {string|null} - Display name or null
+ */
+export function extractDisplayNameFromCode(code) {
+  if (!code || typeof code !== 'string') {
+    return null;
+  }
+  
+  // Match: window.moduleInfo = { displayName: "Name" }
+  const infoMatch = code.match(/window\.moduleInfo\s*=\s*\{[^}]*displayName\s*:\s*["']([^"']+)["']/);
+  if (infoMatch) {
+    return infoMatch[1];
+  }
+  
+  // Fallback: Extract from function name (createMyModule → My Module)
+  const factoryMatch = code.match(/function\s+(create\w+)/);
+  if (factoryMatch) {
+    return factoryMatch[1]
+      .replace(/^create/, '')
+      .replace(/([A-Z])/g, ' $1')
+      .trim();
+  }
+  
+  return null;
+}
