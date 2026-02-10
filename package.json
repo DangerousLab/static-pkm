@@ -29,7 +29,8 @@
     "rollup-plugin-postcss": "^4.0.2"
   },
   "dependencies": {
-    "lz-string": "^1.5.0"
+    "lz-string": "^1.5.0",
+    "ses": "^1.14.0"
   },
   "engines": {
     "node": ">=18.0.0",

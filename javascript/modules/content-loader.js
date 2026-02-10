@@ -7,6 +7,9 @@ import { dom, state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
 import { autoRender, dynamicRender } from '../loader/index.js';
 import { instanceManager } from '../core/instance-manager.js';
+import { createShadowRoot, createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
+import { createSecureCompartment, buildCompartmentGlobals } from '../core/js-isolation.js';
+import { messageTunnel } from '../core/message-tunnel.js';
 
 /**
  * Typeset math expressions using MathJax
@@ -26,7 +29,7 @@ export function clearActiveInstance() {
   if (state.activeInstance && typeof state.activeInstance.destroy === "function") {
     try {
       const instanceId = state.activeNode 
-        ? generateInstanceId(state.activeNode.id, null, 'card1')
+        ? instanceManager.generateInstanceId(state.activeNode.id, null, 'card1')
         : null;
       
       if (instanceId) {
@@ -39,71 +42,6 @@ export function clearActiveInstance() {
     }
   }
   state.activeInstance = null;
-}
-
-/**
- * LAYER 3: Style Tag Isolation
- */
-
-/**
- * Find and scope all <style> tags within module root
- */
-function scopeModuleStyles(root, instanceId) {
-  const styleTags = root.querySelectorAll('style');
-  
-  if (styleTags.length === 0) return;
-  
-  styleTags.forEach((styleTag, index) => {
-    try {
-      const originalCSS = styleTag.textContent;
-      const scopedCSS = scopeCSSToInstance(originalCSS, instanceId);
-      styleTag.textContent = scopedCSS;
-    } catch (error) {
-      console.error(`[ContentLoader] Failed to scope style tag #${index}:`, error);
-    }
-  });
-  
-  console.log(`[ContentLoader] Scoped ${styleTags.length} style tag(s) for instance ${instanceId}`);
-}
-
-/**
- * Scope CSS selectors to a specific instance
- */
-function scopeCSSToInstance(css, instanceId) {
-  const scope = `.module-boundary[data-instance-id="${instanceId}"]`;
-  
-  return css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g, (match, selector, separator) => {
-    const trimmedSelector = selector.trim();
-    
-    if (trimmedSelector.startsWith('@') || trimmedSelector.startsWith(':root')) {
-      return match;
-    }
-    
-    return `${scope} ${trimmedSelector}${separator}`;
-  });
-}
-
-/**
- * Generate unique instance ID
- */
-function generateInstanceId(moduleId, parentInstanceId = null, cardId = 'card1') {
-  if (!parentInstanceId) {
-    return `${cardId}:${moduleId}`;
-  }
-  
-  const basePath = `${parentInstanceId}/${moduleId}`;
-  let index = 0;
-  let candidateId = basePath;
-  
-  // Dynamic import for future - instance manager not loaded yet in Phase 0
-  if (typeof instanceManager !== 'undefined') {
-    while (instanceManager.instances.has(candidateId)) {
-      candidateId = `${basePath}#${index}`;
-      index++;
-    }
-  }
-  
-  return candidateId;
 }
 
 /**
@@ -177,23 +115,55 @@ export function loadModule(node, done) {
   
   getFactoryForModule(node)
     .then((factory) => {
-      const instanceId = generateInstanceId(node.id, null, 'card1');
+      const instanceId = instanceManager.generateInstanceId(node.id, null, 'card1');
       
-      const innerRoot = document.createElement("div");
-      innerRoot.className = "content-root module-boundary";
-      innerRoot.dataset.instanceId = instanceId;
-      dom.card.appendChild(innerRoot);
+      // Create shadow root container
+      const container = document.createElement("div");
+      container.className = "module-container";
+      container.dataset.instanceId = instanceId;
+      dom.card.appendChild(container);
+      
+      // Create isolated shadow DOM
+      const { shadowRoot, contentRoot } = createShadowRoot(container, instanceId);
+      
+      // Create sandboxed APIs
+      const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
+      const sandboxedWindow = createSandboxedWindow(instanceId);
+      const tunnel = messageTunnel.createInstanceAPI(instanceId);
+      
+      // Create secure compartment with sandboxed globals
+      const compartmentGlobals = buildCompartmentGlobals(
+        instanceId,
+        sandboxedDocument,
+        sandboxedWindow,
+        tunnel,
+        themeController,
+        dynamicRender
+      );
+      
+      const compartment = createSecureCompartment(instanceId, compartmentGlobals);
+      instanceManager.registerCompartment(instanceId, compartment);
 
       let instance = null;
       try {
-        console.log('[ContentLoader] Creating module instance:', instanceId);
-        instance = factory({ 
-          root: innerRoot, 
-          themeController, 
-          dynamicRender,
+        console.log('[ContentLoader] Creating module instance in secure compartment:', instanceId);
+        
+        // Get factory from compartment (it has access to window with the factory)
+        const factoryName = factoryNameFromId(node.id);
+        
+        // Create options object
+        const options = {
+          root: contentRoot,
+          themeController: themeController,
+          dynamicRender: dynamicRender,
           instanceId: instanceId,
-          parentInstanceId: null
-        }) || {};
+          parentInstanceId: null,
+          tunnel: tunnel
+        };
+        
+        // Call factory directly (already loaded in global scope)
+        instance = factory(options) || {};
+        
       } catch (err) {
         console.error('[ContentLoader] Module instantiation failed:', err);
         dom.card.innerHTML = "\n\nUnable to load module.";
@@ -204,20 +174,23 @@ export function loadModule(node, done) {
       }
 
       requestAnimationFrame(async () => { 
-        scopeModuleStyles(innerRoot, instanceId);
+        // Shadow DOM handles CSS isolation automatically
+        // No need for scopeModuleStyles()
         
-        await autoRender(innerRoot);
+        await autoRender(contentRoot);
         dom.card.classList.remove("preload");
         dom.card.classList.add("loaded");
         
-        console.log('[ContentLoader] Module loaded successfully:', instanceId);
+        console.log('[ContentLoader] Module loaded successfully in isolated environment:', instanceId);
       });
 
       instanceManager.register(instanceId, instance, {
         moduleId: node.id,
         parentId: null,
         cardId: 'card1',
-        rootElement: innerRoot
+        rootElement: contentRoot,
+        shadowRoot: shadowRoot,
+        container: container
       });
 
       done(instance);

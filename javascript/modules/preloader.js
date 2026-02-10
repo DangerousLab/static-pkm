@@ -7,6 +7,10 @@
 import { state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
 import { dynamicRender } from '../loader/index.js';
+import { instanceManager } from '../core/instance-manager.js';
+import { createShadowRoot, createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
+import { createSecureCompartment, buildCompartmentGlobals } from '../core/js-isolation.js';
+import { messageTunnel } from '../core/message-tunnel.js';
 
 /**
  * Measure actual width needed for label texts using temporary DOM element
@@ -187,37 +191,88 @@ export function preloadFolderModules(folderNode) {
           return;
         }
 
-        const hiddenRoot = document.createElement("div");
-        hiddenRoot.style.position = "absolute";
-        hiddenRoot.style.left = "-99999px";
-        hiddenRoot.style.top = "-99999px";
-        hiddenRoot.style.width = "1px";
-        hiddenRoot.style.height = "1px";
-        hiddenRoot.style.overflow = "hidden";
-        document.body.appendChild(hiddenRoot);
+        // Generate instance ID for preload
+        const instanceId = instanceManager.generateInstanceId(mod.id, null, 'preload');
+        
+        // Create hidden container for shadow DOM
+        const hiddenContainer = document.createElement('div');
+        hiddenContainer.style.position = 'absolute';
+        hiddenContainer.style.left = '-99999px';
+        hiddenContainer.style.top = '-99999px';
+        hiddenContainer.style.width = '1px';
+        hiddenContainer.style.height = '1px';
+        hiddenContainer.style.overflow = 'hidden';
+        document.body.appendChild(hiddenContainer);
+        
+        // Create isolated shadow DOM
+        const { shadowRoot, contentRoot } = createShadowRoot(hiddenContainer, instanceId);
+        
+        // Create sandboxed APIs
+        const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
+        const sandboxedWindow = createSandboxedWindow(instanceId);
+        const tunnel = messageTunnel.createInstanceAPI(instanceId);
+        
+        // Create secure compartment
+        const compartmentGlobals = buildCompartmentGlobals(
+          instanceId,
+          sandboxedDocument,
+          sandboxedWindow,
+          tunnel,
+          themeController,
+          dynamicRender
+        );
+        
+        const compartment = createSecureCompartment(instanceId, compartmentGlobals);
+        instanceManager.registerCompartment(instanceId, compartment);
 
         let instance = null;
         try {
-          instance = factory({ root: hiddenRoot, themeController, dynamicRender }) || {};
+          // Create options
+          const options = {
+            root: contentRoot,
+            themeController: themeController,
+            dynamicRender: dynamicRender,
+            instanceId: instanceId,
+            parentInstanceId: null,
+            tunnel: tunnel
+          };
+          
+          // Call factory (already in global scope)
+          instance = factory(options) || {};
         } catch (err) {
-          console.error(err);
+          console.error('[Preloader] Module instantiation failed:', err);
+        }
+
+        // Register with instance manager
+        if (instance) {
+          instanceManager.register(instanceId, instance, {
+            moduleId: mod.id,
+            parentId: null,
+            cardId: 'preload',
+            rootElement: contentRoot,
+            shadowRoot: shadowRoot,
+            container: hiddenContainer
+          });
         }
 
         requestAnimationFrame(() => {
-          const heading = hiddenRoot.querySelector("h1");
+          // Shadow DOM handles CSS isolation automatically
+          
+          const heading = contentRoot.querySelector("h1");
           if (heading && heading.textContent) {
             state.moduleDisplayNames[mod.id] = heading.textContent.trim();
             console.log('[Preloader] Extracted display name for', mod.id, ':', state.moduleDisplayNames[mod.id]);
           }
 
-          if (instance && typeof instance.destroy === "function") {
+          // Use instance manager for cleanup
+          if (instance) {
             try {
-              instance.destroy();
+              instanceManager.destroy(instanceId);
             } catch (e) {
-              // ignore destroy errors
+              console.error('[Preloader] Failed to destroy instance:', e);
             }
           }
-          document.body.removeChild(hiddenRoot);
+          document.body.removeChild(hiddenContainer);
           state.preloadedModules.add(mod.id);
 
           if (window.requestIdleCallback) {

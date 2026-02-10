@@ -5,9 +5,12 @@
  * and transclusion (Phase 2) without breaking changes.
  */
 
+import { messageTunnel } from './message-tunnel.js';
+
 class InstanceManager {
   constructor() {
     this.instances = new Map();
+    this.compartments = new Map(); // Track SES compartments
     this.metadata = new Map();
     this.hierarchy = new Map();
   }
@@ -46,31 +49,40 @@ class InstanceManager {
    * Destroy instance and all its children
    */
   destroy(instanceId) {
-    const toDestroy = this._getDescendants(instanceId);
-    toDestroy.push(instanceId);
+    const instanceData = this.instances.get(instanceId);
     
-    toDestroy.reverse().forEach(id => {
-      const instance = this.instances.get(id);
-      if (instance && typeof instance.destroy === 'function') {
+    if (!instanceData) {
+      console.warn(`[InstanceManager] Instance not found: ${instanceId}`);
+      return;
+    }
+
+    // Get all descendants
+    const descendants = this._getDescendants(instanceId);
+    
+    // Destroy in reverse order (children before parents)
+    const allToDestroy = [...descendants, instanceId].reverse();
+    
+    allToDestroy.forEach(id => {
+      const data = this.instances.get(id);
+      if (data && data.instance && typeof data.instance.destroy === 'function') {
         try {
-          instance.destroy();
-          console.log('[InstanceManager] Destroyed:', id);
-        } catch (e) {
-          console.error(`[InstanceManager] Failed to destroy ${id}:`, e);
+          data.instance.destroy();
+          console.log(`[InstanceManager] Destroyed instance: ${id}`);
+        } catch (error) {
+          console.error(`[InstanceManager] Error destroying ${id}:`, error);
         }
       }
       
+      // Cleanup compartment
+      this.destroyCompartment(id);
+      
+      // Cleanup message tunnel subscriptions
+      messageTunnel.unsubscribe(id);
+      
       this.instances.delete(id);
-      this.metadata.delete(id);
-      this.hierarchy.delete(id);
     });
     
-    const meta = this.metadata.get(instanceId);
-    if (meta && meta.parentId) {
-      const siblings = this.hierarchy.get(meta.parentId) || [];
-      const filtered = siblings.filter(id => id !== instanceId);
-      this.hierarchy.set(meta.parentId, filtered);
-    }
+    console.log(`[InstanceManager] Destroyed: ${instanceId}`);
   }
   
   /**
@@ -88,16 +100,92 @@ class InstanceManager {
     return descendants;
   }
   
+    /**
+   * Generate unique instance ID
+   * Phase 0: card1:moduleId
+   * Phase 1+: card2:moduleId, card1:parent/child
+   */
+  generateInstanceId(moduleId, parentInstanceId = null, cardId = 'card1') {
+    if (!parentInstanceId) {
+      return `${cardId}:${moduleId}`;
+    }
+    
+    const basePath = `${parentInstanceId}/${moduleId}`;
+    let index = 0;
+    let candidateId = basePath;
+    
+    while (this.instances.has(candidateId)) {
+      candidateId = `${basePath}#${index}`;
+      index++;
+    }
+    
+    return candidateId;
+  }
+
+  /**
+   * Register SES compartment for an instance
+   */
+  registerCompartment(instanceId, compartment) {
+    this.compartments.set(instanceId, compartment);
+    console.log(`[InstanceManager] Registered compartment for: ${instanceId}`);
+  }
+
+  /**
+   * Get compartment for an instance
+   */
+  getCompartment(instanceId) {
+    return this.compartments.get(instanceId);
+  }
+
+  /**
+   * Destroy compartment (called during instance cleanup)
+   */
+  destroyCompartment(instanceId) {
+    const compartment = this.compartments.get(instanceId);
+    if (compartment) {
+      // SES compartments don't have explicit destroy, just remove reference
+      this.compartments.delete(instanceId);
+      console.log(`[InstanceManager] Destroyed compartment: ${instanceId}`);
+    }
+  }
+
+  /**
+   * Route message between instances
+   */
+  routeMessage(fromInstanceId, toInstanceId, message) {
+    messageTunnel.send(fromInstanceId, toInstanceId, message);
+  }
+
+  /**
+   * Get instance by ID (for message delivery)
+   */
+  getInstanceById(instanceId) {
+    return this.instances.get(instanceId);
+  }
+
   /**
    * Clear all instances
    */
   clear() {
-    const rootInstances = Array.from(this.instances.keys()).filter(id => {
-      const meta = this.metadata.get(id);
-      return !meta || !meta.parentId;
+    this.instances.forEach((data, id) => {
+      if (data.instance && typeof data.instance.destroy === 'function') {
+        try {
+          data.instance.destroy();
+        } catch (error) {
+          console.error(`[InstanceManager] Error destroying ${id}:`, error);
+        }
+      }
+      
+      // Cleanup compartment
+      this.destroyCompartment(id);
+      
+      // Cleanup message tunnel
+      messageTunnel.unsubscribe(id);
     });
     
-    rootInstances.forEach(id => this.destroy(id));
+    this.instances.clear();
+    this.compartments.clear();
+    console.log('[InstanceManager] All instances and compartments cleared');
   }
 }
 
