@@ -70,15 +70,24 @@ export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxed
     requestAnimationFrame: requestAnimationFrame.bind(window),
     cancelAnimationFrame: cancelAnimationFrame.bind(window),
     
-    // Utilities provided by app
-    tunnel: tunnel,
-    themeController: themeController,
-    dynamicRender: dynamicRender,
+    // Utilities provided by app (HARDENED to prevent prototype pollution)
+    tunnel: harden(tunnel),
+    themeController: harden(themeController),
+    dynamicRender: harden(dynamicRender),
     
     // Block dangerous globals
     eval: undefined,
     Function: undefined,
     setTimeout: undefined,  // Enforce no setTimeout (your rule)
-    setInterval: undefined  // Enforce no setInterval (your rule)
+    setInterval: undefined,  // Enforce no setInterval (your rule)
+    
+    // Block network access (prevents data exfiltration)
+    fetch: undefined,
+    XMLHttpRequest: undefined,
+    
+    // Block DOM observers (prevents parent DOM spying)
+    MutationObserver: undefined,
+    IntersectionObserver: undefined,
+    ResizeObserver: undefined
   };
 }
