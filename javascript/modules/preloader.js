@@ -212,14 +212,26 @@ export function preloadFolderModules(folderNode) {
         const sandboxedWindow = createSandboxedWindow(instanceId);
         const tunnel = messageTunnel.createInstanceAPI(instanceId);
         
-        // Create secure compartment
+        // Create options
+        const options = {
+          root: contentRoot,
+          themeController: themeController,
+          dynamicRender: dynamicRender,
+          instanceId: instanceId,
+          parentInstanceId: null,
+          tunnel: tunnel
+        };
+        
+        // Create secure compartment (including factory and options)
         const compartmentGlobals = buildCompartmentGlobals(
           instanceId,
           sandboxedDocument,
           sandboxedWindow,
           tunnel,
           themeController,
-          dynamicRender
+          dynamicRender,
+          factory,   // ← Pass factory
+          options    // ← Pass options
         );
         
         const compartment = createSecureCompartment(instanceId, compartmentGlobals);
@@ -227,18 +239,17 @@ export function preloadFolderModules(folderNode) {
 
         let instance = null;
         try {
-          // Create options
-          const options = {
-            root: contentRoot,
-            themeController: themeController,
-            dynamicRender: dynamicRender,
-            instanceId: instanceId,
-            parentInstanceId: null,
-            tunnel: tunnel
-          };
+          // Execute factory INSIDE compartment (__moduleFactory and __options available as globals)
+          const factoryCode = `
+            (function() {
+              if (typeof __moduleFactory !== 'function') {
+                throw new Error('Module factory not available in compartment');
+              }
+              return __moduleFactory(__options);
+            })()
+          `;
           
-          // Call factory (already in global scope)
-          instance = factory(options) || {};
+          instance = compartment.evaluate(factoryCode) || {};
         } catch (err) {
           console.error('[Preloader] Module instantiation failed:', err);
         }

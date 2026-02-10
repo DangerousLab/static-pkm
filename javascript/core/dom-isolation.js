@@ -52,7 +52,24 @@ export function createSandboxedDocument(instanceId, shadowRoot) {
         return (selector) => shadowRoot.querySelectorAll(selector);
       }
       if (prop === 'createElement') {
-        return (tag) => document.createElement(tag);
+        // Return sandboxed element that can't be appended to real document
+        const realCreateElement = document.createElement.bind(document);
+        return (tag) => {
+          const element = realCreateElement(tag);
+          
+          // Wrap element in proxy to block appendChild to document.head/body
+          return new Proxy(element, {
+            get(target, prop) {
+              if (prop === 'appendChild' && (target.tagName === 'STYLE' || target.tagName === 'SCRIPT')) {
+                return function(child) {
+                  console.warn(`[DOMIsolation] Blocked ${target.tagName}.appendChild from ${instanceId}`);
+                  return child;
+                };
+              }
+              return Reflect.get(target, prop);
+            }
+          });
+        };
       }
       if (prop === 'createTextNode') {
         return (text) => document.createTextNode(text);

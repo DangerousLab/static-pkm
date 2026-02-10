@@ -131,14 +131,26 @@ export function loadModule(node, done) {
       const sandboxedWindow = createSandboxedWindow(instanceId);
       const tunnel = messageTunnel.createInstanceAPI(instanceId);
       
-      // Create secure compartment with sandboxed globals
+      // Create options object
+      const options = {
+        root: contentRoot,
+        themeController: themeController,
+        dynamicRender: dynamicRender,
+        instanceId: instanceId,
+        parentInstanceId: null,
+        tunnel: tunnel
+      };
+      
+      // Create secure compartment with sandboxed globals (including factory and options)
       const compartmentGlobals = buildCompartmentGlobals(
         instanceId,
         sandboxedDocument,
         sandboxedWindow,
         tunnel,
         themeController,
-        dynamicRender
+        dynamicRender,
+        factory,   // ← Pass factory
+        options    // ← Pass options
       );
       
       const compartment = createSecureCompartment(instanceId, compartmentGlobals);
@@ -148,21 +160,18 @@ export function loadModule(node, done) {
       try {
         console.log('[ContentLoader] Creating module instance in secure compartment:', instanceId);
         
-        // Get factory from compartment (it has access to window with the factory)
-        const factoryName = factoryNameFromId(node.id);
+        // Execute factory INSIDE compartment (__moduleFactory and __options available as globals)
+        const factoryCode = `
+          (function() {
+            if (typeof __moduleFactory !== 'function') {
+              throw new Error('Module factory not available in compartment');
+            }
+            return __moduleFactory(__options);
+          })()
+        `;
         
-        // Create options object
-        const options = {
-          root: contentRoot,
-          themeController: themeController,
-          dynamicRender: dynamicRender,
-          instanceId: instanceId,
-          parentInstanceId: null,
-          tunnel: tunnel
-        };
-        
-        // Call factory directly (already loaded in global scope)
-        instance = factory(options) || {};
+        // Evaluate inside compartment (no endowments needed, everything in globals)
+        instance = compartment.evaluate(factoryCode) || {};
         
       } catch (err) {
         console.error('[ContentLoader] Module instantiation failed:', err);

@@ -31,7 +31,7 @@ export function evaluateModuleFactory(compartment, factoryName) {
   }
 }
 
-export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxedWindow, tunnel, themeController, dynamicRender) {
+export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxedWindow, tunnel, themeController, dynamicRender, moduleFactory, options) {
   return {
     // Sandboxed globals
     document: sandboxedDocument,
@@ -56,6 +56,10 @@ export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxed
     tunnel: tunnel,
     themeController: themeController,
     dynamicRender: dynamicRender,
+    
+    // Module factory and options (passed from outer realm)
+    __moduleFactory: moduleFactory,
+    __options: options,
     
     // Block dangerous globals
     eval: undefined,
