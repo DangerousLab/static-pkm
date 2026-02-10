@@ -41,6 +41,12 @@ export function injectThemeStyles(shadowRoot) {
 }
 
 export function createSandboxedDocument(instanceId, shadowRoot) {
+  // DOM node limits (prevents DoS attacks)
+  const MAX_NODES = 10000;  // Maximum nodes per module
+  const WARN_THRESHOLD = 0.8;  // Warn at 80% capacity
+  let nodeCount = 0;
+  let warningSent = false;
+  
   // Proxied document that restricts access
   return new Proxy({}, {
     get(target, prop) {
@@ -52,17 +58,85 @@ export function createSandboxedDocument(instanceId, shadowRoot) {
         return shadowRoot.querySelectorAll.bind(shadowRoot);
       }
       if (prop === 'createElement') {
-        // Return properly bound createElement
-        return document.createElement.bind(document);
+        // Return wrapped createElement with node counting
+        return function(tagName) {
+          // Check limit before creating
+          if (nodeCount >= MAX_NODES) {
+            const error = new Error(
+              `[DOMIsolation] DOM node limit exceeded for ${instanceId}. ` +
+              `Maximum ${MAX_NODES} nodes allowed. ` +
+              `This prevents browser DoS attacks.`
+            );
+            console.error(error.message);
+            throw error;
+          }
+          
+          // Increment counter
+          nodeCount++;
+          
+          // Warn at threshold
+          if (!warningSent && nodeCount >= MAX_NODES * WARN_THRESHOLD) {
+            warningSent = true;
+            console.warn(
+              `[DOMIsolation] ${instanceId} has created ${nodeCount} nodes ` +
+              `(${Math.round((nodeCount / MAX_NODES) * 100)}% of limit). ` +
+              `Consider optimizing DOM operations.`
+            );
+          }
+          
+          // Create element
+          return document.createElement.call(document, tagName);
+        };
       }
       if (prop === 'createTextNode') {
-        return document.createTextNode.bind(document);
+        // Text nodes also count toward limit
+        return function(data) {
+          if (nodeCount >= MAX_NODES) {
+            const error = new Error(
+              `[DOMIsolation] DOM node limit exceeded for ${instanceId}`
+            );
+            console.error(error.message);
+            throw error;
+          }
+          
+          nodeCount++;
+          
+          if (!warningSent && nodeCount >= MAX_NODES * WARN_THRESHOLD) {
+            warningSent = true;
+            console.warn(
+              `[DOMIsolation] ${instanceId} approaching node limit: ${nodeCount}/${MAX_NODES}`
+            );
+          }
+          
+          return document.createTextNode.call(document, data);
+        };
       }
       if (prop === 'createDocumentFragment') {
+        // Fragments don't count (they're temporary containers)
         return document.createDocumentFragment.bind(document);
       }
       if (prop === 'createComment') {
-        return document.createComment.bind(document);
+        // Comments also count (though rarely abused)
+        return function(data) {
+          if (nodeCount >= MAX_NODES) {
+            const error = new Error(
+              `[DOMIsolation] DOM node limit exceeded for ${instanceId}`
+            );
+            console.error(error.message);
+            throw error;
+          }
+          
+          nodeCount++;
+          return document.createComment.call(document, data);
+        };
+      }
+      
+      // Expose node count for debugging (read-only)
+      if (prop === '__nodeCount') {
+        return nodeCount;
+      }
+      if (prop === '__nodeLimit') {
+        return MAX_NODES;
       }
       
       // Block dangerous operations
