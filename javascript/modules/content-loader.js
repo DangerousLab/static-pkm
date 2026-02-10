@@ -6,6 +6,7 @@
 import { dom, state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
 import { autoRender, dynamicRender } from '../loader/index.js';
+import { instanceManager } from '../core/instance-manager.js';
 
 /**
  * Typeset math expressions using MathJax
@@ -24,12 +25,85 @@ export function typesetMath(rootEl) {
 export function clearActiveInstance() {
   if (state.activeInstance && typeof state.activeInstance.destroy === "function") {
     try {
-      state.activeInstance.destroy();
+      const instanceId = state.activeNode 
+        ? generateInstanceId(state.activeNode.id, null, 'card1')
+        : null;
+      
+      if (instanceId) {
+        instanceManager.destroy(instanceId);
+      } else {
+        state.activeInstance.destroy();
+      }
     } catch (e) {
-      // ignore destroy errors
+      console.error('[ContentLoader] Failed to destroy instance:', e);
     }
   }
   state.activeInstance = null;
+}
+
+/**
+ * LAYER 3: Style Tag Isolation
+ */
+
+/**
+ * Find and scope all <style> tags within module root
+ */
+function scopeModuleStyles(root, instanceId) {
+  const styleTags = root.querySelectorAll('style');
+  
+  if (styleTags.length === 0) return;
+  
+  styleTags.forEach((styleTag, index) => {
+    try {
+      const originalCSS = styleTag.textContent;
+      const scopedCSS = scopeCSSToInstance(originalCSS, instanceId);
+      styleTag.textContent = scopedCSS;
+    } catch (error) {
+      console.error(`[ContentLoader] Failed to scope style tag #${index}:`, error);
+    }
+  });
+  
+  console.log(`[ContentLoader] Scoped ${styleTags.length} style tag(s) for instance ${instanceId}`);
+}
+
+/**
+ * Scope CSS selectors to a specific instance
+ */
+function scopeCSSToInstance(css, instanceId) {
+  const scope = `.module-boundary[data-instance-id="${instanceId}"]`;
+  
+  return css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g, (match, selector, separator) => {
+    const trimmedSelector = selector.trim();
+    
+    if (trimmedSelector.startsWith('@') || trimmedSelector.startsWith(':root')) {
+      return match;
+    }
+    
+    return `${scope} ${trimmedSelector}${separator}`;
+  });
+}
+
+/**
+ * Generate unique instance ID
+ */
+function generateInstanceId(moduleId, parentInstanceId = null, cardId = 'card1') {
+  if (!parentInstanceId) {
+    return `${cardId}:${moduleId}`;
+  }
+  
+  const basePath = `${parentInstanceId}/${moduleId}`;
+  let index = 0;
+  let candidateId = basePath;
+  
+  // Dynamic import for future - instance manager not loaded yet in Phase 0
+  if (typeof instanceManager !== 'undefined') {
+    while (instanceManager.instances.has(candidateId)) {
+      candidateId = `${basePath}#${index}`;
+      index++;
+    }
+  }
+  
+  return candidateId;
 }
 
 /**
@@ -103,14 +177,23 @@ export function loadModule(node, done) {
   
   getFactoryForModule(node)
     .then((factory) => {
+      const instanceId = generateInstanceId(node.id, null, 'card1');
+      
       const innerRoot = document.createElement("div");
-      innerRoot.className = "content-root";
+      innerRoot.className = "content-root module-boundary";
+      innerRoot.dataset.instanceId = instanceId;
       dom.card.appendChild(innerRoot);
 
       let instance = null;
       try {
-        console.log('[ContentLoader] Creating module instance:', node.id);
-        instance = factory({ root: innerRoot, themeController, dynamicRender }) || {};
+        console.log('[ContentLoader] Creating module instance:', instanceId);
+        instance = factory({ 
+          root: innerRoot, 
+          themeController, 
+          dynamicRender,
+          instanceId: instanceId,
+          parentInstanceId: null
+        }) || {};
       } catch (err) {
         console.error('[ContentLoader] Module instantiation failed:', err);
         dom.card.innerHTML = "\n\nUnable to load module.";
@@ -121,12 +204,20 @@ export function loadModule(node, done) {
       }
 
       requestAnimationFrame(async () => { 
+        scopeModuleStyles(innerRoot, instanceId);
         
         await autoRender(innerRoot);
         dom.card.classList.remove("preload");
         dom.card.classList.add("loaded");
         
-        console.log('[ContentLoader] Module loaded successfully:', node.id);
+        console.log('[ContentLoader] Module loaded successfully:', instanceId);
+      });
+
+      instanceManager.register(instanceId, instance, {
+        moduleId: node.id,
+        parentId: null,
+        cardId: 'card1',
+        rootElement: innerRoot
       });
 
       done(instance);

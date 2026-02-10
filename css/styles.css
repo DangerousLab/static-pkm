@@ -1023,6 +1023,58 @@ html {
   animation-fill-mode: both;
 }
 
+/* ==================== MODULE ISOLATION LAYERS ==================== */
+
+/* Layer 1: CSS Containment - Prevent layout/style leakage */
+.card {
+  contain: layout style;
+  isolation: isolate;
+}
+
+/* Layer 2: Module Boundary - Reset + Theme inheritance */
+.module-boundary {
+  all: revert;
+  
+  /* Re-enable theme variables (one-way flow: app → module) */
+  color: var(--text-main);
+  background: var(--bg-card);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  
+  /* Prevent position escaping */
+  position: relative;
+  
+  /* Ensure consistent box model */
+  box-sizing: border-box;
+  
+  /* Contain module content */
+  overflow: auto;
+  width: 100%;
+}
+
+/* Ensure all children inherit box-sizing */
+.module-boundary * {
+  box-sizing: inherit;
+}
+
+/* Nested boundaries (for future transclusion) */
+.module-boundary .module-boundary {
+  all: revert;
+  
+  /* Re-apply theme variables */
+  color: var(--text-main);
+  background: var(--bg-card);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  
+  position: relative;
+  box-sizing: border-box;
+  overflow: auto;
+  width: 100%;
+}
+
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
 
 /* PHASE 2: Removed - obsolete with standardized breakpoints */
