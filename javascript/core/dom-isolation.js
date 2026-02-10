@@ -3,12 +3,12 @@
  * Shadow DOM setup + Proxied document/window APIs
  */
 
-export function createShadowRoot(container, instanceId) {
+export async function createShadowRoot(container, instanceId) {
   // Create closed shadow root (maximum isolation)
   const shadowRoot = container.attachShadow({ mode: 'closed' });
   
-  // Inject theme CSS into shadow root
-  injectThemeStyles(shadowRoot);
+  // Inject theme CSS into shadow root (async - loads CSS files)
+  await injectThemeStyles(shadowRoot);
   
   // Create module content container
   const contentRoot = document.createElement('div');
@@ -19,25 +19,153 @@ export function createShadowRoot(container, instanceId) {
   return { shadowRoot, contentRoot };
 }
 
-export function injectThemeStyles(shadowRoot) {
-  // Create <style> tag with theme CSS variables
+// Cache for CSS content (loaded once, reused for all shadow roots)
+let cachedModulesCSS = null;
+let cachedThemeVariables = null;
+
+export async function injectThemeStyles(shadowRoot) {
+  // Load CSS if not cached
+  const { modulesCSS, themeVariables } = await loadAndCacheCSS();
+  
+  // Create <style> tag with complete CSS
   const themeStyle = document.createElement('style');
   themeStyle.textContent = `
+    /* Theme CSS Variables (inherited from main app) */
+    ${themeVariables}
+    
+    /* Base Shadow DOM styles - CRITICAL for proper rendering */
     :host {
-      /* Import theme variables from parent */
       display: block;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      
+      /* Base typography - matches main document */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      
+      /* Text rendering */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    
+    /* Module content container inherits theme variables */
+    .module-content {
+      color: var(--text-main);
+      background: transparent;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      box-sizing: border-box;
       width: 100%;
       height: 100%;
     }
     
-    .module-content {
-      /* Theme variables accessible here */
-      color: var(--text-primary);
-      background: var(--bg-primary);
-      /* ... all theme variables */
+    /* Ensure all children inherit box-sizing and font properties */
+    .module-content *,
+    .module-content *::before,
+    .module-content *::after {
+      box-sizing: inherit;
+      font-family: inherit;
     }
+    
+    /* Shared Module CSS Patterns (from modules.css) */
+    ${modulesCSS}
   `;
   shadowRoot.appendChild(themeStyle);
+  
+  console.log('[DOMIsolation] Injected', themeStyle.textContent.length, 'bytes of CSS into shadow root');
+}
+
+/**
+ * Load and cache CSS files for Shadow DOM injection
+ */
+async function loadAndCacheCSS() {
+  if (cachedModulesCSS && cachedThemeVariables) {
+    return { modulesCSS: cachedModulesCSS, themeVariables: cachedThemeVariables };
+  }
+
+  try {
+    // Fetch modules.css (shared module patterns)
+    const modulesResponse = await fetch('./css/modules.css');
+    if (modulesResponse.ok) {
+      cachedModulesCSS = await modulesResponse.text();
+      console.log('[DOMIsolation] Cached modules.css:', cachedModulesCSS.length, 'bytes');
+    } else {
+      console.warn('[DOMIsolation] Failed to fetch modules.css:', modulesResponse.status);
+      cachedModulesCSS = ''; // Empty fallback
+    }
+
+    // Extract CSS variables from main styles.css
+    const stylesResponse = await fetch('./css/styles.css');
+    if (stylesResponse.ok) {
+      const fullCSS = await stylesResponse.text();
+      
+      // Extract :root {} block (dark theme) - improved regex for multiline matching
+      let darkThemeVars = '';
+      const rootStartIndex = fullCSS.indexOf(':root {');
+      if (rootStartIndex !== -1) {
+        let braceCount = 0;
+        let startCapture = false;
+        let endIndex = rootStartIndex;
+        
+        for (let i = rootStartIndex; i < fullCSS.length; i++) {
+          if (fullCSS[i] === '{') {
+            braceCount++;
+            startCapture = true;
+          } else if (fullCSS[i] === '}') {
+            braceCount--;
+            if (braceCount === 0 && startCapture) {
+              endIndex = i + 1;
+              break;
+            }
+          }
+        }
+        
+        darkThemeVars = fullCSS.substring(rootStartIndex, endIndex);
+      }
+      
+      // Extract :root[data-theme="light"] {} block - improved regex for multiline matching
+      let lightThemeVars = '';
+      const lightStartIndex = fullCSS.indexOf(':root[data-theme="light"]');
+      if (lightStartIndex !== -1) {
+        let braceCount = 0;
+        let startCapture = false;
+        let endIndex = lightStartIndex;
+        
+        for (let i = lightStartIndex; i < fullCSS.length; i++) {
+          if (fullCSS[i] === '{') {
+            braceCount++;
+            startCapture = true;
+          } else if (fullCSS[i] === '}') {
+            braceCount--;
+            if (braceCount === 0 && startCapture) {
+              endIndex = i + 1;
+              break;
+            }
+          }
+        }
+        
+        lightThemeVars = fullCSS.substring(lightStartIndex, endIndex);
+      }
+      
+      cachedThemeVariables = darkThemeVars + '\n\n' + lightThemeVars;
+      
+      console.log('[DOMIsolation] Cached CSS variables:', cachedThemeVariables.length, 'bytes');
+    } else {
+      console.warn('[DOMIsolation] Failed to fetch styles.css:', stylesResponse.status);
+      cachedThemeVariables = ''; // Empty fallback
+    }
+
+    return { modulesCSS: cachedModulesCSS, themeVariables: cachedThemeVariables };
+  } catch (error) {
+    console.error('[DOMIsolation] CSS caching failed:', error);
+    cachedModulesCSS = '';
+    cachedThemeVariables = '';
+    return { modulesCSS: '', themeVariables: '' };
+  }
 }
 
 export function createSandboxedDocument(instanceId, shadowRoot) {

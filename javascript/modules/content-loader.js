@@ -102,7 +102,7 @@ export async function getFactoryForModule(node, compartment) {
  * Note: Shared CSS patterns loaded via modules.css in index.html
  * Module-specific styles are inlined in each module's JS file
  */
-export function loadModule(node, done) {
+export async function loadModule(node, done) {
   console.log('[ContentLoader] Loading module:', node.id);
   
   // Create instance ID first
@@ -114,8 +114,8 @@ export function loadModule(node, done) {
   container.dataset.instanceId = instanceId;
   dom.card.appendChild(container);
   
-  // Create isolated shadow DOM
-  const { shadowRoot, contentRoot } = createShadowRoot(container, instanceId);
+  // Create isolated shadow DOM (async because injectThemeStyles is now async)
+  const { shadowRoot, contentRoot } = await createShadowRoot(container, instanceId);
   
   // Create sandboxed APIs
   const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);

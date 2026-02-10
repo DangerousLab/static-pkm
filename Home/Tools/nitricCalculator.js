@@ -69,14 +69,14 @@
       /* Subpanels - UNIQUE TO NITRIC */
       .nitric-subpanel {
         border-radius: 10px;
-        border: 1px solid rgba(200, 200, 200, 0.35);
-        background: rgba(20, 20, 20, 0.8);
+        border: 1px solid var(--border-strong);
+        background: var(--bg-panel);
         padding: 10px 10px 12px;
       }
 
       :root[data-theme="light"] .nitric-subpanel {
-        background: #f9fafb;
-        border-color: rgba(148, 163, 184, 0.65);
+        background: var(--bg-panel);
+        border-color: var(--border-strong);
       }
 
       .nitric-subpanel-title {
@@ -91,11 +91,11 @@
       /* Math Blocks - UNIQUE TO NITRIC */
       .nitric-math-block {
         position: relative;
-        background: #262626;
+        background: var(--bg-panel);
         border-radius: 10px;
         padding: 8px 10px;
         margin: 6px 0;
-        border: 1px dashed rgba(180, 180, 180, 0.45);
+        border: 1px dashed var(--border-medium);
         overflow: hidden;
         font-size: 0.9rem;
         display: flex;
@@ -104,8 +104,8 @@
       }
 
       :root[data-theme="light"] .nitric-math-block {
-        background: #f9fafb;
-        border-color: rgba(148, 163, 184, 0.6);
+        background: var(--bg-panel);
+        border-color: var(--border-medium);
       }
 
       .nitric-math-inner {
@@ -489,11 +489,19 @@
       scaleFactorEl.addEventListener('change', updateCalculator);
 
       window.addEventListener('resize', rescaleAll);
-      window.addEventListener('load', rescaleAll);
+      // Remove window.addEventListener('load') - module already loaded at this point
+      // Instead, call rescaleAll directly after initialization
     }
 
     initEvents();
     updateCalculator();
+    
+    // Call rescaleAll after a short delay to ensure DOM is ready
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        rescaleAll();
+      });
+    });
 
     console.log('[NitricCalculator] Initialized successfully');
 
@@ -535,10 +543,8 @@
   // Register globally
   window.createNitricCalculator = createNitricCalculator;
   
-  // Emit registration event (REQUIRED for event-driven loading)
-  window.dispatchEvent(new CustomEvent('moduleRegistered', {
-    detail: { factoryName: 'createNitricCalculator' }
-  }));
+  // Legacy event emission removed - Shadow DOM isolation handles registration
+  // The factory is automatically available via window.createNitricCalculator
   
   console.log('[NitricCalculator] Module registered');
 })();
