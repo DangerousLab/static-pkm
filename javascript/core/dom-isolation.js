@@ -81,6 +81,9 @@ export function createSandboxedWindow(instanceId) {
   // Storage for module-specific properties (factory, moduleInfo, etc.)
   const moduleStorage = {};
   
+  // Track event listeners for cleanup (stored outside proxy to prevent module access)
+  const eventListeners = new Map();
+  
   // Proxied window that restricts access
   return new Proxy(moduleStorage, {
     get(target, prop) {
@@ -108,22 +111,82 @@ export function createSandboxedWindow(instanceId) {
         return undefined;
       }
       
-      // Allow event-related APIs
+      // Allow event-related APIs (with restrictions)
       if (prop === 'CustomEvent') {
         // Return constructor, not bound function!
         return window.CustomEvent;
       }
-      if (prop === 'dispatchEvent') {
-        return window.dispatchEvent.bind(window);
-      }
-      if (prop === 'addEventListener') {
-        return window.addEventListener.bind(window);
-      }
-      if (prop === 'removeEventListener') {
-        return window.removeEventListener.bind(window);
-      }
+      
       if (prop === 'Event') {
         return window.Event;
+      }
+      
+      if (prop === 'addEventListener') {
+        // Return scoped addEventListener
+        return function(eventName, handler, options) {
+          // Define safe global events (browser/UI events only)
+          const safeGlobalEvents = ['resize', 'scroll', 'focus', 'blur'];
+          
+          // Check if event is instance-specific or safe global
+          const isInstanceEvent = eventName.startsWith(instanceId);
+          const isSafeGlobal = safeGlobalEvents.includes(eventName);
+          
+          if (!isInstanceEvent && !isSafeGlobal) {
+            console.warn(
+              `[DOMIsolation] Blocked addEventListener('${eventName}') from ${instanceId}. ` +
+              `Use tunnel API for module communication or prefix with '${instanceId}:'`
+            );
+            return;
+          }
+          
+          // Add listener to real window
+          window.addEventListener(eventName, handler, options);
+          
+          // Track for cleanup on module destroy
+          if (!eventListeners.has(eventName)) {
+            eventListeners.set(eventName, []);
+          }
+          eventListeners.get(eventName).push({ handler, options });
+          
+          console.log(`[DOMIsolation] Allowed addEventListener('${eventName}') from ${instanceId}`);
+        };
+      }
+      
+      if (prop === 'removeEventListener') {
+        // Return scoped removeEventListener
+        return function(eventName, handler, options) {
+          window.removeEventListener(eventName, handler, options);
+          
+          // Remove from tracking
+          if (eventListeners.has(eventName)) {
+            const listeners = eventListeners.get(eventName);
+            const index = listeners.findIndex(l => l.handler === handler);
+            if (index !== -1) {
+              listeners.splice(index, 1);
+            }
+          }
+          
+          console.log(`[DOMIsolation] removeEventListener('${eventName}') from ${instanceId}`);
+        };
+      }
+      
+      if (prop === 'dispatchEvent') {
+        // Return scoped dispatchEvent
+        return function(event) {
+          // Only allow dispatching instance-specific events
+          const isInstanceEvent = event.type.startsWith(instanceId);
+          
+          if (!isInstanceEvent) {
+            console.warn(
+              `[DOMIsolation] Blocked dispatchEvent('${event.type}') from ${instanceId}. ` +
+              `Event type must be prefixed with '${instanceId}:'`
+            );
+            return false;
+          }
+          
+          console.log(`[DOMIsolation] Allowed dispatchEvent('${event.type}') from ${instanceId}`);
+          return window.dispatchEvent(event);
+        };
       }
       
       // Allow __moduleReady callback pattern (legacy modules)
