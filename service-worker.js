@@ -17,16 +17,35 @@ let CACHE_NAME = `unstablon-offline-${CACHE_VERSION}`;
 let PRECACHE_URLS = [];
 
 /**
- * Load cache manifest dynamically
+ * Load cache manifest dynamically with integrity verification
  */
 async function loadCacheManifest() {
   try {
-    const response = await fetch(CACHE_MANIFEST_URL);
+    const response = await fetch(CACHE_MANIFEST_URL, { cache: 'no-cache' });
     if (!response.ok) {
       throw new Error('Failed to load cache manifest');
     }
 
     const manifest = await response.json();
+    
+    // SECURITY: Validate manifest structure
+    if (!manifest.version || !manifest.preCache) {
+      throw new Error('Invalid cache manifest structure');
+    }
+    
+    // SECURITY: Validate version format (semver or timestamp)
+    if (!/^v?\d+\.\d+\.\d+$/.test(manifest.version) && !/^\d{13,}$/.test(manifest.version)) {
+      throw new Error('Invalid version format in manifest');
+    }
+    
+    // SECURITY: Check for version downgrade
+    const currentVersion = await getCurrentCachedVersion();
+    if (currentVersion && isVersionDowngrade(currentVersion, manifest.version)) {
+      console.warn('[SW] ⚠️  Version downgrade detected:', currentVersion, '→', manifest.version);
+      console.warn('[SW] Downgrade blocked for security. Clear cache manually if intentional.');
+      throw new Error('Version downgrade blocked');
+    }
+    
     CACHE_VERSION = manifest.version;
     CACHE_NAME = `unstablon-offline-${CACHE_VERSION}`;
 
@@ -35,6 +54,9 @@ async function loadCacheManifest() {
       ...manifest.preCache.local,
       ...manifest.preCache.cdn
     ];
+    
+    // SECURITY: Store version for future comparisons
+    await storeCurrentVersion(manifest.version);
 
     console.log('[SW] Loaded cache manifest:', manifest.version);
     console.log('[SW] Pre-cache URLs:', PRECACHE_URLS.length);
@@ -47,6 +69,111 @@ async function loadCacheManifest() {
     PRECACHE_URLS = ['./', './index.html'];
     return null;
   }
+}
+
+/**
+ * Get currently cached version from IndexedDB
+ */
+async function getCurrentCachedVersion() {
+  try {
+    const db = await openVersionDB();
+    return await getVersionFromDB(db);
+  } catch (error) {
+    console.warn('[SW] Could not read cached version:', error);
+    return null;
+  }
+}
+
+/**
+ * Store current version in IndexedDB for downgrade detection
+ */
+async function storeCurrentVersion(version) {
+  try {
+    const db = await openVersionDB();
+    await saveVersionToDB(db, version);
+    console.log('[SW] Stored version:', version);
+  } catch (error) {
+    console.warn('[SW] Could not store version:', error);
+  }
+}
+
+/**
+ * Open or create version tracking database
+ */
+async function openVersionDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('unstablon-sw-version', 1);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('versions')) {
+        db.createObjectStore('versions', { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+/**
+ * Get version from database
+ */
+async function getVersionFromDB(db) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['versions'], 'readonly');
+    const store = transaction.objectStore('versions');
+    const request = store.get('current');
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      resolve(request.result ? request.result.version : null);
+    };
+  });
+}
+
+/**
+ * Save version to database
+ */
+async function saveVersionToDB(db, version) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['versions'], 'readwrite');
+    const store = transaction.objectStore('versions');
+    const request = store.put({ 
+      id: 'current', 
+      version: version,
+      timestamp: Date.now()
+    });
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+}
+
+/**
+ * Check if new version is a downgrade (prevents version rollback attacks)
+ */
+function isVersionDowngrade(oldVersion, newVersion) {
+  // Handle timestamp versions (13+ digits)
+  if (/^\d{13,}$/.test(oldVersion) && /^\d{13,}$/.test(newVersion)) {
+    return parseInt(newVersion) < parseInt(oldVersion);
+  }
+  
+  // Handle semver versions (v1.2.3 or 1.2.3)
+  const parseVersion = (v) => {
+    const match = v.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+    if (!match) return [0, 0, 0];
+    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+  };
+  
+  const [oldMajor, oldMinor, oldPatch] = parseVersion(oldVersion);
+  const [newMajor, newMinor, newPatch] = parseVersion(newVersion);
+  
+  if (newMajor < oldMajor) return true;
+  if (newMajor === oldMajor && newMinor < oldMinor) return true;
+  if (newMajor === oldMajor && newMinor === oldMinor && newPatch < oldPatch) return true;
+  
+  return false;
 }
 
 /**
@@ -183,7 +310,7 @@ self.addEventListener('activate', (event) => {
 });
 
 /**
- * FETCH EVENT - Cache-first strategy (everything already cached)
+ * FETCH EVENT - Cache-first strategy with security headers
  */
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -201,20 +328,26 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
-        // Return cached version (should always exist)
+        // Return cached version with security headers
         if (cachedResponse) {
-          return cachedResponse;
+          // SECURITY: Clone and add security headers
+          return addSecurityHeaders(cachedResponse, url);
         }
 
         // Not in cache (unexpected) - fetch from network
         console.warn('[SW] Unexpected cache miss:', url.pathname);
         return fetch(event.request)
+          .then(response => {
+            // Add security headers to network response too
+            return addSecurityHeaders(response, url);
+          })
           .catch(error => {
             console.error('[SW] Fetch failed:', url.pathname, error);
 
             // Return offline fallback for HTML pages
             if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('./index.html');
+              return caches.match('./index.html')
+                .then(fallback => addSecurityHeaders(fallback, url));
             }
 
             return new Response('Offline - Resource not available', {
@@ -228,6 +361,40 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+/**
+ * Add security headers to response
+ */
+function addSecurityHeaders(response, url) {
+  if (!response) return response;
+  
+  const headers = new Headers(response.headers);
+  
+  // SECURITY: Add CSP for HTML files
+  if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname === './') {
+    headers.set('Content-Security-Policy', 
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
+      "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
+      "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net data:; " +
+      "img-src 'self' data: blob:; " +
+      "connect-src 'self'"
+    );
+  }
+  
+  // SECURITY: Prevent MIME sniffing
+  headers.set('X-Content-Type-Options', 'nosniff');
+  
+  // SECURITY: Frame protection (clickjacking)
+  headers.set('X-Frame-Options', 'SAMEORIGIN');
+  
+  // Clone response with new headers
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: headers
+  });
+}
 
 /**
  * MESSAGE EVENT - Handle messages from app
