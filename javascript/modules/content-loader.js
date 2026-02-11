@@ -7,7 +7,7 @@ import { dom, state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
 import { autoRender, dynamicRender } from '../loader/index.js';
 import { instanceManager } from '../core/instance-manager.js';
-import { createShadowRoot, createSandboxedDocument, createSandboxedWindow, createMathRenderingAPI } from '../core/dom-isolation.js';
+import { createShadowRoot, createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
 import { createSecureCompartment, buildCompartmentGlobals } from '../core/js-isolation.js';
 import { messageTunnel } from '../core/message-tunnel.js';
 
@@ -145,7 +145,7 @@ export async function loadModule(node, done) {
   container.dataset.instanceId = instanceId;
   dom.card.appendChild(container);
   
-  // Create isolated shadow DOM
+  // Create isolated shadow DOM (Platform Resources auto-inject)
   const { shadowRoot, contentRoot } = await createShadowRoot(container, instanceId);
   
   // Create sandboxed APIs

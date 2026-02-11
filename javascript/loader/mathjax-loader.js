@@ -4,6 +4,8 @@
  * Platform Layer: Has document.head access for font injection
  */
 
+import { registerPlatformResource, markResourceLoaded } from './platform-resources.js';
+
 let mathJaxLoaded = false;
 let mathJaxLoadingPromise = null;
 
@@ -22,6 +24,37 @@ export async function loadMathJax() {
   }
 
   console.log('[MathJax Loader] Loading MathJax from CDN...');
+  
+  // Register MathJax output styles as platform resource
+  registerPlatformResource({
+    id: 'mathjax-output-css',
+    type: 'style',
+    name: 'MathJax Output CSS',
+    content: `
+      /* MathJax SVG Output Styling */
+      mjx-container {
+        display: inline-block;
+        margin: 0;
+        padding: 0;
+      }
+      
+      mjx-container[display="true"] {
+        display: block;
+        margin: 1em 0;
+        text-align: center;
+      }
+      
+      /* Inherit theme colors */
+      mjx-container {
+        color: inherit;
+      }
+      
+      mjx-container svg {
+        display: inline-block;
+        vertical-align: middle;
+      }
+    `
+  });
 
   mathJaxLoadingPromise = new Promise((resolve, reject) => {
     // Configure MathJax BEFORE loading script
@@ -30,8 +63,8 @@ export async function loadMathJax() {
         inlineMath: [["\\(", "\\)"], ["$", "$"]],
         displayMath: [["\\[", "\\]"], ["$$", "$$"]]
       },
-      chtml: {
-        fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
+      svg: {
+        fontCache: 'global'  // Use SVG output (works better with shadow DOM)
       },
       options: {
         skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"]
@@ -40,15 +73,19 @@ export async function loadMathJax() {
         ready: () => {
           window.MathJax.startup.defaultReady();
           mathJaxLoaded = true;
-          console.log('[MathJax Loader] MathJax loaded and ready (global scope)');
+          
+          // Mark CSS resource as loaded (auto-injects into all shadow roots)
+          markResourceLoaded('mathjax-output-css');
+          
+          console.log('[MathJax Loader] MathJax loaded and styles injected into shadow DOMs');
           resolve();
         }
       }
     };
 
-    // Load MathJax from CDN
+    // Load MathJax from CDN (use SVG output for shadow DOM compatibility)
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
     script.async = true;
     script.onerror = () => {
       console.error('[MathJax Loader] Failed to load MathJax from CDN');
@@ -70,8 +107,9 @@ export function isMathJaxLoaded() {
 }
 
 /**
- * Typeset math equations in a container (MUST be in global scope, not shadow DOM)
- * @param {HTMLElement} container - Container in global document (not shadow root)
+ * Typeset math equations in ANY container (shadow DOM or global scope)
+ * Platform Resources system handles style injection automatically
+ * @param {HTMLElement} container - Container with LaTeX equations
  * @returns {Promise<void>}
  */
 export async function typesetMath(container) {

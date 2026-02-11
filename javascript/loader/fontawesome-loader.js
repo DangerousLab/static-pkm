@@ -3,6 +3,8 @@
  * Loads external CSS/JS resources on-demand with auto-detection
  */
 
+import { registerPlatformResource, markResourceLoaded } from './platform-resources.js';
+
 const loadedResources = new Set();
 let fontAwesomeLoadPromise = null;
 
@@ -61,12 +63,24 @@ export async function loadFontAwesome() {
 
   console.log('[DynamicLoader] Loading FontAwesome...');
   
-  fontAwesomeLoadPromise = loadCSS(
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css'
-  )
+  const faURL = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css';
+  
+  // Register FontAwesome as platform resource
+  registerPlatformResource({
+    id: 'fontawesome-css',
+    type: 'css',
+    url: faURL,
+    name: 'FontAwesome Icons'
+  });
+  
+  fontAwesomeLoadPromise = loadCSS(faURL)
   .then(() => {
     loadedResources.add('fontawesome');
-    console.log('[DynamicLoader] FontAwesome loaded and ready');
+    
+    // Mark as loaded - auto-injects into all shadow roots
+    markResourceLoaded('fontawesome-css');
+    
+    console.log('[DynamicLoader] FontAwesome loaded and injected into shadow DOMs');
     fontAwesomeLoadPromise = null;
   })
   .catch((error) => {

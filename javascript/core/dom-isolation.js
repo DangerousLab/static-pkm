@@ -3,9 +3,15 @@
  * Shadow DOM setup + Proxied document/window APIs
  */
 
+import { registerShadowRoot, unregisterShadowRoot } from '../loader/platform-resources.js';
+
 export async function createShadowRoot(container, instanceId) {
   // Create closed shadow root (maximum isolation)
   const shadowRoot = container.attachShadow({ mode: 'closed' });
+  
+  // Register with Platform Resources system FIRST
+  // This injects all loaded platform resources (MathJax, FontAwesome, etc.)
+  registerShadowRoot(shadowRoot, instanceId);
   
   // Inject theme CSS into shadow root (async - loads CSS files)
   await injectThemeStyles(shadowRoot);
@@ -18,7 +24,6 @@ export async function createShadowRoot(container, instanceId) {
   
   return { shadowRoot, contentRoot };
 }
-
 
 /**
  * Inject theme styles into shadow root

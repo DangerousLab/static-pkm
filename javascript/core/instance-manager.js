@@ -6,6 +6,7 @@
  */
 
 import { messageTunnel } from './message-tunnel.js';
+import { unregisterShadowRoot } from '../loader/platform-resources.js';
 
 class InstanceManager {
   constructor() {
@@ -25,6 +26,7 @@ class InstanceManager {
       parentId: metadata.parentId || null,
       cardId: metadata.cardId || 'card1',
       rootElement: metadata.rootElement || null,
+      shadowRoot: metadata.shadowRoot || null,  // NEW: Store for cleanup
       createdAt: Date.now()
     });
     
@@ -71,6 +73,12 @@ class InstanceManager {
         } catch (error) {
           console.error(`[InstanceManager] Error destroying ${id}:`, error);
         }
+      }
+      
+      // Unregister shadow root from Platform Resources
+      const metadata = this.metadata.get(id);
+      if (metadata?.shadowRoot) {
+        unregisterShadowRoot(metadata.shadowRoot);
       }
       
       // Cleanup compartment
