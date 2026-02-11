@@ -12,6 +12,31 @@ import { createSecureCompartment, buildCompartmentGlobals } from '../core/js-iso
 import { messageTunnel } from '../core/message-tunnel.js';
 
 /**
+ * Detect module layer (Platform vs User)
+ * @param {string} filePath - Module file path from tree.json
+ * @returns {'PLATFORM'|'USER'}
+ */
+function getModuleLayer(filePath) {
+  // Normalize path (remove leading ./ if present)
+  const normalized = filePath.replace(/^\.\//, '');
+  
+  // User Layer: Home/ directory (user modules)
+  if (normalized.startsWith('Home/')) {
+    return 'USER';
+  }
+  
+  // User Layer: javascript/user/ (user utilities)
+  if (normalized.startsWith('javascript/user/')) {
+    return 'USER';
+  }
+  
+  // Platform Layer: Everything else
+  // Note: Platform modules (javascript/modules/*) are statically imported in app.js
+  // They should NEVER appear in tree.json or be loaded via content-loader
+  return 'PLATFORM';
+}
+
+/**
  * Typeset math expressions using MathJax
  */
 export function typesetMath(rootEl) {
@@ -103,7 +128,24 @@ export async function getFactoryForModule(node, compartment) {
  * Module-specific styles are inlined in each module's JS file
  */
 export async function loadModule(node, done) {
-  console.log('[ContentLoader] Loading module:', node.id);
+  // Detect module layer for logging and future extensibility
+  const moduleLayer = getModuleLayer(node.file);
+  console.log('[ContentLoader] Loading module:', node.id, '| Layer:', moduleLayer, '| File:', node.file);
+  
+  // Validation: Only USER layer modules should be loaded via content-loader
+  if (moduleLayer === 'PLATFORM') {
+    console.error('[ContentLoader] ERROR: Platform modules should not be in navigation tree!');
+    console.error('[ContentLoader] Platform modules must be statically imported in app.js');
+    console.error('[ContentLoader] Attempted to load:', node.file);
+    dom.card.innerHTML = "\n\nConfiguration Error: Platform module in navigation tree.";
+    dom.card.classList.remove("preload");
+    dom.card.classList.add("loaded");
+    done(null);
+    return;
+  }
+  
+  // All modules loaded here are USER layer (apply isolation)
+  console.log('[ContentLoader] Applying USER LAYER isolation (SES + Shadow DOM)');
   
   // Create instance ID first
   const instanceId = instanceManager.generateInstanceId(node.id, null, 'card1');
