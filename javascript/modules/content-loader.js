@@ -37,17 +37,6 @@ function getModuleLayer(filePath) {
 }
 
 /**
- * Typeset math expressions using MathJax
- */
-export function typesetMath(rootEl) {
-  if (window.MathJax && window.MathJax.typesetPromise) {
-    window.MathJax.typesetPromise([rootEl]).catch(function (err) {
-      console.error("MathJax typeset failed", err);
-    });
-  }
-}
-
-/**
  * Clear active module instance
  */
 export function clearActiveInstance() {
@@ -156,14 +145,13 @@ export async function loadModule(node, done) {
   container.dataset.instanceId = instanceId;
   dom.card.appendChild(container);
   
-  // Create isolated shadow DOM with separate math container
-  const { shadowRoot, contentRoot, mathContainer } = await createShadowRoot(container, instanceId);
+  // Create isolated shadow DOM
+  const { shadowRoot, contentRoot } = await createShadowRoot(container, instanceId);
   
   // Create sandboxed APIs
   const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
   const sandboxedWindow = createSandboxedWindow(instanceId);
   const tunnel = messageTunnel.createInstanceAPI(instanceId);
-  const mathAPI = createMathRenderingAPI(mathContainer, dynamicRender); 
   
   // Create secure compartment with sandboxed globals (no factory/options yet!)
   const compartmentGlobals = buildCompartmentGlobals(
@@ -173,7 +161,6 @@ export async function loadModule(node, done) {
     tunnel,
     themeController,
     dynamicRender,
-    mathAPI
   );
   
   const compartment = createSecureCompartment(instanceId, compartmentGlobals);
@@ -185,7 +172,6 @@ export async function loadModule(node, done) {
       // Create options object
       const options = {
         root: contentRoot,        // Shadow DOM root (for module UI)
-        mathRoot: mathContainer,  // Global scope root (for MathJax rendering)
         themeController: themeController,
         dynamicRender: dynamicRender,
         instanceId: instanceId,

@@ -67,8 +67,7 @@ export async function autoRender(container) {
 
 /**
  * Re-render passive content after dynamic DOM updates
- * Assumes libraries are already loaded (use after initial autoRender)
- * For user modules that update innerHTML dynamically
+ * Handles all platform resources that need re-processing
  * @param {HTMLElement} container - Container with updated content
  * @returns {Promise<void>}
  */
@@ -77,13 +76,22 @@ export async function dynamicRender(container) {
   
   console.log('[Loader] Dynamic re-render...');
   
-  // Just re-typeset, don't reload libraries
-  // MathJax is already loaded from initial autoRender
+  const rerenderPromises = [];
+  
+  // Re-typeset math if MathJax is loaded
   if (window.MathJax?.typesetPromise) {
-    await typesetMath(container);
-    console.log('[Loader] Dynamic re-render complete');
+    const html = container.innerHTML;
+    // Check for LaTeX delimiters: \( \) \[ \] $ $$
+    if (/\\\(|\\\[|\$\$?/.test(html)) {
+      rerenderPromises.push(typesetMath(container));
+    }
   }
   
-  // Icons don't need re-rendering (CSS-based, no JS needed after load)
-  // Add other library re-renders here if needed in future
+  // Icons don't need re-rendering (CSS-based)
+  // Future: Add other library re-renders here (Prism syntax highlighting, etc.)
+  
+  if (rerenderPromises.length > 0) {
+    await Promise.all(rerenderPromises);
+    console.log('[Loader] Dynamic re-render complete');
+  }
 }

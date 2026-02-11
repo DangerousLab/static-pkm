@@ -16,19 +16,9 @@ export async function createShadowRoot(container, instanceId) {
   contentRoot.dataset.instanceId = instanceId;
   shadowRoot.appendChild(contentRoot);
   
-  // Create math rendering container OUTSIDE shadow DOM (for MathJax font access)
-  const mathContainer = document.createElement('div');
-  mathContainer.className = 'module-math-container';
-  mathContainer.dataset.instanceId = instanceId;
-  mathContainer.style.cssText = `
-    position: relative;
-    width: 100%;
-    box-sizing: border-box;
-  `;
-  container.appendChild(mathContainer);  // Append to main container, not shadow root
-  
-  return { shadowRoot, contentRoot, mathContainer };
+  return { shadowRoot, contentRoot };
 }
+
 
 /**
  * Inject theme styles into shadow root
@@ -352,78 +342,4 @@ export function createSandboxedWindow(instanceId) {
       return false;
     }
   });
-}
-
-/**
- * Create Math Rendering API for modules
- * Platform Service: Allows controlled math rendering outside shadow DOM
- * @param {HTMLElement} mathContainer - Global scope container for math
- * @param {Function} dynamicRender - Dynamic render function
- * @returns {Object} Math API
- */
-export function createMathRenderingAPI(mathContainer, dynamicRender) {
-  return {
-    /**
-     * Render HTML content with math equations in global scope
-     * This bypasses shadow DOM to allow MathJax font loading
-     * @param {string} htmlContent - HTML string with LaTeX equations
-     * @returns {Promise<void>}
-     */
-    renderMath: async function(htmlContent) {
-      if (typeof htmlContent !== 'string') {
-        console.error('[MathAPI] renderMath requires string input');
-        return;
-      }
-      
-      // Security: Sanitize HTML to prevent XSS
-      // (Basic sanitization - you can enhance this)
-      const sanitized = htmlContent
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-      
-      // Render in global scope container
-      mathContainer.innerHTML = sanitized;
-      
-      // Trigger MathJax typesetting
-      await dynamicRender(mathContainer);
-      
-      console.log('[MathAPI] Math content rendered in global scope');
-    },
-    
-    /**
-     * Clear math container
-     */
-    clearMath: function() {
-      mathContainer.innerHTML = '';
-    },
-    
-    /**
-     * Append math content (doesn't replace existing)
-     * @param {string} htmlContent - HTML string to append
-     * @returns {Promise<void>}
-     */
-    appendMath: async function(htmlContent) {
-      if (typeof htmlContent !== 'string') {
-        console.error('[MathAPI] appendMath requires string input');
-        return;
-      }
-      
-      const sanitized = htmlContent
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-      
-      // Append to existing content
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = sanitized;
-      
-      while (tempDiv.firstChild) {
-        mathContainer.appendChild(tempDiv.firstChild);
-      }
-      
-      // Re-typeset entire container
-      await dynamicRender(mathContainer);
-      
-      console.log('[MathAPI] Math content appended');
-    }
-  };
 }
