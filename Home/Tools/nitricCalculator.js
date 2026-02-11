@@ -1,9 +1,10 @@
+// COMPLETE FILE - Ready to run
 // nitricCalculator.js v2.3 - Event-driven registration + dynamic rendering
 (function () {
   'use strict';
   
   function createNitricCalculator(options) {
-    const { root, dynamicRender } = options;
+    const { root, mathAPI, dynamicRender } = options;  // ← CHANGED: Added mathAPI
 
     console.log('[NitricCalculator] Initializing');
 
@@ -536,6 +537,7 @@
         window.removeEventListener('resize', rescaleAll);
         window.removeEventListener('load', rescaleAll);
         root.innerHTML = '';
+        mathAPI.clearMath();  // ← CHANGED: Added mathAPI.clearMath()
       }
     };
   }

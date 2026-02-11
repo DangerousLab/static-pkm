@@ -1,12 +1,14 @@
-// javascript/utilities/mathJax.js
-// Global MathJax utility - loads once, shared across all modules
+/**
+ * MathJax Loader
+ * Loads MathJax globally for rendering in global scope containers
+ * Platform Layer: Has document.head access for font injection
+ */
 
 let mathJaxLoaded = false;
 let mathJaxLoadingPromise = null;
 
 /**
  * Load MathJax globally (lazy-loaded on first use)
- * Hybrid approach: JS from local, fonts from CDN
  * Safe to call multiple times - only loads once
  * @returns {Promise<void>}
  */
@@ -19,17 +21,16 @@ export async function loadMathJax() {
     return mathJaxLoadingPromise;
   }
 
-  console.log('[MathJax Utility] Loading MathJax (hybrid mode)...');
+  console.log('[MathJax Loader] Loading MathJax from CDN...');
 
   mathJaxLoadingPromise = new Promise((resolve, reject) => {
-    // Configure MathJax before loading
+    // Configure MathJax BEFORE loading script
     window.MathJax = {
       tex: {
         inlineMath: [["\\(", "\\)"], ["$", "$"]],
         displayMath: [["\\[", "\\]"], ["$$", "$$"]]
       },
       chtml: {
-        // Use CDN for fonts (default jsdelivr path)
         fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
       },
       options: {
@@ -39,19 +40,20 @@ export async function loadMathJax() {
         ready: () => {
           window.MathJax.startup.defaultReady();
           mathJaxLoaded = true;
-          console.log('[MathJax Utility] MathJax loaded from CDN');
+          console.log('[MathJax Loader] MathJax loaded and ready (global scope)');
           resolve();
         }
       }
     };
 
-    // Load main bundle from local vendor directory
+    // Load MathJax from CDN
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js';
     script.async = true;
     script.onerror = () => {
-      console.error('[MathJax Utility] Failed to load MathJax from CDN');
-      reject(new Error('Failed to load MathJax bundle'));
+      console.error('[MathJax Loader] Failed to load MathJax from CDN');
+      mathJaxLoadingPromise = null;
+      reject(new Error('Failed to load MathJax'));
     };
     document.head.appendChild(script);
   });
@@ -68,15 +70,25 @@ export function isMathJaxLoaded() {
 }
 
 /**
- * Typeset math equations in a specific container
- * Automatically loads MathJax if not already loaded
- * @param {HTMLElement} container - Container element to typeset
+ * Typeset math equations in a container (MUST be in global scope, not shadow DOM)
+ * @param {HTMLElement} container - Container in global document (not shadow root)
  * @returns {Promise<void>}
  */
 export async function typesetMath(container) {
+  if (!container) {
+    console.warn('[MathJax Loader] typesetMath called with null container');
+    return;
+  }
+
   await loadMathJax();
 
   if (window.MathJax?.typesetPromise) {
-    await window.MathJax.typesetPromise([container]);
+    try {
+      console.log('[MathJax Loader] Typesetting math in global scope container...');
+      await window.MathJax.typesetPromise([container]);
+      console.log('[MathJax Loader] Typesetting complete');
+    } catch (error) {
+      console.error('[MathJax Loader] Typesetting failed:', error);
+    }
   }
 }

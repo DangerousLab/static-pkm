@@ -31,7 +31,7 @@ export function evaluateModuleFactory(compartment, factoryName) {
   }
 }
 
-export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxedWindow, tunnel, themeController, dynamicRender) {
+export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxedWindow, tunnel, themeController, dynamicRender, mathAPI) {
   return {
     // Sandboxed globals
     document: sandboxedDocument,
@@ -74,6 +74,7 @@ export function buildCompartmentGlobals(instanceId, sandboxedDocument, sandboxed
     tunnel: harden(tunnel),
     themeController: harden(themeController),
     dynamicRender: harden(dynamicRender),
+    mathAPI: harden(mathAPI),  // Platform service for math rendering
     
     // Block dangerous globals
     eval: undefined,

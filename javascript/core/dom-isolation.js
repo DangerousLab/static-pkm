@@ -10,29 +10,50 @@ export async function createShadowRoot(container, instanceId) {
   // Inject theme CSS into shadow root (async - loads CSS files)
   await injectThemeStyles(shadowRoot);
   
-  // Create module content container
+  // Create module content container (in shadow root)
   const contentRoot = document.createElement('div');
   contentRoot.className = 'module-content';
   contentRoot.dataset.instanceId = instanceId;
   shadowRoot.appendChild(contentRoot);
   
-  return { shadowRoot, contentRoot };
+  // Create math rendering container OUTSIDE shadow DOM (for MathJax font access)
+  const mathContainer = document.createElement('div');
+  mathContainer.className = 'module-math-container';
+  mathContainer.dataset.instanceId = instanceId;
+  mathContainer.style.cssText = `
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+  `;
+  container.appendChild(mathContainer);  // Append to main container, not shadow root
+  
+  return { shadowRoot, contentRoot, mathContainer };
 }
 
-// Cache for CSS content (loaded once, reused for all shadow roots)
-let cachedModulesCSS = null;
-let cachedThemeVariables = null;
-
+/**
+ * Inject theme styles into shadow root
+ * Uses <link> tags for browser-native caching and simpler implementation
+ */
 export async function injectThemeStyles(shadowRoot) {
-  // Load CSS if not cached
-  const { modulesCSS, themeVariables } = await loadAndCacheCSS();
+  // Create style container
+  const styleContainer = document.createElement('div');
+  styleContainer.className = 'shadow-styles';
   
-  // Create <style> tag with complete CSS
-  const themeStyle = document.createElement('style');
-  themeStyle.textContent = `
-    /* Theme CSS Variables (inherited from main app) */
-    ${themeVariables}
-    
+  // 1. Load CSS variables (theme colors, spacing, etc.)
+  const variablesLink = document.createElement('link');
+  variablesLink.rel = 'stylesheet';
+  variablesLink.href = './css/styles.css';
+  styleContainer.appendChild(variablesLink);
+  
+  // 2. Load shared module patterns
+  const modulesLink = document.createElement('link');
+  modulesLink.rel = 'stylesheet';
+  modulesLink.href = './css/modules.css';
+  styleContainer.appendChild(modulesLink);
+  
+  // 3. Add base shadow DOM styles inline (critical rendering path)
+  const baseStyles = document.createElement('style');
+  baseStyles.textContent = `
     /* Base Shadow DOM styles - CRITICAL for proper rendering */
     :host {
       display: block;
@@ -70,102 +91,13 @@ export async function injectThemeStyles(shadowRoot) {
       box-sizing: inherit;
       font-family: inherit;
     }
-    
-    /* Shared Module CSS Patterns (from modules.css) */
-    ${modulesCSS}
   `;
-  shadowRoot.appendChild(themeStyle);
+  styleContainer.appendChild(baseStyles);
   
-  console.log('[DOMIsolation] Injected', themeStyle.textContent.length, 'bytes of CSS into shadow root');
-}
-
-/**
- * Load and cache CSS files for Shadow DOM injection
- */
-async function loadAndCacheCSS() {
-  if (cachedModulesCSS && cachedThemeVariables) {
-    return { modulesCSS: cachedModulesCSS, themeVariables: cachedThemeVariables };
-  }
-
-  try {
-    // Fetch modules.css (shared module patterns)
-    const modulesResponse = await fetch('./css/modules.css');
-    if (modulesResponse.ok) {
-      cachedModulesCSS = await modulesResponse.text();
-      console.log('[DOMIsolation] Cached modules.css:', cachedModulesCSS.length, 'bytes');
-    } else {
-      console.warn('[DOMIsolation] Failed to fetch modules.css:', modulesResponse.status);
-      cachedModulesCSS = ''; // Empty fallback
-    }
-
-    // Extract CSS variables from main styles.css
-    const stylesResponse = await fetch('./css/styles.css');
-    if (stylesResponse.ok) {
-      const fullCSS = await stylesResponse.text();
-      
-      // Extract :root {} block (dark theme) - improved regex for multiline matching
-      let darkThemeVars = '';
-      const rootStartIndex = fullCSS.indexOf(':root {');
-      if (rootStartIndex !== -1) {
-        let braceCount = 0;
-        let startCapture = false;
-        let endIndex = rootStartIndex;
-        
-        for (let i = rootStartIndex; i < fullCSS.length; i++) {
-          if (fullCSS[i] === '{') {
-            braceCount++;
-            startCapture = true;
-          } else if (fullCSS[i] === '}') {
-            braceCount--;
-            if (braceCount === 0 && startCapture) {
-              endIndex = i + 1;
-              break;
-            }
-          }
-        }
-        
-        darkThemeVars = fullCSS.substring(rootStartIndex, endIndex);
-      }
-      
-      // Extract :root[data-theme="light"] {} block - improved regex for multiline matching
-      let lightThemeVars = '';
-      const lightStartIndex = fullCSS.indexOf(':root[data-theme="light"]');
-      if (lightStartIndex !== -1) {
-        let braceCount = 0;
-        let startCapture = false;
-        let endIndex = lightStartIndex;
-        
-        for (let i = lightStartIndex; i < fullCSS.length; i++) {
-          if (fullCSS[i] === '{') {
-            braceCount++;
-            startCapture = true;
-          } else if (fullCSS[i] === '}') {
-            braceCount--;
-            if (braceCount === 0 && startCapture) {
-              endIndex = i + 1;
-              break;
-            }
-          }
-        }
-        
-        lightThemeVars = fullCSS.substring(lightStartIndex, endIndex);
-      }
-      
-      cachedThemeVariables = darkThemeVars + '\n\n' + lightThemeVars;
-      
-      console.log('[DOMIsolation] Cached CSS variables:', cachedThemeVariables.length, 'bytes');
-    } else {
-      console.warn('[DOMIsolation] Failed to fetch styles.css:', stylesResponse.status);
-      cachedThemeVariables = ''; // Empty fallback
-    }
-
-    return { modulesCSS: cachedModulesCSS, themeVariables: cachedThemeVariables };
-  } catch (error) {
-    console.error('[DOMIsolation] CSS caching failed:', error);
-    cachedModulesCSS = '';
-    cachedThemeVariables = '';
-    return { modulesCSS: '', themeVariables: '' };
-  }
+  // Insert styles at beginning of shadow root
+  shadowRoot.insertBefore(styleContainer, shadowRoot.firstChild);
+  
+  console.log('[DOMIsolation] Injected theme styles via <link> tags (browser-cached)');
 }
 
 export function createSandboxedDocument(instanceId, shadowRoot) {
@@ -420,4 +352,78 @@ export function createSandboxedWindow(instanceId) {
       return false;
     }
   });
+}
+
+/**
+ * Create Math Rendering API for modules
+ * Platform Service: Allows controlled math rendering outside shadow DOM
+ * @param {HTMLElement} mathContainer - Global scope container for math
+ * @param {Function} dynamicRender - Dynamic render function
+ * @returns {Object} Math API
+ */
+export function createMathRenderingAPI(mathContainer, dynamicRender) {
+  return {
+    /**
+     * Render HTML content with math equations in global scope
+     * This bypasses shadow DOM to allow MathJax font loading
+     * @param {string} htmlContent - HTML string with LaTeX equations
+     * @returns {Promise<void>}
+     */
+    renderMath: async function(htmlContent) {
+      if (typeof htmlContent !== 'string') {
+        console.error('[MathAPI] renderMath requires string input');
+        return;
+      }
+      
+      // Security: Sanitize HTML to prevent XSS
+      // (Basic sanitization - you can enhance this)
+      const sanitized = htmlContent
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+      
+      // Render in global scope container
+      mathContainer.innerHTML = sanitized;
+      
+      // Trigger MathJax typesetting
+      await dynamicRender(mathContainer);
+      
+      console.log('[MathAPI] Math content rendered in global scope');
+    },
+    
+    /**
+     * Clear math container
+     */
+    clearMath: function() {
+      mathContainer.innerHTML = '';
+    },
+    
+    /**
+     * Append math content (doesn't replace existing)
+     * @param {string} htmlContent - HTML string to append
+     * @returns {Promise<void>}
+     */
+    appendMath: async function(htmlContent) {
+      if (typeof htmlContent !== 'string') {
+        console.error('[MathAPI] appendMath requires string input');
+        return;
+      }
+      
+      const sanitized = htmlContent
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+      
+      // Append to existing content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = sanitized;
+      
+      while (tempDiv.firstChild) {
+        mathContainer.appendChild(tempDiv.firstChild);
+      }
+      
+      // Re-typeset entire container
+      await dynamicRender(mathContainer);
+      
+      console.log('[MathAPI] Math content appended');
+    }
+  };
 }
