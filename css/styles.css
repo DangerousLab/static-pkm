@@ -213,13 +213,13 @@ html {
 .app-header {
   grid-area: header;
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0); /* Position header below notch */
   z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-sm) var(--space-md);
-  padding-top: max(var(--space-sm), env(safe-area-inset-top)); /* Safe area support */
+  padding-top: var(--space-sm); /* No longer need max() since top handles safe area */
   padding-left: max(var(--space-md), env(safe-area-inset-left)); /* Safe area left */
   padding-right: max(var(--space-md), env(safe-area-inset-right)); /* Safe area right */
   background: #1f1f1f;
@@ -227,10 +227,6 @@ html {
   min-height: var(--header-height);
 }
 
-:root[data-theme="light"] .app-header {
-  background: #f3f4f6;
-  border-bottom-color: var(--border-light);
-}
 
 .header-bar {
   width: 100%;
@@ -600,11 +596,12 @@ html {
   .sidebar {
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    left: var(--landscape-leftbar-width) !important;
     height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
     width: 80vw !important;
     max-width: 360px !important; /* Mobile sidebar max width */
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-left: 0 !important; /* Ensure no inherited padding-left from base sidebar styles */
     transform: translateX(-100%) !important;
     z-index: 20 !important;
     overflow: hidden !important;
@@ -624,7 +621,7 @@ html {
   .main-content {
     position: fixed !important;
     top: env(safe-area-inset-top, 0px) !important;
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    left: var(--landscape-leftbar-width) !important;
     right: 0 !important;
     bottom: 0 !important;
     width: auto !important;
