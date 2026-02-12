@@ -1,7 +1,7 @@
 // calcB.js v2.0 - Updated for shared CSS patterns
 (function () {
   function createCalcB(options) {
-    const root = options.root;
+    const container = options.container;
 
     console.log('[CalcB] Initializing');
 
@@ -9,10 +9,10 @@
     // All styles now come from css/modules.css (shared classes)
 
     const container = document.createElement('div');
-    container.className = 'calcb-root';
+    moduleContent.className = 'calcb-root';
 
     // Using shared classes from css/modules.css
-    container.innerHTML = `
+    moduleContent.innerHTML = `
       <div class="shared-module-header">
         <div class="shared-module-title-row">
           <h1>Medium Length Name Test</h1>
@@ -25,14 +25,14 @@
       </div>
     `;
 
-    root.appendChild(container);
+    container.appendChild(moduleContent);
 
     console.log('[CalcB] Initialized successfully');
 
     return {
       destroy() {
         console.log('[CalcB] Destroying');
-        root.innerHTML = "";
+        container.innerHTML = "";
       },
       getState() {
         console.log('[CalcB] Getting state');

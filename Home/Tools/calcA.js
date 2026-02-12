@@ -1,7 +1,7 @@
 // calcA.js v2.0 - Updated for shared CSS patterns
 (function () {
   function createCalcA(options) {
-    const root = options.root;
+    const container = options.container;
 
     console.log('[CalcA] Initializing');
 
@@ -9,11 +9,11 @@
     // All styles now come from css/modules.css (shared classes)
     // No unique styles for this simple calculator
 
-    const container = document.createElement('div');
-    container.className = 'calca-root';
+    const moduleContent = document.createElement('div');
+    moduleContent.className = 'calca-root';
 
     // Using shared classes from css/modules.css
-    container.innerHTML = `
+    moduleContent.innerHTML = `
       <div class="shared-module-header">
         <div class="shared-module-title-row">
           <h1>Short Test One</h1>
@@ -26,14 +26,14 @@
       </div>
     `;
 
-    root.appendChild(container);
+    container.appendChild(moduleContent);
 
     console.log('[CalcA] Initialized successfully');
 
     return {
       destroy() {
         console.log('[CalcA] Destroying');
-        root.innerHTML = "";
+        container.innerHTML = "";
       },
       getState() {
         console.log('[CalcA] Getting state');

@@ -7,7 +7,7 @@
   'use strict';
 
   function createTestisolation(options) {
-    const root = options.root;
+    const container = options.container;
     const instanceId = options.instanceId;
     const tunnel = options.tunnel;
     const themeController = options.themeController;
@@ -60,7 +60,7 @@
       const testDiv = document.createElement('div');
       testDiv.id = 'test-isolation-element';
       testDiv.textContent = 'Test element';
-      root.appendChild(testDiv);
+      container.appendChild(testDiv);
       
       const found = document.querySelector('#test-isolation-element');
       
@@ -73,7 +73,7 @@
       }
       
       // Cleanup
-      root.removeChild(testDiv);
+      container.removeChild(testDiv);
       
     } catch (e) {
       testResults.domIsolation = '❌ FAIL';
@@ -165,7 +165,7 @@
     
     try {
       // Check if root is inside a shadow DOM
-      let node = root;
+      let node = container;
       let inShadow = false;
       
       while (node) {
@@ -199,7 +199,7 @@
       const allPassed = Object.values(testResults).every(r => r === '✅ PASS');
       const somePassed = Object.values(testResults).some(r => r === '✅ PASS');
       
-      root.innerHTML = `
+      container.innerHTML = `
         <style>
           .test-container {
             padding: 30px;
@@ -445,7 +445,7 @@
       
       destroy() {
         console.log('[TestIsolation] destroy called - cleaning up');
-        root.innerHTML = '';
+        container.innerHTML = '';
       }
     };
   }

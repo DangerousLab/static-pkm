@@ -1,7 +1,7 @@
 // calcD.js v2.0 - Updated for shared CSS patterns
 (function () {
   function createCalcD(options) {
-    const root = options.root;
+    const container = options.container;
 
     console.log('[CalcD] Initializing');
 
@@ -9,10 +9,10 @@
     // All styles now come from css/modules.css (shared classes)
 
     const container = document.createElement('div');
-    container.className = 'calcd-root';
+    moduleContent.className = 'calcd-root';
 
     // Using shared classes from css/modules.css
-    container.innerHTML = `
+    moduleContent.innerHTML = `
       <div class="shared-module-header">
         <div class="shared-module-title-row">
           <h1>Really Quite Long Sidebar Title Example</h1>
@@ -25,14 +25,14 @@
       </div>
     `;
 
-    root.appendChild(container);
+    container.appendChild(moduleContent);
 
     console.log('[CalcD] Initialized successfully');
 
     return {
       destroy() {
         console.log('[CalcD] Destroying');
-        root.innerHTML = "";
+        container.innerHTML = "";
       },
       getState() {
         console.log('[CalcD] Getting state');

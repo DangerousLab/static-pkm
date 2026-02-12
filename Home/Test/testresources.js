@@ -7,7 +7,7 @@
   'use strict';
 
   function createTestresources(options) {
-    const root = options.root;
+    const container = options.container;
     const instanceId = options.instanceId;
     
     console.log('═══════════════════════════════════════════════════');
@@ -237,7 +237,7 @@
         ? Math.round((stats.currentCount / stats.maxLimit) * 100) 
         : 0;
       
-      root.innerHTML = `
+      container.innerHTML = `
         <style>
           .test-container {
             padding: 30px;
@@ -576,7 +576,7 @@
       
       destroy() {
         console.log('[TestResources] destroy called - cleaning up');
-        root.innerHTML = '';
+        container.innerHTML = '';
       }
     };
   }

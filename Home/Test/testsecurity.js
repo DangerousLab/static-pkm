@@ -7,7 +7,7 @@
   'use strict';
 
   function createTestsecurity(options) {
-    const root = options.root;
+    const container = options.container;
     const instanceId = options.instanceId;
     const tunnel = options.tunnel;
     const themeController = options.themeController;
@@ -175,7 +175,7 @@
     
     const allPassed = Object.values(testResults).every(r => r === '✅ PASS');
     
-    root.innerHTML = `
+    container.innerHTML = `
       <style>
         .test-container {
           padding: 30px;
@@ -381,7 +381,7 @@
       
       destroy() {
         console.log('[TestSecurity] destroy called - cleaning up');
-        root.innerHTML = '';
+        container.innerHTML = '';
       }
     };
   }

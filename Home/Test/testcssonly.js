@@ -6,7 +6,7 @@
   'use strict';
 
   function createTestcssonly(options) {
-    const root = options.root;
+    const container = options.container;
     const instanceId = options.instanceId;
     
     console.log('═══════════════════════════════════════════════════');
@@ -16,7 +16,7 @@
     console.log('[TestCSSOnly] Testing shadow DOM CSS isolation');
     
     // Render test UI with inline styles
-    root.innerHTML = `
+    container.innerHTML = `
       <style>
         /* All styles are scoped to this shadow root */
         .test-container {
@@ -238,7 +238,7 @@
       
       destroy() {
         console.log('[TestCSSOnly] destroy called - cleaning up');
-        root.innerHTML = '';
+        container.innerHTML = '';
       }
     };
   }

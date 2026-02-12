@@ -4,7 +4,7 @@
   'use strict';
   
   function createNitricCalculator(options) {
-    const { root, mathAPI, dynamicRender } = options;  // ← CHANGED: Added mathAPI
+    const { container, mathAPI, dynamicRender } = options;  // ← CHANGED: Added mathAPI
 
     console.log('[NitricCalculator] Initializing');
 
@@ -142,15 +142,15 @@
     `;
 
     // Create container and inject styles
-    const container = document.createElement('div');
-    container.className = 'nitric-calculator-root';
+    const moduleContent = document.createElement('div');
+    moduleContent.className = 'nitric-calculator-root';
 
     const styleEl = document.createElement('style');
     styleEl.textContent = styles;
-    container.appendChild(styleEl);
+    moduleContent.appendChild(styleEl);
 
     // Build UI - NOW USING SHARED CLASSES
-    container.innerHTML += `
+    moduleContent.innerHTML += `
       <header class="shared-module-header">
         <div class="shared-module-title-row">
           <h1>Nitric Acid Stoichiometry Calculator</h1>
@@ -241,25 +241,25 @@
       </div>
     `;
 
-    root.appendChild(container);
+    container.appendChild(moduleContent);
 
     const M_HNO3 = 63.0;
     const M_H2SO4 = 98.0;
     const M_KNO3 = 101.1;
 
-    const targetConcEl = container.querySelector('#targetConc-nitric');
-    const acidPercentEl = container.querySelector('#acidPercent-nitric');
-    const scaleFactorEl = container.querySelector('#scaleFactor-nitric');
-    const scaleWarningEl = container.querySelector('#scaleWarning-nitric');
+    const targetConcEl = moduleContent.querySelector('#targetConc-nitric');
+    const acidPercentEl = moduleContent.querySelector('#acidPercent-nitric');
+    const scaleFactorEl = moduleContent.querySelector('#scaleFactor-nitric');
+    const scaleWarningEl = moduleContent.querySelector('#scaleWarning-nitric');
 
-    const acidDensityEl = container.querySelector('#acidDensity-nitric');
-    const acidMassEl = container.querySelector('#acidMass-nitric');
-    const acidVolumeEl = container.querySelector('#acidVolume-nitric');
-    const waterInAcidEl = container.querySelector('#waterInAcid-nitric');
-    const waterMassEl = container.querySelector('#waterMass-nitric');
+    const acidDensityEl = moduleContent.querySelector('#acidDensity-nitric');
+    const acidMassEl = moduleContent.querySelector('#acidMass-nitric');
+    const acidVolumeEl = moduleContent.querySelector('#acidVolume-nitric');
+    const waterInAcidEl = moduleContent.querySelector('#waterInAcid-nitric');
+    const waterMassEl = moduleContent.querySelector('#waterMass-nitric');
 
-    const eqInfoEl = container.querySelector('#equationInfo-nitric');
-    const waterInfoEl = container.querySelector('#waterInfo-nitric');
+    const eqInfoEl = moduleContent.querySelector('#equationInfo-nitric');
+    const waterInfoEl = moduleContent.querySelector('#waterInfo-nitric');
 
     const densityListH2SO4 = [
       1.00380, 1.01040, 1.01690, 1.02340, 1.03000, 1.03670, 1.04340, 1.05020, 1.05710, 1.06400,
@@ -301,7 +301,7 @@
 
     function scaleMathBlocks() {
       console.log('[NitricCalculator] Scaling math blocks');
-      const blocks = container.querySelectorAll('.nitric-math-block');
+      const blocks = moduleContent.querySelectorAll('.nitric-math-block');
       blocks.forEach(block => {
         const inner = block.querySelector('.nitric-math-inner');
         if (!inner) return;
@@ -320,8 +320,8 @@
 
     function scaleReactionComponent() {
       console.log('[NitricCalculator] Scaling reaction component');
-      const row = container.querySelector('.nitric-reaction-row');
-      const wrapper = container.querySelector('#reactionWrapper-nitric');
+      const row = moduleContent.querySelector('.nitric-reaction-row');
+      const wrapper = moduleContent.querySelector('#reactionWrapper-nitric');
       if (!row || !wrapper) return;
 
       wrapper.style.transform = 'scale(1)';
@@ -475,7 +475,7 @@
 
       // Re-render math after dynamic updates
       requestAnimationFrame(async () => {
-        await dynamicRender(container);
+        await dynamicRender(moduleContent);
         rescaleAll();
       });
     }
@@ -536,8 +536,8 @@
         scaleFactorEl.removeEventListener('change', updateCalculator);
         window.removeEventListener('resize', rescaleAll);
         window.removeEventListener('load', rescaleAll);
-        root.innerHTML = '';
-        mathAPI.clearMath();  // ← CHANGED: Added mathAPI.clearMath()
+        container.innerHTML = '';
+        mathAPI.clearMath(); 
       }
     };
   }

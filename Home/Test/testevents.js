@@ -7,7 +7,7 @@
   'use strict';
 
   function createTestevents(options) {
-    const root = options.root;
+    const container = options.container;
     const instanceId = options.instanceId;
     const tunnel = options.tunnel;
     
@@ -218,7 +218,7 @@
         const allPassed = Object.values(testResults).every(r => r === '✅ PASS');
         const somePassed = Object.values(testResults).some(r => r === '✅ PASS');
       
-      root.innerHTML = `
+      container.innerHTML = `
         <style>
           .test-container {
             padding: 30px;
@@ -485,7 +485,7 @@
       
       destroy() {
         console.log('[TestEvents] destroy called - cleaning up');
-        root.innerHTML = '';
+        container.innerHTML = '';
       }
     };
   }

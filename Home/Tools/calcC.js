@@ -1,7 +1,7 @@
 // calcC.js v2.0 - Updated for shared CSS patterns
 (function () {
   function createCalcC(options) {
-    const root = options.root;
+    const container = options.container;
 
     console.log('[CalcC] Initializing');
 
@@ -9,10 +9,10 @@
     // All styles now come from css/modules.css (shared classes)
 
     const container = document.createElement('div');
-    container.className = 'calcc-root';
+    moduleContent.className = 'calcc-root';
 
     // Using shared classes from css/modules.css
-    container.innerHTML = `
+    moduleContent.innerHTML = `
       <div class="shared-module-header">
         <div class="shared-module-title-row">
           <h1>Longer Sidebar Title Length Test</h1>
@@ -25,14 +25,14 @@
       </div>
     `;
 
-    root.appendChild(container);
+    container.appendChild(moduleContent);
 
     console.log('[CalcC] Initialized successfully');
 
     return {
       destroy() {
         console.log('[CalcC] Destroying');
-        root.innerHTML = "";
+        container.innerHTML = "";
       },
       getState() {
         console.log('[CalcC] Getting state');
