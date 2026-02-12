@@ -33,8 +33,12 @@ async function loadCacheManifest() {
       throw new Error('Invalid cache manifest structure');
     }
     
-    // SECURITY: Validate version format (semver or timestamp)
-    if (!/^v?\d+\.\d+\.\d+$/.test(manifest.version) && !/^\d{13,}$/.test(manifest.version)) {
+    // SECURITY: Validate version format (semver, timestamp, or git SHA)
+    const isSemver = /^v?\d+\.\d+\.\d+$/.test(manifest.version);
+    const isTimestamp = /^\d{13,}$/.test(manifest.version);
+    const isGitSHA = /^[0-9a-f]{7,40}$/i.test(manifest.version); // 7-40 char hex string
+    
+    if (!isSemver && !isTimestamp && !isGitSHA) {
       throw new Error('Invalid version format in manifest');
     }
     
