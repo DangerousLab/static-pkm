@@ -220,13 +220,13 @@
       
       container.innerHTML = `
         <style>
-          .test-container {
+          .testevents-container {
             padding: 30px;
             font-family: 'Courier New', monospace;
             line-height: 1.8;
           }
           
-          .test-header {
+          .testevents-header {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             padding: 25px;
@@ -235,19 +235,19 @@
             text-align: center;
           }
           
-          .test-header h1 {
+          .testevents-header h1 {
             margin: 0 0 10px 0;
             font-size: 28px;
             font-weight: bold;
           }
           
-          .test-header p {
+          .testevents-header p {
             margin: 0;
             opacity: 0.9;
             font-size: 14px;
           }
           
-          .test-section {
+          .testevents-section {
             background: var(--bg-secondary, #2a2a2a);
             border-left: 4px solid var(--accent-color, #f5576c);
             padding: 20px;
@@ -255,7 +255,7 @@
             border-radius: 8px;
           }
           
-          .test-section h2 {
+          .testevents-section h2 {
             margin: 0 0 15px 0;
             color: var(--text-primary, #ffffff);
             font-size: 18px;
@@ -265,7 +265,7 @@
             gap: 10px;
           }
           
-          .test-result {
+          .testevents-result {
             font-size: 24px;
             font-weight: bold;
             padding: 5px 12px;
@@ -274,32 +274,32 @@
             white-space: nowrap;
           }
           
-          .test-result.pass {
+          .testevents-result.pass {
             background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
           }
           
-          .test-result.fail {
+          .testevents-result.fail {
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
           }
           
-          .test-result.partial {
+          .testevents-result.partial {
             background: rgba(251, 191, 36, 0.2);
             color: #fbbf24;
           }
           
-          .test-section ul {
+          .testevents-section ul {
             margin: 10px 0 0 0;
             padding-left: 25px;
           }
           
-          .test-section li {
+          .testevents-section li {
             margin: 8px 0;
             color: var(--text-secondary, #cccccc);
           }
           
-          .summary {
+          .testevents-summary {
             background: ${allPassed ? 'rgba(34, 197, 94, 0.1)' : somePassed ? 'rgba(251, 191, 36, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
             border: 2px solid ${allPassed ? '#22c55e' : somePassed ? '#fbbf24' : '#ef4444'};
             padding: 25px;
@@ -308,19 +308,19 @@
             margin-top: 30px;
           }
           
-          .summary h2 {
+          .testevents-summary h2 {
             margin: 0 0 15px 0;
             font-size: 32px;
             color: ${allPassed ? '#22c55e' : somePassed ? '#fbbf24' : '#ef4444'};
           }
           
-          .summary p {
+          .testevents-summary p {
             margin: 5px 0;
             font-size: 16px;
             color: var(--text-primary, #ffffff);
           }
           
-          .console-note {
+          .testevents-console-note {
             background: rgba(245, 87, 108, 0.1);
             border-left: 4px solid #f5576c;
             padding: 15px;
@@ -337,7 +337,7 @@
             font-family: 'Courier New', monospace;
           }
           
-          .warning-box {
+          .testevents-warning-box {
             background: rgba(251, 191, 36, 0.1);
             border: 1px solid #fbbf24;
             padding: 15px;
@@ -347,17 +347,17 @@
           }
         </style>
         
-        <div class="test-container">
-          <div class="test-header">
+        <div class="testevents-container">
+          <div class="testevents-header">
             <h1>🎯 Event System Isolation Test</h1>
             <p>Testing: addEventListener/dispatchEvent scoping</p>
             <p style="opacity: 0.7; margin-top: 5px;">Instance: ${instanceId}</p>
           </div>
           
-          <div class="test-section">
+          <div class="testevents-section">
             <h2>
               <span>🧪 Test 1: Block Global Event Spying</span>
-              <span class="test-result ${testResults.globalEventBlocking === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testevents-result ${testResults.globalEventBlocking === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.globalEventBlocking || '⏳ PENDING'}
               </span>
             </h2>
@@ -368,10 +368,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testevents-test-section">
             <h2>
               <span>🧪 Test 2: Allow Instance Events</span>
-              <span class="test-result ${testResults.instanceEventAllowing === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testevents-test-result ${testResults.instanceEventAllowing === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.instanceEventAllowing || '⏳ PENDING'}
               </span>
             </h2>
@@ -382,10 +382,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testevents-test-section">
             <h2>
               <span>🧪 Test 3: Block Global Event Injection</span>
-              <span class="test-result ${testResults.dispatchBlocking === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testevents-test-result ${testResults.dispatchBlocking === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.dispatchBlocking || '⏳ PENDING'}
               </span>
             </h2>
@@ -396,10 +396,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testevents-test-section">
             <h2>
               <span>🧪 Test 4: Allow Instance Event Dispatch</span>
-              <span class="test-result ${testResults.dispatchAllowing === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testevents-test-result ${testResults.dispatchAllowing === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.dispatchAllowing || '⏳ PENDING'}
               </span>
             </h2>
@@ -410,10 +410,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testevents-test-section">
             <h2>
               <span>🧪 Test 5: Allow Safe Browser Events</span>
-              <span class="test-result ${testResults.safeGlobalEvents === '✅ PASS' ? 'pass' : testResults.safeGlobalEvents === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
+              <span class="testevents-test-result ${testResults.safeGlobalEvents === '✅ PASS' ? 'pass' : testResults.safeGlobalEvents === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
                 ${testResults.safeGlobalEvents || '⏳ PENDING'}
               </span>
             </h2>
@@ -425,7 +425,7 @@
             </ul>
           </div>
           
-          <div class="summary">
+          <div class="testevents-summary">
             <h2>${allPassed ? '✅ ALL TESTS PASSED' : somePassed ? '⚠️ PARTIAL ISOLATION' : '❌ ISOLATION FAILED'}</h2>
             <p>${allPassed 
               ? 'Event system isolation working correctly!' 
@@ -438,7 +438,7 @@
           </div>
           
           ${!allPassed ? `
-            <div class="warning-box">
+            <div class="testevents-warning-box">
               <strong>⚠️ Recommended Actions:</strong>
               <ul style="margin: 10px 0 0 20px; padding: 0;">
                 <li>Apply Fix #2 to <code>javascript/core/dom-isolation.js</code></li>
@@ -448,7 +448,7 @@
             </div>
           ` : ''}
           
-          <div class="console-note">
+          <div class="testevents-console-note">
             <strong>📋 Detailed Results:</strong> Check browser console for full test output.
             <br>All event listener attempts and their outcomes are logged there.
           </div>

@@ -19,13 +19,13 @@
     container.innerHTML = `
       <style>
         /* All styles are scoped to this shadow root */
-        .test-container {
+        .testcssonly-container {
           padding: 30px;
           font-family: 'Courier New', monospace;
           line-height: 1.8;
         }
         
-        .test-header {
+        .testcssonly-header {
           background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
           color: #1a1a1a;
           padding: 25px;
@@ -34,19 +34,19 @@
           text-align: center;
         }
         
-        .test-header h1 {
+        .testcssonly-header h1 {
           margin: 0 0 10px 0;
           font-size: 28px;
           font-weight: bold;
         }
         
-        .test-header p {
+        .testcssonly-header p {
           margin: 0;
           opacity: 0.8;
           font-size: 14px;
         }
         
-        .info-box {
+        .testcssonly-info-box {
           background: var(--bg-secondary, #2a2a2a);
           border: 2px solid #00f2fe;
           padding: 20px;
@@ -54,30 +54,30 @@
           margin-bottom: 20px;
         }
         
-        .info-box h2 {
+        .testcssonly-info-box h2 {
           margin: 0 0 15px 0;
           color: #00f2fe;
           font-size: 18px;
         }
         
-        .info-box ul {
+        .testcssonly-info-box ul {
           margin: 10px 0 0 0;
           padding-left: 25px;
         }
         
-        .info-box li {
+        .testcssonly-info-box li {
           margin: 8px 0;
           color: var(--text-secondary, #cccccc);
         }
         
-        .status-grid {
+        .testcssonly-status-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
           gap: 15px;
           margin-bottom: 30px;
         }
         
-        .status-item {
+        .testcssonly-status-item {
           background: var(--bg-secondary, #2a2a2a);
           border-left: 4px solid #00f2fe;
           padding: 20px;
@@ -85,19 +85,19 @@
           text-align: center;
         }
         
-        .status-icon {
+        .testcssonly-status-icon {
           font-size: 32px;
           margin-bottom: 10px;
         }
         
-        .status-label {
+        .testcssonly-status-label {
           font-size: 14px;
           color: var(--text-secondary, #cccccc);
           text-transform: uppercase;
           letter-spacing: 1px;
         }
         
-        .summary {
+        .testcssonly-summary {
           background: rgba(0, 242, 254, 0.1);
           border: 2px solid #00f2fe;
           padding: 25px;
@@ -106,19 +106,19 @@
           margin-top: 30px;
         }
         
-        .summary h2 {
+        .testcssonly-summary h2 {
           margin: 0 0 15px 0;
           font-size: 32px;
           color: #00f2fe;
         }
         
-        .summary p {
+        .testcssonly-summary p {
           margin: 5px 0;
           font-size: 16px;
           color: var(--text-primary, #ffffff);
         }
         
-        .console-note {
+        .testcssonly-console-note {
           background: rgba(79, 172, 254, 0.1);
           border-left: 4px solid #4facfe;
           padding: 15px;
@@ -135,7 +135,7 @@
           font-family: 'Courier New', monospace;
         }
         
-        .test-color-box {
+        .testcssonly-color-box {
           width: 100%;
           height: 60px;
           background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
@@ -149,46 +149,46 @@
         }
       </style>
       
-      <div class="test-container">
-        <div class="test-header">
+      <div class="testcssonly-container">
+        <div class="testcssonly-header">
           <h1>🎨 CSS-Only Test Module</h1>
-          <p>Shadow DOM CSS Isolation Verification</p>
+          <p>Scoped CSS Isolation Verification</p>
           <p style="opacity: 0.7; margin-top: 5px;">Instance: ${instanceId}</p>
         </div>
         
-        <div class="info-box">
+        <div class="testcssonly-info-box">
           <h2>✨ What This Module Tests</h2>
           <ul>
-            <li>CSS scoping via shadow DOM (styles don't leak out)</li>
+            <li>CSS scoping via class prefixes (styles don't leak out)</li>
             <li>Module can use inline styles without conflicts</li>
             <li>CSS variables from parent theme are accessible</li>
             <li>No JavaScript execution - pure HTML/CSS rendering</li>
           </ul>
         </div>
         
-        <div class="status-grid">
-          <div class="status-item">
-            <div class="status-icon">✅</div>
-            <div class="status-label">Shadow DOM Active</div>
+        <div class="testcssonly-status-grid">
+          <div class="testcssonly-status-item">
+            <div class="testcssonly-status-icon">✅</div>
+            <div class="testcssonly-status-label">Shadow DOM Active</div>
           </div>
           
-          <div class="status-item">
-            <div class="status-icon">🎨</div>
-            <div class="status-label">CSS Isolated</div>
+          <div class="testcssonly-status-item">
+            <div class="testcssonly-status-icon">🎨</div>
+            <div class="testcssonly-status-label">CSS Isolated</div>
           </div>
           
-          <div class="status-item">
-            <div class="status-icon">🔒</div>
-            <div class="status-label">No Style Leaks</div>
+          <div class="testcssonly-status-item">
+            <div class="testcssonly-status-icon">🔒</div>
+            <div class="testcssonly-status-label">No Style Leaks</div>
           </div>
           
-          <div class="status-item">
-            <div class="status-icon">⚡</div>
-            <div class="status-label">Zero JavaScript</div>
+          <div class="testcssonly-status-item">
+            <div class="testcssonly-status-icon">⚡</div>
+            <div class="testcssonly-status-label">Zero JavaScript</div>
           </div>
         </div>
         
-        <div class="info-box">
+        <div class="testcssonly-info-box">
           <h2>🧪 Visual Verification</h2>
           <ul>
             <li>If you see this styled content, shadow DOM is working</li>
@@ -197,12 +197,12 @@
             <li>Box model and typography are independently controlled</li>
           </ul>
           
-          <div class="test-color-box">
+          <div class="testcssonly-test-color-box">
             This gradient is module-specific and isolated
           </div>
         </div>
         
-        <div class="summary">
+        <div class="testcssonly-summary">
           <h2>✅ CSS ISOLATION CONFIRMED</h2>
           <p>Shadow DOM successfully isolates module styles</p>
           <p style="opacity: 0.7; margin-top: 10px;">
@@ -210,7 +210,7 @@
           </p>
         </div>
         
-        <div class="console-note">
+        <div class="testcssonly-console-note">
           <strong>📋 Developer Note:</strong> This module intentionally has no JavaScript.
           <br>It demonstrates that shadow DOM CSS isolation works for styling-only modules.
           <br>Check the module source to see the inline <code>&lt;style&gt;</code> block.

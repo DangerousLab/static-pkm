@@ -177,13 +177,13 @@
     
     container.innerHTML = `
       <style>
-        .test-container {
+        .testsecurity-container {
           padding: 30px;
           font-family: 'Courier New', monospace;
           line-height: 1.8;
         }
         
-        .test-header {
+        .testsecurity-header {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
           padding: 25px;
@@ -192,19 +192,19 @@
           text-align: center;
         }
         
-        .test-header h1 {
+        .testsecurity-header h1 {
           margin: 0 0 10px 0;
           font-size: 28px;
           font-weight: bold;
         }
         
-        .test-header p {
+        .testsecurity-header p {
           margin: 0;
           opacity: 0.9;
           font-size: 14px;
         }
         
-        .test-section {
+        .testsecurity-section {
           background: var(--bg-secondary, #2a2a2a);
           border-left: 4px solid var(--accent-color, #667eea);
           padding: 20px;
@@ -212,7 +212,7 @@
           border-radius: 8px;
         }
         
-        .test-section h2 {
+        .testsecurity-section h2 {
           margin: 0 0 15px 0;
           color: var(--text-primary, #ffffff);
           font-size: 18px;
@@ -221,7 +221,7 @@
           gap: 10px;
         }
         
-        .test-result {
+        .testsecurity-result {
           font-size: 24px;
           font-weight: bold;
           padding: 5px 12px;
@@ -229,27 +229,27 @@
           display: inline-block;
         }
         
-        .test-result.pass {
+        .testsecurity-result.pass {
           background: rgba(34, 197, 94, 0.2);
           color: #22c55e;
         }
         
-        .test-result.fail {
+        .testsecurity-result.fail {
           background: rgba(239, 68, 68, 0.2);
           color: #ef4444;
         }
         
-        .test-section ul {
+        .testsecurity-section ul {
           margin: 10px 0 0 0;
           padding-left: 25px;
         }
         
-        .test-section li {
+        .testsecurity-section li {
           margin: 8px 0;
           color: var(--text-secondary, #cccccc);
         }
         
-        .summary {
+        .testsecurity-summary {
           background: ${allPassed ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
           border: 2px solid ${allPassed ? '#22c55e' : '#ef4444'};
           padding: 25px;
@@ -258,19 +258,19 @@
           margin-top: 30px;
         }
         
-        .summary h2 {
+        .testsecurity-summary h2 {
           margin: 0 0 15px 0;
           font-size: 32px;
           color: ${allPassed ? '#22c55e' : '#ef4444'};
         }
         
-        .summary p {
+        .testsecurity-summary p {
           margin: 5px 0;
           font-size: 16px;
           color: var(--text-primary, #ffffff);
         }
         
-        .console-note {
+        .testsecurity-console-note {
           background: rgba(102, 126, 234, 0.1);
           border-left: 4px solid #667eea;
           padding: 15px;
@@ -288,17 +288,17 @@
         }
       </style>
       
-      <div class="test-container">
-        <div class="test-header">
+      <div class="testsecurity-container">
+        <div class="testsecurity-header">
           <h1>🔒 Security Fix Verification</h1>
           <p>Testing: harden(), fetch() blocking, Observer blocking</p>
           <p style="opacity: 0.7; margin-top: 5px;">Instance: ${instanceId}</p>
         </div>
         
-        <div class="test-section">
+        <div class="testsecurity-section">
           <h2>
             <span>🧪 Test 1: Prototype Pollution Prevention</span>
-            <span class="test-result ${testResults.prototypeProtection === '✅ PASS' ? 'pass' : 'fail'}">
+            <span class="testsecurity-result ${testResults.prototypeProtection === '✅ PASS' ? 'pass' : 'fail'}">
               ${testResults.prototypeProtection}
             </span>
           </h2>
@@ -310,10 +310,10 @@
           </ul>
         </div>
         
-        <div class="test-section">
+        <div class="testsecurity-section">
           <h2>
             <span>🧪 Test 2: Network Access Blocking</span>
-            <span class="test-result ${testResults.networkBlocking === '✅ PASS' ? 'pass' : 'fail'}">
+            <span class="testsecurity-result ${testResults.networkBlocking === '✅ PASS' ? 'pass' : 'fail'}">
               ${testResults.networkBlocking}
             </span>
           </h2>
@@ -324,10 +324,10 @@
           </ul>
         </div>
         
-        <div class="test-section">
+        <div class="testsecurity-section">
           <h2>
             <span>🧪 Test 3: DOM Observer Blocking</span>
-            <span class="test-result ${testResults.observerBlocking === '✅ PASS' ? 'pass' : 'fail'}">
+            <span class="testsecurity-result ${testResults.observerBlocking === '✅ PASS' ? 'pass' : 'fail'}">
               ${testResults.observerBlocking}
             </span>
           </h2>
@@ -339,7 +339,7 @@
           </ul>
         </div>
         
-        <div class="summary">
+        <div class="testsecurity-summary">
           <h2>${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}</h2>
           <p>${allPassed 
             ? 'Security fixes are working correctly!' 
@@ -349,7 +349,7 @@
           </p>
         </div>
         
-        <div class="console-note">
+        <div class="testsecurity-console-note">
           <strong>📋 Detailed Results:</strong> Check browser console for full test output.
           <br>All attack attempts and their outcomes are logged there.
         </div>

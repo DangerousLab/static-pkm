@@ -239,13 +239,13 @@
       
       container.innerHTML = `
         <style>
-          .test-container {
+          .testresources-container {
             padding: 30px;
             font-family: 'Courier New', monospace;
             line-height: 1.8;
           }
           
-          .test-header {
+          .testresources-header {
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
             color: #1a1a1a;
             padding: 25px;
@@ -254,19 +254,19 @@
             text-align: center;
           }
           
-          .test-header h1 {
+          .testresources-header h1 {
             margin: 0 0 10px 0;
             font-size: 28px;
             font-weight: bold;
           }
           
-          .test-header p {
+          .testresources-header p {
             margin: 0;
             opacity: 0.8;
             font-size: 14px;
           }
           
-          .stats-box {
+          .testresources-stats-box {
             background: var(--bg-secondary, #2a2a2a);
             border: 2px solid #fee140;
             padding: 20px;
@@ -277,25 +277,25 @@
             gap: 15px;
           }
           
-          .stat-item {
+          .testresources-stat-item {
             text-align: center;
           }
           
-          .stat-value {
+          .testresources-stat-value {
             font-size: 32px;
             font-weight: bold;
             color: #fee140;
             margin-bottom: 5px;
           }
           
-          .stat-label {
+          .testresources-stat-label {
             font-size: 12px;
             color: var(--text-secondary, #cccccc);
             text-transform: uppercase;
             letter-spacing: 1px;
           }
           
-          .progress-bar {
+          .testresources-progress-bar {
             width: 100%;
             height: 30px;
             background: rgba(0, 0, 0, 0.3);
@@ -305,14 +305,14 @@
             position: relative;
           }
           
-          .progress-fill {
+          .testresources-progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #22c55e 0%, #fee140 80%, #ef4444 100%);
             width: ${percentage}%;
             transition: width 0.3s ease;
           }
           
-          .progress-text {
+          .testresources-progress-text {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -322,7 +322,7 @@
             text-shadow: 0 1px 3px rgba(0,0,0,0.5);
           }
           
-          .test-section {
+          .testresources-section {
             background: var(--bg-secondary, #2a2a2a);
             border-left: 4px solid var(--accent-color, #fee140);
             padding: 20px;
@@ -330,7 +330,7 @@
             border-radius: 8px;
           }
           
-          .test-section h2 {
+          .testresources-section h2 {
             margin: 0 0 15px 0;
             color: var(--text-primary, #ffffff);
             font-size: 18px;
@@ -340,7 +340,7 @@
             gap: 10px;
           }
           
-          .test-result {
+          .testresources-result {
             font-size: 24px;
             font-weight: bold;
             padding: 5px 12px;
@@ -349,37 +349,37 @@
             white-space: nowrap;
           }
           
-          .test-result.pass {
+          .testresources-result.pass {
             background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
           }
           
-          .test-result.fail {
+          .testresources-result.fail {
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
           }
           
-          .test-result.partial {
+          .testresources-result.partial {
             background: rgba(251, 191, 36, 0.2);
             color: #fbbf24;
           }
           
-          .test-result.skipped {
+          .testresources-result.skipped {
             background: rgba(148, 163, 184, 0.2);
             color: #94a3b8;
           }
           
-          .test-section ul {
+          .testresources-section ul {
             margin: 10px 0 0 0;
             padding-left: 25px;
           }
           
-          .test-section li {
+          .testresources-section li {
             margin: 8px 0;
             color: var(--text-secondary, #cccccc);
           }
           
-          .summary {
+          .testresources-summary {
             background: ${allPassed ? 'rgba(34, 197, 94, 0.1)' : somePassed ? 'rgba(251, 191, 36, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
             border: 2px solid ${allPassed ? '#22c55e' : somePassed ? '#fbbf24' : '#ef4444'};
             padding: 25px;
@@ -388,19 +388,19 @@
             margin-top: 30px;
           }
           
-          .summary h2 {
+          .testresources-summary h2 {
             margin: 0 0 15px 0;
             font-size: 32px;
             color: ${allPassed ? '#22c55e' : somePassed ? '#fbbf24' : '#ef4444'};
           }
           
-          .summary p {
+          .testresources-summary p {
             margin: 5px 0;
             font-size: 16px;
             color: var(--text-primary, #ffffff);
           }
           
-          .console-note {
+          .testresources-console-note {
             background: rgba(250, 112, 154, 0.1);
             border-left: 4px solid #fa709a;
             padding: 15px;
@@ -418,29 +418,29 @@
           }
         </style>
         
-        <div class="test-container">
-          <div class="test-header">
+        <div class="testresources-container">
+          <div class="testresources-header">
             <h1>⚡ Resource Limits Test</h1>
             <p>Testing: DOM node counting, limits, and DoS prevention</p>
             <p style="opacity: 0.7; margin-top: 5px;">Instance: ${instanceId}</p>
           </div>
           
-          <div class="stats-box">
-            <div class="stat-item">
-              <div class="stat-value">${stats.currentCount.toLocaleString()}</div>
-              <div class="stat-label">Current Nodes</div>
+          <div class="testresources-stats-box">
+            <div class="testresources-stat-item">
+              <div class="testresources-stat-value">${stats.currentCount.toLocaleString()}</div>
+              <div class="testresources-stat-label">Current Nodes</div>
             </div>
-            <div class="stat-item">
-              <div class="stat-value">${stats.maxLimit.toLocaleString()}</div>
-              <div class="stat-label">Maximum Nodes</div>
+            <div class="testresources-stat-item">
+              <div class="testresources-stat-value">${stats.maxLimit.toLocaleString()}</div>
+              <div class="testresources-stat-label">Maximum Nodes</div>
             </div>
-            <div class="stat-item">
-              <div class="stat-value">${percentage}%</div>
-              <div class="stat-label">Capacity Used</div>
+            <div class="testresources-stat-item">
+              <div class="testresources-stat-value">${percentage}%</div>
+              <div class="testresources-stat-label">Capacity Used</div>
             </div>
-            <div class="stat-item">
-              <div class="stat-value">${stats.limitEnforced ? '✅' : '❌'}</div>
-              <div class="stat-label">Limit Enforced</div>
+            <div class="testresources-stat-item">
+              <div class="testresources-stat-value">${stats.limitEnforced ? '✅' : '❌'}</div>
+              <div class="testresources-stat-label">Limit Enforced</div>
             </div>
           </div>
           
@@ -448,16 +448,16 @@
             <div style="font-size: 14px; color: var(--text-secondary, #cccccc); margin-bottom: 10px;">
               Node Usage Progress
             </div>
-            <div class="progress-bar">
-              <div class="progress-fill"></div>
-              <div class="progress-text">${stats.currentCount} / ${stats.maxLimit} nodes</div>
+            <div class="testresources-progress-bar">
+              <div class="testresources-progress-fill"></div>
+              <div class="testresources-progress-text">${stats.currentCount} / ${stats.maxLimit} nodes</div>
             </div>
           </div>
           
-          <div class="test-section">
+          <div class="testresources-section">
             <h2>
               <span>🧪 Test 1: Basic Node Counting</span>
-              <span class="test-result ${testResults.nodeCounting === '✅ PASS' ? 'pass' : testResults.nodeCounting === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
+              <span class="testresources-result ${testResults.nodeCounting === '✅ PASS' ? 'pass' : testResults.nodeCounting === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
                 ${testResults.nodeCounting}
               </span>
             </h2>
@@ -468,10 +468,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testresources-section">
             <h2>
               <span>🧪 Test 2: Fragment Exclusion</span>
-              <span class="test-result ${testResults.fragmentExclusion === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testresources-result ${testResults.fragmentExclusion === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.fragmentExclusion}
               </span>
             </h2>
@@ -482,10 +482,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testresources-section">
             <h2>
               <span>🧪 Test 3: Warning Threshold (80%)</span>
-              <span class="test-result ${testResults.warningThreshold === '✅ PASS' ? 'pass' : testResults.warningThreshold === '⚠️ SKIPPED' ? 'skipped' : 'fail'}">
+              <span class="testresources-result ${testResults.warningThreshold === '✅ PASS' ? 'pass' : testResults.warningThreshold === '⚠️ SKIPPED' ? 'skipped' : 'fail'}">
                 ${testResults.warningThreshold}
               </span>
             </h2>
@@ -496,10 +496,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testresources-section">
             <h2>
               <span>🧪 Test 4: Hard Limit Enforcement</span>
-              <span class="test-result ${testResults.hardLimit === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testresources-result ${testResults.hardLimit === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.hardLimit}
               </span>
             </h2>
@@ -510,10 +510,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testresources-section">
             <h2>
               <span>🧪 Test 5: Debug Properties</span>
-              <span class="test-result ${testResults.debugProperties === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testresources-result ${testResults.debugProperties === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.debugProperties}
               </span>
             </h2>
@@ -524,7 +524,7 @@
             </ul>
           </div>
           
-          <div class="summary">
+          <div class="testresources-summary">
             <h2>${allPassed ? '✅ ALL TESTS PASSED' : somePassed ? '⚠️ PARTIAL PROTECTION' : '❌ PROTECTION FAILED'}</h2>
             <p>${allPassed 
               ? 'Resource limits working correctly!' 
@@ -536,7 +536,7 @@
             </p>
           </div>
           
-          <div class="console-note">
+          <div class="testresources-console-note">
             <strong>📋 Performance Note:</strong> This test creates thousands of DOM nodes.
             <br>Check browser console for detailed progress and timing information.
           </div>

@@ -201,13 +201,13 @@
       
       container.innerHTML = `
         <style>
-          .test-container {
+          .testisolation-container {
             padding: 30px;
             font-family: 'Courier New', monospace;
             line-height: 1.8;
           }
           
-          .test-header {
+          .testisolation-header {
             background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
             color: #1a1a1a;
             padding: 25px;
@@ -216,19 +216,19 @@
             text-align: center;
           }
           
-          .test-header h1 {
+          .testisolation-header h1 {
             margin: 0 0 10px 0;
             font-size: 28px;
             font-weight: bold;
           }
           
-          .test-header p {
+          .testisolation-header p {
             margin: 0;
             opacity: 0.8;
             font-size: 14px;
           }
           
-          .test-section {
+          .testisolation-section {
             background: var(--bg-secondary, #2a2a2a);
             border-left: 4px solid var(--accent-color, #a8edea);
             padding: 20px;
@@ -236,7 +236,7 @@
             border-radius: 8px;
           }
           
-          .test-section h2 {
+          .testisolation-section h2 {
             margin: 0 0 15px 0;
             color: var(--text-primary, #ffffff);
             font-size: 18px;
@@ -246,7 +246,7 @@
             gap: 10px;
           }
           
-          .test-result {
+          .testisolation-result {
             font-size: 24px;
             font-weight: bold;
             padding: 5px 12px;
@@ -255,32 +255,32 @@
             white-space: nowrap;
           }
           
-          .test-result.pass {
+          .testisolation-result.pass {
             background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
           }
           
-          .test-result.fail {
+          .testisolation-result.fail {
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
           }
           
-          .test-result.partial {
+          .testisolation-result.partial {
             background: rgba(251, 191, 36, 0.2);
             color: #fbbf24;
           }
           
-          .test-section ul {
+          .testisolation-section ul {
             margin: 10px 0 0 0;
             padding-left: 25px;
           }
           
-          .test-section li {
+          .testisolation-section li {
             margin: 8px 0;
             color: var(--text-secondary, #cccccc);
           }
           
-          .summary {
+          .testisolation-summary {
             background: ${allPassed ? 'rgba(34, 197, 94, 0.1)' : somePassed ? 'rgba(251, 191, 36, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
             border: 2px solid ${allPassed ? '#22c55e' : somePassed ? '#fbbf24' : '#ef4444'};
             padding: 25px;
@@ -289,19 +289,19 @@
             margin-top: 30px;
           }
           
-          .summary h2 {
+          .testisolation-summary h2 {
             margin: 0 0 15px 0;
             font-size: 32px;
             color: ${allPassed ? '#22c55e' : somePassed ? '#fbbf24' : '#ef4444'};
           }
           
-          .summary p {
+          .testisolation-summary p {
             margin: 5px 0;
             font-size: 16px;
             color: var(--text-primary, #ffffff);
           }
           
-          .console-note {
+          .testisolation-console-note {
             background: rgba(168, 237, 234, 0.1);
             border-left: 4px solid #a8edea;
             padding: 15px;
@@ -319,17 +319,17 @@
           }
         </style>
         
-        <div class="test-container">
-          <div class="test-header">
+        <div class="testisolation-container">
+          <div class="testisolation-header">
             <h1>🔬 Isolation Verification Test</h1>
             <p>Testing: SES compartments, DOM isolation, API access</p>
             <p style="opacity: 0.7; margin-top: 5px;">Instance: ${instanceId}</p>
           </div>
           
-          <div class="test-section">
+          <div class="testisolation-section">
             <h2>
               <span>🧪 Test 1: SES Compartment</span>
-              <span class="test-result ${testResults.sesCompartment === '✅ PASS' ? 'pass' : 'fail'}">
+              <span class="testisolation-result ${testResults.sesCompartment === '✅ PASS' ? 'pass' : 'fail'}">
                 ${testResults.sesCompartment}
               </span>
             </h2>
@@ -340,10 +340,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testisolation-section">
             <h2>
               <span>🧪 Test 2: DOM Isolation</span>
-              <span class="test-result ${testResults.domIsolation === '✅ PASS' ? 'pass' : testResults.domIsolation === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
+              <span class="testisolation-result ${testResults.domIsolation === '✅ PASS' ? 'pass' : testResults.domIsolation === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
                 ${testResults.domIsolation}
               </span>
             </h2>
@@ -354,10 +354,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testisolation-section">
             <h2>
               <span>🧪 Test 3: API Access</span>
-              <span class="test-result ${testResults.apiAccess === '✅ PASS' ? 'pass' : testResults.apiAccess === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
+              <span class="testisolation-result ${testResults.apiAccess === '✅ PASS' ? 'pass' : testResults.apiAccess === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
                 ${testResults.apiAccess}
               </span>
             </h2>
@@ -369,10 +369,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testisolation-section">
             <h2>
               <span>🧪 Test 4: Global Blocking</span>
-              <span class="test-result ${testResults.globalBlocking === '✅ PASS' ? 'pass' : testResults.globalBlocking === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
+              <span class="testisolation-result ${testResults.globalBlocking === '✅ PASS' ? 'pass' : testResults.globalBlocking === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
                 ${testResults.globalBlocking}
               </span>
             </h2>
@@ -384,10 +384,10 @@
             </ul>
           </div>
           
-          <div class="test-section">
+          <div class="testisolation-section">
             <h2>
               <span>🧪 Test 5: Shadow DOM</span>
-              <span class="test-result ${testResults.shadowDOM === '✅ PASS' ? 'pass' : testResults.shadowDOM === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
+              <span class="testisolation-result ${testResults.shadowDOM === '✅ PASS' ? 'pass' : testResults.shadowDOM === '⚠️ PARTIAL' ? 'partial' : 'fail'}">
                 ${testResults.shadowDOM}
               </span>
             </h2>
