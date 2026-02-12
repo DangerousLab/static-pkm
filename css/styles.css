@@ -136,12 +136,20 @@ body {
 /* ==================== WEBAPP STATUS BAR THEMING ==================== */
 
 /* Theme-aware status bar background for portrait webapp mode */
+/* Fills safe area (notch/status bar) with theme color */
 html {
   background: #1f1f1f; /* Dark theme default */
+  min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari fix */
 }
 
 :root[data-theme="light"] html {
   background: #f3f4f6; /* Light theme */
+}
+
+/* Ensure body background doesn't override html in safe areas */
+body {
+  background-attachment: local; /* Scroll with content, not fixed to viewport */
 }
 
 /* ==================== APP SHELL LAYOUT ==================== */
@@ -213,27 +221,27 @@ html {
 .app-header {
   grid-area: header;
   position: sticky;
-  top: env(safe-area-inset-top, 0); /* Position header below notch */
+  top: 0; /* Keep at viewport top */
   z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-sm) var(--space-md);
-  padding-top: var(--space-sm); /* No longer need max() since top handles safe area */
-  padding-left: max(var(--space-md), env(safe-area-inset-left)); /* Safe area left */
-  padding-right: max(var(--space-md), env(safe-area-inset-right)); /* Safe area right */
+  padding-top: max(var(--space-sm), env(safe-area-inset-top)); /* Padding pushes content down */
+  padding-left: max(var(--space-md), env(safe-area-inset-left));
+  padding-right: max(var(--space-md), env(safe-area-inset-right));
   background: #1f1f1f;
   border-bottom: 1px solid var(--border-medium);
   min-height: var(--header-height);
 }
 
-
 .header-bar {
   width: 100%;
-  max-width: 1100px; /* Content width - prevents line length > 80 chars */
+  max-width: 1100px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
+  justify-items: center; /* Center middle column content */
   column-gap: var(--gap-xl);
 }
 
@@ -254,6 +262,11 @@ html {
 
 :root[data-theme="light"] .sidebar-toggle {
   color: #111111;
+}
+
+:root[data-theme="light"] .app-header {
+  background: #f3f4f6;
+  border-bottom-color: var(--border-light);
 }
 
 .sidebar-toggle-icon {
@@ -509,25 +522,21 @@ html {
   /* Left bar - positioned based on notch detection */
   .landscape-leftbar {
     position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: env(safe-area-inset-left, 0px);
-    width: var(--landscape-leftbar-width);
-    height: calc(100vh - env(safe-area-inset-top, 0px));
+    top: 0; /* ← CRITICAL: Start at viewport edge, padding handles safe area */
+    left: 0; /* ← CRITICAL: Start at viewport edge for all notch positions */
+    width: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)); /* ← Total width includes safe area */
+    height: 100vh; /* ← Full viewport height */
     z-index: 50;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 0.25rem 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: max(0.25rem, env(safe-area-inset-top, 0px)); /* ← Safe area aware padding */
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+    padding-left: env(safe-area-inset-left, 0px); /* ← Notch padding on left */
+    padding-right: 0;
     background: #1f1f1f;
     border-right: 1px solid var(--border-medium);
-  }
-
-  /* Left bar when notch is on RIGHT or no notch detected */
-  :root[data-notch-side="right"] .landscape-leftbar,
-  :root[data-notch-side="none"] .landscape-leftbar {
-    left: 0;
   }
 
   :root[data-theme="light"] .landscape-leftbar {
@@ -592,57 +601,44 @@ html {
     display: none !important;
   }
 
-  /* Sidebar - DEFAULT (notch on left) */
+  /* Sidebar - positioned after leftbar (leftbar width includes safe area) */
   .sidebar {
     position: fixed !important;
-    top: env(safe-area-inset-top, 0px) !important;
-    left: var(--landscape-leftbar-width) !important;
-    height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
+    top: 0 !important; /* ← Start at viewport top */
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important; /* ← After leftbar + safe area */
+    height: 100vh !important; /* ← Full height */
     width: 80vw !important;
-    max-width: 360px !important; /* Mobile sidebar max width */
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-    padding-left: 0 !important; /* Ensure no inherited padding-left from base sidebar styles */
+    max-width: 360px !important;
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important; /* ← Safe area aware */
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
     transform: translateX(-100%) !important;
     z-index: 20 !important;
-    overflow: hidden !important;
-  }
-
-  /* Sidebar - notch on RIGHT or no notch */
-  :root[data-notch-side="right"] .sidebar,
-  :root[data-notch-side="none"] .sidebar {
-    left: var(--landscape-leftbar-width) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   .sidebar[data-open="true"] {
     transform: translateX(0) !important;
   }
 
-  /* Main content - DEFAULT (notch on left) */
+  /* Main content - positioned after leftbar */
   .main-content {
     position: fixed !important;
-    top: env(safe-area-inset-top, 0px) !important;
-    left: var(--landscape-leftbar-width) !important;
+    top: 0 !important; /* ← Start at viewport top */
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important; /* ← After leftbar + safe area */
     right: 0 !important;
     bottom: 0 !important;
     width: auto !important;
     margin: 0 !important;
-    padding: 0.25rem 0.5rem !important;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding-top: max(0.25rem, env(safe-area-inset-top, 0px)) !important; /* ← Safe area aware */
+    padding-left: 0.5rem !important;
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px)) !important; /* ← Right safe area */
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto;
     overflow-x: hidden;
     background: transparent !important;
-  }
-
-  /* Main content - notch on RIGHT */
-  :root[data-notch-side="right"] .main-content {
-    left: var(--landscape-leftbar-width) !important;
-    right: env(safe-area-inset-right, 0px) !important;
-  }
-
-  /* Main content - no notch */
-  :root[data-notch-side="none"] .main-content {
-    left: var(--landscape-leftbar-width) !important;
-    right: 0 !important;
   }
 
   .main-content .page-root {
