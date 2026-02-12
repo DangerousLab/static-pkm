@@ -31,7 +31,7 @@ export async function loadMathJax() {
     type: 'style',
     name: 'MathJax Output CSS',
     content: `
-      /* MathJax SVG Output Styling */
+      /* MathJax CHTML Output Styling (Font-Based) */
       mjx-container {
         display: inline-block;
         margin: 0;
@@ -49,9 +49,14 @@ export async function loadMathJax() {
         color: inherit;
       }
       
-      mjx-container svg {
+      /* Font rendering improvements */
+      mjx-container mjx-math {
         display: inline-block;
-        vertical-align: middle;
+        line-height: 0;
+      }
+      
+      mjx-container mjx-math mjx-mtext {
+        line-height: normal;
       }
     `
   });
@@ -63,8 +68,8 @@ export async function loadMathJax() {
         inlineMath: [["\\(", "\\)"], ["$", "$"]],
         displayMath: [["\\[", "\\]"], ["$$", "$$"]]
       },
-      svg: {
-        fontCache: 'global'  // Use SVG output for consistent rendering
+      chtml: {
+        fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
       },
       options: {
         skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"]
@@ -83,9 +88,9 @@ export async function loadMathJax() {
       }
     };
 
-    // Load MathJax from CDN (use SVG output for shadow DOM compatibility)
+    // Load MathJax from CDN (use CHTML output with web fonts)
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js';
     script.async = true;
     script.onerror = () => {
       console.error('[MathJax Loader] Failed to load MathJax from CDN');
@@ -108,7 +113,7 @@ export function isMathJaxLoaded() {
 
 /**
  * Typeset math equations in any container
- * MathJax styles load globally and work across all modules
+ * MathJax uses web fonts for crisp, scalable rendering
  * @param {HTMLElement} container - Container with LaTeX equations
  * @returns {Promise<void>}
  */
