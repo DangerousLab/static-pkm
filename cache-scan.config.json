@@ -19,6 +19,14 @@
     "css": {
       "extensions": [".css"],
       "enabled": true
+    },
+    "vendor": {
+      "extensions": [".js", ".map"],
+      "enabled": true
+    },
+    "assets": {
+      "extensions": [".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp"],
+      "enabled": true
     }
   },
   
