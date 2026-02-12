@@ -109,6 +109,13 @@
   box-sizing: border-box;
 }
 
+/* Prevent pinch-zoom on touch devices */
+html, body {
+  touch-action: pan-x pan-y;  /* Allow panning but prevent pinch zoom */
+  -ms-touch-action: pan-x pan-y;
+  overscroll-behavior: none;  /* Prevent pull-to-refresh bounce */
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -147,6 +154,7 @@ html {
     "header"
     "main";
   min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px); /* Safe area bottom */
 }
 
 /* ==================== SLIDE-UP FADE ANIMATION ==================== */
@@ -211,6 +219,9 @@ html {
   align-items: center;
   justify-content: center;
   padding: var(--space-sm) var(--space-md);
+  padding-top: max(var(--space-sm), env(safe-area-inset-top)); /* Safe area support */
+  padding-left: max(var(--space-md), env(safe-area-inset-left)); /* Safe area left */
+  padding-right: max(var(--space-md), env(safe-area-inset-right)); /* Safe area right */
   background: #1f1f1f;
   border-bottom: 1px solid var(--border-medium);
   min-height: var(--header-height);
@@ -240,7 +251,9 @@ html {
   color: #e5e5e5;
   cursor: pointer;
   padding: 0.25rem 0.125rem;
-  height: 32px; /* Fixed - clickable target */
+  height: 32px; /* Clickable target */
+  position: relative; /* Establish positioning context */
+  z-index: 50; /* Ensure button is above other elements */
 }
 
 :root[data-theme="light"] .sidebar-toggle {
@@ -659,6 +672,8 @@ html {
   z-index: 30;
   height: calc(100vh - var(--header-height));
   padding: 0.75rem 0.625rem 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); /* Safe area bottom */
+  padding-left: max(0.625rem, env(safe-area-inset-left, 0px)); /* Safe area left */
   display: flex;
   flex-direction: column;
   gap: var(--gap-sm);

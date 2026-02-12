@@ -224,6 +224,11 @@ async function initSidebarSearch() {  // ← ADDED: New function
  */
 export function initSidebar() { 
   // Main sidebar toggle
+  if (!dom.sidebarToggle) {
+    console.error('[Sidebar] sidebarToggle element not found - cannot initialize');
+    return;
+  }
+  
   dom.sidebarToggle.addEventListener("click", toggleSidebar);
   
   // Landscape left bar sidebar toggle
