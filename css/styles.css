@@ -724,10 +724,10 @@ body {
     min-height: 60px; /* Fixed - mobile header height */
   }
 
-  /* Sidebar positioned below header */
+  /* Sidebar positioned below header (logo + top padding + bottom padding) */
   .sidebar {
-    top: 60px !important; /* ← Just the header min-height, padding is internal */
-    height: calc(100vh - 60px) !important;
+    top: calc(44px + max(var(--space-sm), env(safe-area-inset-top, 0px)) + var(--space-sm)) !important;
+    height: calc(100vh - 44px - max(var(--space-sm), env(safe-area-inset-top, 0px)) - var(--space-sm)) !important;
   }
 }
 
