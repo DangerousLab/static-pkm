@@ -1,7 +1,7 @@
 /**
  * MathJax Loader
- * Loads MathJax globally for rendering in global scope containers
- * Platform Layer: Has document.head access for font injection
+ * Loads MathJax globally for rendering math expressions
+ * Resources load once into document.head and work across all modules
  */
 
 import { registerPlatformResource, markResourceLoaded } from './platform-resources.js';
@@ -64,7 +64,7 @@ export async function loadMathJax() {
         displayMath: [["\\[", "\\]"], ["$$", "$$"]]
       },
       svg: {
-        fontCache: 'global'  // Use SVG output (works better with shadow DOM)
+        fontCache: 'global'  // Use SVG output for consistent rendering
       },
       options: {
         skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"]
@@ -74,10 +74,10 @@ export async function loadMathJax() {
           window.MathJax.startup.defaultReady();
           mathJaxLoaded = true;
           
-          // Mark CSS resource as loaded (auto-injects into all shadow roots)
+          // Mark CSS resource as loaded
           markResourceLoaded('mathjax-output-css');
           
-          console.log('[MathJax Loader] MathJax loaded and styles injected into shadow DOMs');
+          console.log('[MathJax Loader] MathJax loaded globally');
           resolve();
         }
       }
@@ -107,8 +107,8 @@ export function isMathJaxLoaded() {
 }
 
 /**
- * Typeset math equations in ANY container (shadow DOM or global scope)
- * Platform Resources system handles style injection automatically
+ * Typeset math equations in any container
+ * MathJax styles load globally and work across all modules
  * @param {HTMLElement} container - Container with LaTeX equations
  * @returns {Promise<void>}
  */
@@ -122,7 +122,7 @@ export async function typesetMath(container) {
 
   if (window.MathJax?.typesetPromise) {
     try {
-      console.log('[MathJax Loader] Typesetting math in global scope container...');
+      console.log('[MathJax Loader] Typesetting math in container...');
       await window.MathJax.typesetPromise([container]);
       console.log('[MathJax Loader] Typesetting complete');
     } catch (error) {

@@ -3,58 +3,16 @@
 /**
  * Platform Resources Registry
  * 
- * Manages injection of platform-level resources (CSS, fonts, styles)
- * into shadow DOMs for trusted third-party libraries.
+ * Tracks loaded platform-level resources (MathJax, FontAwesome, etc.)
+ * for debugging and future extensibility.
  * 
- * SECURITY:
- * - Only Platform Layer code can register resources
- * - User Layer modules receive resources automatically
- * - No document.head access given to User Layer
- * - All resources are vetted (MathJax, FontAwesome, etc.)
+ * v3.0: Resources load globally into document.head (no shadow DOM injection needed)
  * 
  * @module PlatformResources
  */
 
-// Track all shadow roots in the application
-const shadowRoots = new Set();
-
 // Track registered platform resources (CSS, fonts, etc.)
 const platformResources = new Map();
-
-/**
- * Register a shadow root to receive platform resources
- * Called by dom-isolation.js when creating shadow DOM
- * 
- * @param {ShadowRoot} shadowRoot - Shadow root to inject resources into
- * @param {string} instanceId - Instance ID for logging
- */
-export function registerShadowRoot(shadowRoot, instanceId) {
-  if (!shadowRoot || !(shadowRoot instanceof ShadowRoot)) {
-    console.error('[PlatformResources] Invalid shadow root');
-    return;
-  }
-  
-  shadowRoots.add(shadowRoot);
-  console.log(`[PlatformResources] Registered shadow root for ${instanceId} (${shadowRoots.size} total)`);
-  
-  // Inject all existing platform resources into this new shadow root
-  for (const [resourceId, resource] of platformResources) {
-    if (resource.loaded) {
-      injectResourceIntoShadowRoot(shadowRoot, resource, instanceId);
-    }
-  }
-}
-
-/**
- * Unregister a shadow root (cleanup)
- * Called by instance-manager.js when destroying module
- * 
- * @param {ShadowRoot} shadowRoot - Shadow root to remove
- */
-export function unregisterShadowRoot(shadowRoot) {
-  shadowRoots.delete(shadowRoot);
-  console.log(`[PlatformResources] Unregistered shadow root (${shadowRoots.size} remaining)`);
-}
 
 /**
  * Register a platform resource (CSS file, font, etc.)
@@ -97,8 +55,10 @@ export function registerPlatformResource(config) {
 }
 
 /**
- * Mark a platform resource as loaded and inject into all shadow roots
+ * Mark a platform resource as loaded
  * Called by loaders after resource loads successfully
+ * 
+ * v3.0: No injection needed - resources load globally via document.head
  * 
  * @param {string} resourceId - Resource ID to mark as loaded
  */
@@ -111,84 +71,7 @@ export function markResourceLoaded(resourceId) {
   }
   
   resource.loaded = true;
-  console.log(`[PlatformResources] Resource loaded: ${resource.name} - injecting into ${shadowRoots.size} shadow roots`);
-  
-  // Inject into ALL existing shadow roots
-  for (const shadowRoot of shadowRoots) {
-    injectResourceIntoShadowRoot(shadowRoot, resource);
-  }
-}
-
-/**
- * Inject a single resource into a single shadow root
- * 
- * @private
- * @param {ShadowRoot} shadowRoot - Target shadow root
- * @param {Object} resource - Resource to inject
- * @param {string} instanceId - Instance ID (for logging)
- */
-function injectResourceIntoShadowRoot(shadowRoot, resource, instanceId = 'unknown') {
-  try {
-    if (resource.type === 'css') {
-      // Inject <link> tag for external CSS
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = resource.url;
-      link.dataset.platformResource = resource.id;
-      
-      if (resource.integrity) {
-        link.integrity = resource.integrity;
-        link.crossOrigin = 'anonymous';
-      }
-      
-      // Insert at beginning of shadow root (before module styles)
-      if (shadowRoot.firstChild) {
-        shadowRoot.insertBefore(link, shadowRoot.firstChild);
-      } else {
-        shadowRoot.appendChild(link);
-      }
-      
-      console.log(`[PlatformResources] Injected CSS link for ${resource.name} into ${instanceId}`);
-      
-    } else if (resource.type === 'style') {
-      // Inject inline <style> for CSS content
-      const style = document.createElement('style');
-      style.textContent = resource.content;
-      style.dataset.platformResource = resource.id;
-      
-      // Insert at beginning of shadow root
-      if (shadowRoot.firstChild) {
-        shadowRoot.insertBefore(style, shadowRoot.firstChild);
-      } else {
-        shadowRoot.appendChild(style);
-      }
-      
-      console.log(`[PlatformResources] Injected inline style for ${resource.name} into ${instanceId}`);
-      
-    } else if (resource.type === 'font') {
-      // Inject @font-face declaration
-      const fontStyle = document.createElement('style');
-      fontStyle.textContent = `
-        @font-face {
-          font-family: '${resource.name}';
-          src: url('${resource.url}');
-        }
-      `;
-      fontStyle.dataset.platformResource = resource.id;
-      
-      // Insert at beginning
-      if (shadowRoot.firstChild) {
-        shadowRoot.insertBefore(fontStyle, shadowRoot.firstChild);
-      } else {
-        shadowRoot.appendChild(fontStyle);
-      }
-      
-      console.log(`[PlatformResources] Injected font for ${resource.name} into ${instanceId}`);
-    }
-    
-  } catch (error) {
-    console.error(`[PlatformResources] Failed to inject resource ${resource.id}:`, error);
-  }
+  console.log(`[PlatformResources] Resource loaded globally: ${resource.name}`);
 }
 
 /**
@@ -198,13 +81,4 @@ function injectResourceIntoShadowRoot(shadowRoot, resource, instanceId = 'unknow
  */
 export function getLoadedResources() {
   return Array.from(platformResources.values()).filter(r => r.loaded);
-}
-
-/**
- * Get shadow root count (for debugging)
- * 
- * @returns {number} Number of registered shadow roots
- */
-export function getShadowRootCount() {
-  return shadowRoots.size;
 }

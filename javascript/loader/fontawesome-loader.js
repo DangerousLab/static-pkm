@@ -77,10 +77,10 @@ export async function loadFontAwesome() {
   .then(() => {
     loadedResources.add('fontawesome');
     
-    // Mark as loaded - auto-injects into all shadow roots
+    // Mark as loaded (available globally)
     markResourceLoaded('fontawesome-css');
     
-    console.log('[DynamicLoader] FontAwesome loaded and injected into shadow DOMs');
+    console.log('[DynamicLoader] FontAwesome loaded globally');
     fontAwesomeLoadPromise = null;
   })
   .catch((error) => {
