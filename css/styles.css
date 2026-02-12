@@ -522,21 +522,25 @@ body {
   /* Left bar - positioned based on notch detection */
   .landscape-leftbar {
     position: fixed;
-    top: 0; /* ← CRITICAL: Start at viewport edge, padding handles safe area */
-    left: 0; /* ← CRITICAL: Start at viewport edge for all notch positions */
-    width: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)); /* ← Total width includes safe area */
-    height: 100vh; /* ← Full viewport height */
+    top: env(safe-area-inset-top, 0px);
+    left: env(safe-area-inset-left, 0px);
+    width: var(--landscape-leftbar-width);
+    height: calc(100vh - env(safe-area-inset-top, 0px));
     z-index: 50;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding-top: max(0.25rem, env(safe-area-inset-top, 0px)); /* ← Safe area aware padding */
-    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
-    padding-left: env(safe-area-inset-left, 0px); /* ← Notch padding on left */
-    padding-right: 0;
+    padding: 0.25rem 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: #1f1f1f;
     border-right: 1px solid var(--border-medium);
+  }
+
+  /* Left bar when notch is on RIGHT or no notch detected */
+  :root[data-notch-side="right"] .landscape-leftbar,
+  :root[data-notch-side="none"] .landscape-leftbar {
+    left: 0;
   }
 
   :root[data-theme="light"] .landscape-leftbar {
@@ -601,22 +605,24 @@ body {
     display: none !important;
   }
 
-  /* Sidebar - positioned after leftbar (leftbar width includes safe area) */
+  /* Sidebar - DEFAULT (notch on left) */
   .sidebar {
     position: fixed !important;
-    top: 0 !important; /* ← Start at viewport top */
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important; /* ← After leftbar + safe area */
-    height: 100vh !important; /* ← Full height */
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
     width: 80vw !important;
     max-width: 360px !important;
-    padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important; /* ← Safe area aware */
-    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
-    padding-left: 0.625rem !important;
-    padding-right: 0.625rem !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     transform: translateX(-100%) !important;
     z-index: 20 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    overflow: hidden !important;
+  }
+
+  /* Sidebar - notch on RIGHT or no notch */
+  :root[data-notch-side="right"] .sidebar,
+  :root[data-notch-side="none"] .sidebar {
+    left: var(--landscape-leftbar-width) !important;
   }
 
   .sidebar[data-open="true"] {
@@ -624,21 +630,32 @@ body {
   }
 
   /* Main content - positioned after leftbar */
+  /* Main content - DEFAULT (notch on left) */
   .main-content {
     position: fixed !important;
-    top: 0 !important; /* ← Start at viewport top */
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important; /* ← After leftbar + safe area */
-    right: 0 !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    right: 0 !important; /* ← Extends to right edge */
     bottom: 0 !important;
     width: auto !important;
     margin: 0 !important;
-    padding-top: max(0.25rem, env(safe-area-inset-top, 0px)) !important; /* ← Safe area aware */
-    padding-left: 0.5rem !important;
-    padding-right: max(0.5rem, env(safe-area-inset-right, 0px)) !important; /* ← Right safe area */
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0.25rem 0.5rem !important;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto;
     overflow-x: hidden;
     background: transparent !important;
+  }
+
+  /* Main content - notch on RIGHT */
+  :root[data-notch-side="right"] .main-content {
+    left: var(--landscape-leftbar-width) !important;
+    right: env(safe-area-inset-right, 0px) !important; /* ← Respects right safe area */
+  }
+
+  /* Main content - no notch */
+  :root[data-notch-side="none"] .main-content {
+    left: var(--landscape-leftbar-width) !important;
+    right: 0 !important; /* ← Full width */
   }
 
   .main-content .page-root {
@@ -689,11 +706,13 @@ body {
 
 /* PHASE 2: Standardized breakpoint - was 640px */
 @media (max-width: 600px) {
-  .sidebar {
-    top: 60px; /* Fixed - mobile header height */
-    height: calc(100vh - 60px);
+  .app-header {
+    padding: var(--space-sm) 0.75rem;
+    padding-top: max(var(--space-sm), env(safe-area-inset-top)); /* ← PRESERVE safe area */
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    min-height: 60px; /* Fixed - mobile header height */
   }
-}
 
 /* Sidebar Header (Breadcrumb) */
 .sidebar-header {
