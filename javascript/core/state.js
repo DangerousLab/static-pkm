@@ -8,6 +8,7 @@ export const state = {
   activeNode: null,
   baseSidebarWidth: 240,
   hoverSidebarWidth: 240,
+  contentMaxWidth: 980,
   hoverNeeded: false,
   searchIndex: [],
   selectedResultIndex: -1,

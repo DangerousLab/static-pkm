@@ -67,6 +67,35 @@ export function isMediumViewport() {
 }
 
 /**
+ * Calculate if sidebar should auto-close on content click
+ * Returns true if sidebar overlaps content when open
+ * Computed dynamically based on viewport width and layout
+ */
+export function shouldAutoCloseSidebar() {
+  // Always auto-close in landscape mode
+  if (window.matchMedia('(max-height: 600px) and (orientation: landscape)').matches) {
+    return true;
+  }
+  
+  // Always auto-close on mobile (below tablet breakpoint)
+  if (window.innerWidth < 841) {
+    return true;
+  }
+  
+  // Desktop/tablet: Calculate if sidebar overlaps centered content
+  const sidebarWidth = state.baseSidebarWidth; // 240px by default
+  const contentMaxWidth = state.contentMaxWidth; // from .page-root max-width in CSS
+  const padding = 16; // Single side padding (var(--space-md))
+  
+  // Formula: content + (2 × sidebar) + (2 × padding)
+  // Content stays centered, needs equal space on both sides
+  const minWidthNoOverlap = contentMaxWidth + (2 * sidebarWidth) + (2 * padding);
+  
+  // If viewport is narrower than needed space, sidebar overlaps
+  return window.innerWidth < minWidthNoOverlap;
+}
+
+/**
  * Convert file path to URL
  */
 export function scriptUrlFromFile(filePath) {

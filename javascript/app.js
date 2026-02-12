@@ -4,7 +4,7 @@
  */
 
 import { dom, state, initDOMRefs } from './core/state.js';
-import { notifyModuleReady, isDesktopOrTablet, isMediumViewport } from './core/utils.js';
+import { notifyModuleReady, isDesktopOrTablet, isMediumViewport, shouldAutoCloseSidebar } from './core/utils.js';
 import { initTheme } from './modules/theme.js';
 import { initSidebar, toggleSidebar } from './modules/sidebar.js';
 import { renderSidebar } from './modules/navigation.js';
@@ -165,7 +165,8 @@ import { isPWA, getPWADisplayMode, registerServiceWorker } from './modules/pwa.j
 
     if (dom.card) {
       dom.card.addEventListener("click", () => {
-        if (isMediumViewport() && dom.sidebar.getAttribute("data-open") === "true") {
+        // ← CHANGED: Use dynamic overlap detection function
+        if (shouldAutoCloseSidebar() && dom.sidebar.getAttribute("data-open") === "true") {
           toggleSidebar();
         }
       });
@@ -174,7 +175,8 @@ import { isPWA, getPWADisplayMode, registerServiceWorker } from './modules/pwa.j
     if (dom.mainContent) {
       dom.mainContent.addEventListener("click", (e) => {
         if (e.target === dom.mainContent || e.target.classList.contains("page-root")) {
-          if (isMediumViewport() && dom.sidebar.getAttribute("data-open") === "true") {
+          // ← CHANGED: Use dynamic overlap detection function
+          if (shouldAutoCloseSidebar() && dom.sidebar.getAttribute("data-open") === "true") {
             toggleSidebar();
           }
         }
