@@ -5,6 +5,7 @@
  */
 
 import { dom, state, themeController } from '../core/state.js';
+import { loadFontAwesome } from '../loader/fontawesome-loader.js';
 
 // Cache for preloaded images
 const imageCache = {
@@ -241,13 +242,17 @@ export function toggleTheme() {
   const next = current === "dark" ? "light" : "dark";
   dom.htmlEl.setAttribute("data-theme", next);
 
-  // Update main theme icon
-  dom.themeIcon.textContent = next === "dark" ? "☾" : "☼";
+  // Update main theme icon (FontAwesome)
+  dom.themeIcon.innerHTML = next === "dark" 
+    ? '<i class="fa-regular fa-moon"></i>' 
+    : '<i class="fa-regular fa-sun"></i>';
 
-  // Update landscape theme icon
+  // Update landscape theme icon (FontAwesome)
   const landscapeThemeIcon = document.getElementById('landscapeThemeIcon');
   if (landscapeThemeIcon) {
-    landscapeThemeIcon.textContent = next === "dark" ? "☾" : "☼";
+    landscapeThemeIcon.innerHTML = next === "dark" 
+      ? '<i class="fa-regular fa-moon"></i>' 
+      : '<i class="fa-regular fa-sun"></i>';
   }
 
   setThemeMetaColor(next);
@@ -272,6 +277,9 @@ export function toggleTheme() {
 export async function initTheme() {
   // Preload all theme images and wait for completion
   await preloadThemeImages();
+  
+  // Preload FontAwesome for theme icons
+  await loadFontAwesome();
 
   // Main theme toggle
   dom.themeToggleBtn.addEventListener("click", toggleTheme);
@@ -283,12 +291,18 @@ export async function initTheme() {
   }
 
   const initialTheme = dom.htmlEl.getAttribute("data-theme") || "dark";
-  dom.themeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
+  
+  // Set initial theme icon (FontAwesome)
+  dom.themeIcon.innerHTML = initialTheme === "dark" 
+    ? '<i class="fa-regular fa-moon"></i>' 
+    : '<i class="fa-regular fa-sun"></i>';
 
-  // Set initial landscape theme icon
+  // Set initial landscape theme icon (FontAwesome)
   const landscapeThemeIcon = document.getElementById('landscapeThemeIcon');
   if (landscapeThemeIcon) {
-    landscapeThemeIcon.textContent = initialTheme === "dark" ? "☾" : "☼";
+    landscapeThemeIcon.innerHTML = initialTheme === "dark" 
+      ? '<i class="fa-regular fa-moon"></i>' 
+      : '<i class="fa-regular fa-sun"></i>';
   }
 
   setThemeMetaColor(initialTheme);

@@ -446,9 +446,13 @@ html {
   transform: translateY(-1px);
 }
 
-.theme-toggle span {
+.theme-toggle span,
+.theme-toggle i {
   font-size: 1rem;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ==================== MOBILE LANDSCAPE LEFT BAR ==================== */
