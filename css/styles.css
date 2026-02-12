@@ -729,6 +729,7 @@ body {
     top: 60px !important; /* ← Just the header min-height, padding is internal */
     height: calc(100vh - 60px) !important;
   }
+}
 
 /* Sidebar Header (Breadcrumb) */
 .sidebar-header {
