@@ -713,6 +713,7 @@ body {
     padding-right: max(0.75rem, env(safe-area-inset-right));
     min-height: 60px; /* Fixed - mobile header height */
   }
+}
 
 /* Sidebar Header (Breadcrumb) */
 .sidebar-header {
