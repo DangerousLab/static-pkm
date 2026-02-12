@@ -7,10 +7,6 @@
 import { state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, extractDisplayNameFromCode } from '../core/utils.js';
 import { dynamicRender } from '../loader/index.js';
-import { instanceManager } from '../core/instance-manager.js';
-import { createShadowRoot, createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
-import { createSecureCompartment, buildCompartmentGlobals } from '../core/js-isolation.js';
-import { messageTunnel } from '../core/message-tunnel.js';
 
 /**
  * Measure actual width needed for label texts using temporary DOM element
