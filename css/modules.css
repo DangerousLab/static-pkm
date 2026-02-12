@@ -1,0 +1,356 @@
+/**
+ * Shared Module CSS Patterns
+ * File: css/modules.css
+ * Version: 3.0 (v3.0 Architecture Migration)
+ * Last Updated: 2026-02-12
+ * 
+ * This file contains reusable CSS patterns used by multiple modules.
+ * Only add patterns that are used by 3+ modules OR likely useful for future modules.
+ * 
+ * Naming Convention: Use 'shared-' prefix for shared patterns
+ * Module-Specific: Use '.modulename-' prefix for module isolation
+ * 
+ * PHASE 1 CHANGES (2026-02-08):
+ * - Replaced hardcoded RGBA values with CSS variables
+ * - Replaced animation timing values with CSS variables
+ * - Added documentation comments
+ * 
+ * PHASE 2 CHANGES (2026-02-08):
+ * - Converted px to rem for scalable spacing
+ * - Added clamp() for responsive font sizing
+ * - Used spacing/gap/radius variables from styles.css
+ * - Standardized all breakpoints to 600px/768px/900px
+ * - Made padding/margins responsive with clamp()
+ * 
+ * v3.0 ARCHITECTURE (2026-02-12):
+ * - Migrated from Shadow DOM to scoped CSS via class prefixes
+ * - Modules now use .modulename- prefix for isolation
+ * - Shared patterns remain unprefixed (global app layer)
+ * - CSS loads globally once, works across all modules
+ * - Simpler debugging: full DOM tree visible in DevTools
+ * - Better performance: no per-module shadow root overhead
+ * - Resources (MathJax, FontAwesome) load once in document.head
+ */
+
+/* ============================================
+   MODULE HEADER PATTERN
+   Used by: nitricCalculator, calcA, calcB, calcC, calcD, calcE
+   Purpose: Standard module header with title and optional subtitle
+   ============================================ */
+
+.shared-module-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+  margin-bottom: clamp(0.75rem, 2vw, 1.125rem); /* PHASE 2: Responsive */
+}
+
+.shared-module-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  flex-wrap: wrap;
+}
+
+.shared-module-title-row h1 {
+  font-size: clamp(1.2rem, 3vw, 1.5rem); /* PHASE 2: Responsive */
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+  white-space: normal;
+  line-height: 1.2;
+  color: var(--text-main);
+}
+
+.shared-module-subtitle {
+  font-size: clamp(0.82rem, 2vw, 0.9rem); /* PHASE 2: Responsive */
+  color: var(--text-muted);
+  line-height: 1.45;
+  max-width: 660px; /* 45-60 characters per line for readability */
+}
+
+.shared-module-subtitle span {
+  display: block;
+}
+
+/* ============================================
+   MODULE PANEL PATTERN
+   Used by: nitricCalculator, calcA, calcB, calcC, calcD, calcE
+   Purpose: Standard content panel container
+   ============================================ */
+
+.shared-module-panel {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  padding: clamp(0.875rem, 2vw, 1rem) clamp(0.875rem, 2vw, 1rem) clamp(1rem, 2.2vw, 1.125rem); /* PHASE 2: Responsive */
+  margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem); /* PHASE 2: Responsive */
+}
+
+:root[data-theme="light"] .shared-module-panel {
+  border-color: var(--border-strong);
+  background: var(--bg-panel);
+}
+
+.shared-module-panel-title {
+  font-size: clamp(0.82rem, 2vw, 0.9rem); /* PHASE 2: Responsive */
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+/* ============================================
+   FORM ELEMENTS PATTERN
+   Used by: nitricCalculator, future form-based modules
+   Purpose: Standard form layout and input fields
+   ============================================ */
+
+.shared-form-row {
+  margin-bottom: var(--gap-md);
+}
+
+.shared-form-row label {
+  font-size: clamp(0.8rem, 1.8vw, 0.86rem); /* PHASE 2: Responsive */
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.1875rem;
+}
+
+.shared-field {
+  width: 100%;
+  padding: clamp(0.375rem, 1vw, 0.4375rem) clamp(0.5rem, 1.2vw, 0.625rem); /* PHASE 2: Responsive */
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-input, var(--bg-panel));
+  color: var(--text-main);
+  font-size: clamp(0.82rem, 1.8vw, 0.9rem); /* PHASE 2: Responsive */
+  outline: none;
+  transition: border-color var(--anim-fast) var(--ease-standard), 
+              box-shadow var(--anim-fast) var(--ease-standard), 
+              background var(--anim-fast) var(--ease-standard);
+}
+
+:root[data-theme="light"] .shared-field {
+  background: #ffffff;
+  border-color: var(--border-medium);
+}
+
+.shared-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+  background: var(--bg-panel);
+}
+
+:root[data-theme="light"] .shared-field:focus {
+  background: #f9fafb;
+}
+
+.shared-field[readonly] {
+  background: var(--bg-disabled);
+  cursor: default;
+  opacity: 0.7;
+}
+
+:root[data-theme="light"] .shared-field[readonly] {
+  background: #f3f4f6;
+}
+
+.shared-hint {
+  font-size: clamp(0.72rem, 1.6vw, 0.78rem); /* PHASE 2: Responsive */
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+  line-height: 1.4;
+}
+
+/* ============================================
+   BUTTON PATTERN (Optional - if standardized)
+   Used by: Future modules with standard buttons
+   Purpose: Consistent button styling
+   ============================================ */
+
+.shared-btn {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  font-size: clamp(0.82rem, 1.8vw, 0.9rem); /* PHASE 2: Responsive */
+  cursor: pointer;
+  transition: all var(--anim-normal) var(--ease-standard);
+  outline: none;
+}
+
+.shared-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.shared-btn:active {
+  transform: scale(0.98);
+}
+
+.shared-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shared-btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.shared-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   Applied to all shared patterns
+
+   Breakpoint System (PHASE 2: Standardized):
+   - 600px: Mobile portrait (primary mobile breakpoint)
+   - 768px: Tablet (general tablet adjustments)
+   - 900px: Mobile landscape (orientation-specific)
+   ============================================ */
+
+/* Tablet and small desktop */
+@media (max-width: 768px) {
+  .shared-module-header {
+    gap: 0.3125rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .shared-module-title-row h1 {
+    font-size: 1.35rem; /* Fallback for older browsers */
+  }
+
+  .shared-module-panel {
+    padding: 0.875rem 0.75rem 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .shared-field {
+    padding: 0.375rem 0.5625rem;
+    font-size: 0.86rem; /* Fallback */
+  }
+
+  .shared-form-row {
+    margin-bottom: 0.5625rem;
+  }
+
+  .shared-form-row label {
+    font-size: 0.82rem; /* Fallback */
+    margin-bottom: 0.125rem;
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 600px) and (orientation: portrait) {
+  .shared-module-header {
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .shared-module-title-row h1 {
+    font-size: 1.25rem; /* Fallback */
+  }
+
+  .shared-module-subtitle {
+    font-size: 0.84rem; /* Fallback */
+    line-height: 1.4;
+  }
+
+  .shared-module-panel {
+    padding: 0.75rem 0.625rem 0.875rem;
+    border-radius: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .shared-module-panel-title {
+    font-size: 0.84rem; /* Fallback */
+    margin-bottom: 0.375rem;
+  }
+
+  .shared-field {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.84rem; /* Fallback */
+  }
+
+  .shared-form-row {
+    margin-bottom: 0.5rem;
+  }
+
+  .shared-form-row label {
+    font-size: 0.8rem; /* Fallback */
+    margin-bottom: 0.125rem;
+  }
+
+  .shared-hint {
+    font-size: 0.74rem; /* Fallback */
+  }
+
+  .shared-btn {
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.86rem; /* Fallback */
+  }
+}
+
+/* Mobile landscape */
+@media (max-width: 900px) and (orientation: landscape) {
+  .shared-module-header {
+    gap: 0.3125rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .shared-module-title-row h1 {
+    font-size: 1.3rem; /* Fallback */
+  }
+
+  .shared-module-panel {
+    padding: 0.8125rem 0.6875rem 0.9375rem;
+  }
+}
+
+/**
+ * END OF SHARED MODULE PATTERNS
+ * 
+ * IMPORTANT NOTES:
+ * - Only add patterns used by 3+ modules
+ * - Always use CSS variables for colors, spacing, and timing
+ * - Include both light/dark theme support
+ * - Add responsive breakpoints (600px/768px/900px)
+ * - Use 'shared-' prefix for shared patterns
+ * - Use '.modulename-' prefix for module-specific styles (v3.0)
+ * - Document which modules use each pattern
+ * 
+ * v3.0 CSS ISOLATION STRATEGY:
+ * - Global app styles: css/styles.css (theme, typography, layout)
+ * - Shared patterns: css/modules.css (reusable .shared-* classes)
+ * - Module styles: inline <style> blocks with .modulename- prefix
+ * - NO shadow DOM: Regular DOM with scoped class naming
+ * 
+ * BORDER RADIUS SCALE (from styles.css):
+ * - 0.5rem (8px):   Small elements (inputs, buttons, small cards)
+ * - 0.75rem (12px): Mobile cards and panels (responsive fallback)
+ * - 0.875rem (14px): Desktop panels
+ * - 1.125rem (18px): Desktop cards (primary containers)
+ * - 999px: Pills, badges, circular elements
+ * 
+ * SPACING SCALE (from styles.css):
+ * - --space-xs: 0.25rem (4px)
+ * - --space-sm: 0.5rem (8px)
+ * - --space-md: 1rem (16px)
+ * - --space-lg: 1.5rem (24px)
+ * - --space-xl: 2rem (32px)
+ * 
+ * GAP SCALE (from styles.css):
+ * - --gap-xs: 0.375rem (6px)
+ * - --gap-sm: 0.5rem (8px)
+ * - --gap-md: 0.625rem (10px)
+ * - --gap-lg: 0.875rem (14px)
+ * - --gap-xl: 1rem (16px)
+ */

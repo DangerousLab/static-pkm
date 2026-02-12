@@ -1,0 +1,50 @@
+{
+  "version": "7c5be6a",
+  "generated": "2026-02-12T19:24:34.239Z",
+  "preCache": {
+    "local": [
+      "./",
+      "./index.html",
+      "./manifest.json",
+      "./favicon.ico",
+      "./javascript/app.min.js",
+      "./javascript/tree.json",
+      "./css/app.min.css",
+      "./Home/Test/testcssonly.js",
+      "./Home/Test/testevents.js",
+      "./Home/Test/testisolation.js",
+      "./Home/Test/testresources.js",
+      "./Home/Test/testsecurity.js",
+      "./Home/Tools/calcA.js",
+      "./Home/Tools/calcB.js",
+      "./Home/Tools/calcC.js",
+      "./Home/Tools/calcD.js",
+      "./Home/Tools/nitricCalculator.js",
+      "./Home/calcE.js",
+      "./vendor/ses/ses.umd.min.js",
+      "./vendor/vendor-README.md",
+      "./assets/banner-dark.png",
+      "./assets/banner-light.png",
+      "./assets/favicon/apple-touch-icon.png",
+      "./assets/favicon/favicon.svg",
+      "./assets/favicon/icon-192.png",
+      "./assets/favicon/icon-512.png",
+      "./assets/logo-dark.png",
+      "./assets/logo-light.png"
+    ],
+    "cdn": [
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-brands-400.woff2",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-regular-400.woff2",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-solid-900.woff2",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-v4compatibility.woff2",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff",
+      "https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff"
+    ]
+  }
+}

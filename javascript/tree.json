@@ -1,0 +1,123 @@
+{
+  "type": "folder",
+  "name": "Home",
+  "path": "Home",
+  "children": [
+    {
+      "type": "folder",
+      "name": "Test",
+      "path": "Home/Test",
+      "children": [
+        {
+          "type": "module",
+          "id": "testcssonly",
+          "title": "🎨 CSS-Only Test Module",
+          "tags": [
+            "test",
+            "css",
+            "shadow-dom",
+            "isolation"
+          ],
+          "file": "Home/Test/testcssonly.js"
+        },
+        {
+          "type": "module",
+          "id": "testevents",
+          "title": "🎯 Event System Isolation Test",
+          "tags": [
+            "test",
+            "security",
+            "events",
+            "isolation"
+          ],
+          "file": "Home/Test/testevents.js"
+        },
+        {
+          "type": "module",
+          "id": "testisolation",
+          "title": "🔬 Isolation Verification Test",
+          "tags": [
+            "test",
+            "isolation",
+            "ses",
+            "security"
+          ],
+          "file": "Home/Test/testisolation.js"
+        },
+        {
+          "type": "module",
+          "id": "testresources",
+          "title": "⚡ Resource Limits Test",
+          "tags": [
+            "test",
+            "security",
+            "resources",
+            "dos"
+          ],
+          "file": "Home/Test/testresources.js"
+        },
+        {
+          "type": "module",
+          "id": "testsecurity",
+          "title": "🔒 Security Fix Verification",
+          "tags": [
+            "test",
+            "security",
+            "ses",
+            "isolation"
+          ],
+          "file": "Home/Test/testsecurity.js"
+        }
+      ]
+    },
+    {
+      "type": "folder",
+      "name": "Tools",
+      "path": "Home/Tools",
+      "children": [
+        {
+          "type": "module",
+          "id": "calcA",
+          "title": "Short Test One",
+          "tags": [],
+          "file": "Home/Tools/calcA.js"
+        },
+        {
+          "type": "module",
+          "id": "calcB",
+          "title": "Medium Length Name Test",
+          "tags": [],
+          "file": "Home/Tools/calcB.js"
+        },
+        {
+          "type": "module",
+          "id": "calcC",
+          "title": "Longer Sidebar Title Length Test",
+          "tags": [],
+          "file": "Home/Tools/calcC.js"
+        },
+        {
+          "type": "module",
+          "id": "calcD",
+          "title": "Really Quite Long Sidebar Title Example",
+          "tags": [],
+          "file": "Home/Tools/calcD.js"
+        },
+        {
+          "type": "module",
+          "id": "nitricCalculator",
+          "title": "Nitric Acid Stoichiometry Calculator",
+          "tags": [],
+          "file": "Home/Tools/nitricCalculator.js"
+        }
+      ]
+    },
+    {
+      "type": "module",
+      "id": "calcE",
+      "title": "Extremely Long Sidebar Calculator Title For Layout Testing",
+      "tags": [],
+      "file": "Home/calcE.js"
+    }
+  ]
+}

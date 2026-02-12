@@ -1,0 +1,1157 @@
+/* ==================== CSS VARIABLES ==================== */
+:root {
+  /* Base Colors */
+  --bg: #3c3c3c;
+  --bg-card: #303030;
+  --bg-panel: #262626;
+  --border-subtle: rgba(120, 120, 120, 0.7);
+  --accent: #e5e5e5;
+  --accent-soft: rgba(229, 229, 229, 0.08);
+  --text-main: #f5f5f5;
+  --text-muted: #c4c4c4;
+  --danger: #ff4b4b;
+  --success: #4ade80;
+
+  /* Layout Variables */
+  --sidebar-base: 240px;
+  --header-height: 90px;
+  --header-height-mobile: 44px;
+  --landscape-leftbar-width: 44px;
+
+  /* Color Variables (Phase 1) */
+  --border-medium: rgba(148, 148, 148, 0.6);
+  --border-light: rgba(180, 180, 180, 0.5);
+  --border-strong: rgba(160, 160, 160, 0.55);
+  --bg-hover: rgba(80, 80, 80, 0.35);
+  --bg-disabled: rgba(128, 128, 128, 0.2);
+  --bg-highlight: rgba(224, 160, 31, 0.25);
+  --accent-gold: rgb(224, 160, 31);
+
+  /* Animation Timing Variables (Phase 1) */
+  --anim-fast: 0.15s;
+  --anim-normal: 0.2s;
+  --anim-slow: 0.4s;
+  --anim-delay-1: 0.075s;
+  --anim-delay-2: 0.15s;
+  --ease-standard: ease;
+  --ease-out: ease-out;
+
+  /* Gradient Variables (Phase 1) */
+  --gradient-bg: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%);
+  --gradient-sidebar: radial-gradient(circle at top left, rgba(31, 31, 31, 0.96), rgba(31, 31, 31, 0.9));
+  --gradient-card: radial-gradient(circle at top left, var(--bg-card), var(--bg-panel) 45%, #1a1a1a 100%);
+
+  /* PHASE 2: Spacing Scale (rem-based) */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+
+  /* PHASE 2: Gap Scale */
+  --gap-xs: 0.375rem;    /* 6px */
+  --gap-sm: 0.5rem;      /* 8px */
+  --gap-md: 0.625rem;    /* 10px */
+  --gap-lg: 0.875rem;    /* 14px */
+  --gap-xl: 1rem;        /* 16px */
+
+  /* PHASE 2: Border Radius Scale */
+  --radius-sm: 0.5rem;   /* 8px - inputs, small elements */
+  --radius-md: 0.875rem; /* 14px - panels */
+  --radius-lg: 1.125rem; /* 18px - cards */
+  --radius-full: 999px;  /* Pills/circles */
+}
+
+/* Light Theme Variables */
+:root[data-theme="light"] {
+  --bg: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-panel: #f9fafb;
+  --border-subtle: rgba(148, 163, 184, 0.7);
+  --accent: #111111;
+  --accent-soft: rgba(17, 17, 17, 0.04);
+  --text-main: #111111;
+  --text-muted: #6b7280;
+  --danger: #dc2626;
+  --success: #16a34a;
+
+  /* Light Theme Color Variables */
+  --border-medium: rgba(148, 163, 184, 0.6);
+  --border-light: rgba(148, 163, 184, 0.5);
+  --border-strong: rgba(148, 163, 184, 0.7);
+  --bg-hover: rgba(148, 163, 184, 0.25);
+  --bg-disabled: rgba(148, 163, 184, 0.15);
+  --bg-highlight: rgba(224, 160, 31, 0.2);
+  --accent-gold: rgb(224, 160, 31);
+
+  /* Light Theme Gradients */
+  --gradient-bg: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
+  --gradient-sidebar: radial-gradient(circle at top left, #f9fafb, #e5e7eb);
+  --gradient-card: radial-gradient(circle at top left, var(--bg-card), var(--bg-panel) 40%, #e5e7eb 100%);
+}
+
+/* ==================== RESPONSIVE BREAKPOINTS REFERENCE ====================
+ * Standard breakpoints for the application:
+ * 
+ * --bp-mobile: 600px    - Mobile portrait (primary mobile breakpoint)
+ * --bp-tablet: 768px    - Tablet and small desktop
+ * --bp-sidebar: 840px   - Sidebar behavior toggle
+ * --bp-desktop: 1024px  - Desktop and large screens
+ * 
+ * Landscape: max-height: 600px and (orientation: landscape)
+ * 
+ * Note: CSS custom properties cannot be used in @media queries directly,
+ * so these are documented here as reference only.
+ * ========================================================================= */
+
+/* ==================== GLOBAL STYLES ==================== */
+
+* {
+  box-sizing: border-box;
+}
+
+/* Prevent pinch-zoom on touch devices */
+html, body {
+  touch-action: pan-x pan-y;  /* Allow panning but prevent pinch zoom */
+  -ms-touch-action: pan-x pan-y;
+  overscroll-behavior: none;  /* Prevent pull-to-refresh bounce */
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #1f1f1f; /* SOLID color first for iOS status bar */
+  background-image: var(--gradient-bg);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", sans-serif;
+  transition: background var(--anim-normal) var(--ease-standard), 
+              color var(--anim-normal) var(--ease-standard);
+}
+
+:root[data-theme="light"] body {
+  background-color: #f3f4f6; /* SOLID color for iOS status bar */
+  background-image: var(--gradient-bg);
+}
+
+/* ==================== WEBAPP STATUS BAR THEMING ==================== */
+
+/* Theme-aware status bar background for portrait webapp mode */
+/* Fills safe area (notch/status bar) with theme color */
+html {
+  background: #1f1f1f; /* Dark theme default */
+  min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari fix */
+}
+
+:root[data-theme="light"] html {
+  background: #f3f4f6; /* Light theme */
+}
+
+/* Ensure body background doesn't override html in safe areas */
+body {
+  background-attachment: local; /* Scroll with content, not fixed to viewport */
+}
+
+/* ==================== APP SHELL LAYOUT ==================== */
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "header"
+    "main";
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px); /* Safe area bottom */
+}
+
+/* ==================== SLIDE-UP FADE ANIMATION ==================== */
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Initial load animations with staggered delays (uniform 75ms intervals) */
+.header-logo-img {
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: 0s;
+  animation-fill-mode: both;
+}
+
+.header-banner-img {
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-1);
+  animation-fill-mode: both;
+}
+
+.header-tagline {
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-2);
+  animation-fill-mode: both;
+}
+
+/* Theme toggle animations (same timing as initial load) */
+.header-logo-img.animate {
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: 0s;
+  animation-fill-mode: both;
+}
+
+.header-banner-img.animate {
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-1);
+  animation-fill-mode: both;
+}
+
+.header-tagline.animate {
+  animation: slideUpFade var(--anim-slow) var(--ease-out);
+  animation-delay: var(--anim-delay-2);
+  animation-fill-mode: both;
+}
+
+/* ==================== HEADER SECTION ==================== */
+
+.app-header {
+  grid-area: header;
+  position: sticky;
+  top: 0; /* Keep at viewport top */
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm) var(--space-md);
+  padding-top: max(var(--space-sm), env(safe-area-inset-top)); /* Padding pushes content down */
+  padding-left: max(var(--space-md), env(safe-area-inset-left));
+  padding-right: max(var(--space-md), env(safe-area-inset-right));
+  background: #1f1f1f;
+  border-bottom: 1px solid var(--border-medium);
+  min-height: var(--header-height);
+}
+
+.header-bar {
+  width: 100%;
+  max-width: 1100px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: var(--gap-xl);
+  position: relative; /* ← Establish positioning context for absolute logo */
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  border: none;
+  background: transparent;
+  color: #e5e5e5;
+  cursor: pointer;
+  padding: 0.25rem 0.125rem;
+  height: 32px; /* Clickable target */
+  position: relative; /* Establish positioning context */
+  z-index: 50; /* Ensure button is above other elements */
+}
+
+:root[data-theme="light"] .sidebar-toggle {
+  color: #111111;
+}
+
+:root[data-theme="light"] .app-header {
+  background: #f3f4f6;
+  border-bottom-color: var(--border-light);
+}
+
+.sidebar-toggle-icon {
+  width: 18px; /* Fixed - icon size */
+  height: 2px; /* Fixed - border width */
+  background: currentColor;
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background var(--anim-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 18px; /* Fixed - icon size */
+  height: 2px; /* Fixed - border width */
+  background: currentColor;
+  border-radius: var(--radius-full);
+  transition: transform var(--anim-fast) var(--ease-standard), 
+              opacity var(--anim-fast) var(--ease-standard), 
+              top var(--anim-fast) var(--ease-standard),
+              bottom var(--anim-fast) var(--ease-standard);
+}
+
+.sidebar-toggle-icon::before {
+  top: -5px;
+}
+
+.sidebar-toggle-icon::after {
+  bottom: -5px;
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon {
+  background: transparent;
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon::after {
+  bottom: 0;
+  transform: rotate(-45deg);
+}
+
+.sidebar-toggle-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* PHASE 2: Standardized breakpoint - was 640px */
+@media (max-width: 600px) {
+  .sidebar-toggle-label {
+    display: none;
+  }
+}
+
+/* Logo and Banner */
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-lg);
+  position: absolute; /* ← Absolute positioning */
+  left: 50%; /* ← Center horizontally */
+  transform: translateX(-50%); /* ← Perfect center */
+  pointer-events: none; /* ← Let clicks pass through to grid items below */
+}
+
+.header-center > * {
+  pointer-events: auto; /* ← Re-enable clicks on logo/banner elements */
+}
+
+.header-logo-wrap {
+  height: clamp(44px, 10vh, 72px); /* PHASE 2: Responsive scaling */
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-banner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: clamp(44px, 10vh, 72px); /* PHASE 2: Responsive scaling */
+}
+
+.header-logo-img {
+  max-height: 100%;
+  height: clamp(44px, 10vh, 72px); /* PHASE 2: Responsive scaling */
+  width: auto;
+  display: block;
+}
+
+.header-banner-img {
+  max-height: clamp(38px, 8vh, 56px); /* PHASE 2: Responsive scaling */
+  height: auto;
+  width: auto;
+  display: block;
+}
+
+.header-tagline {
+  font-family: 'Uni Sans', sans-serif;
+  font-size: clamp(0.65rem, 1.5vw, 0.7rem); /* PHASE 2: Responsive font */
+  font-weight: 400;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* PHASE 2: Standardized breakpoint - was 640px */
+@media (max-width: 600px) {
+  .app-header {
+    padding: var(--space-sm) 0.75rem;
+    min-height: 60px; /* Fixed - mobile header height */
+  }
+
+  .header-logo-wrap {
+    height: 44px; /* Fixed on mobile */
+  }
+
+  .header-logo-img {
+    height: 44px; /* Fixed on mobile */
+  }
+
+  .header-banner-wrap {
+    display: none;
+  }
+}
+
+/* Prevent hover interactions on logos that might trigger browser prefetching */
+.header-logo-img,
+.header-banner-img,
+.landscape-leftbar-logo img {
+  pointer-events: none; /* Block all mouse interactions */
+  user-select: none; /* Prevent selection */
+  -webkit-user-drag: none; /* Prevent dragging */
+  -webkit-touch-callout: none; /* Prevent iOS callout */
+}
+
+/* Optimize animations to prevent browser revalidation */
+.header-logo-img,
+.header-banner-img,
+.landscape-leftbar-logo img {
+  will-change: transform, opacity; /* Hint to browser for optimization */
+  backface-visibility: hidden; /* Force hardware acceleration */
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0); /* Force GPU layer */
+  -webkit-transform: translateZ(0);
+}
+
+/* Remove will-change after animation completes to free resources */
+.header-logo-img.animate,
+.header-banner-img.animate,
+.landscape-leftbar-logo img.animate {
+  will-change: transform, opacity;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  justify-self: end;
+  width: 36px; /* Fixed - touch target */
+  height: 36px; /* Fixed - touch target */
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #262626;
+  cursor: pointer;
+  color: #f5f5f5;
+  transition: background var(--anim-normal) var(--ease-standard), 
+              border-color var(--anim-normal) var(--ease-standard), 
+              transform 0.1s var(--ease-standard);
+}
+
+:root[data-theme="light"] .theme-toggle {
+  background: #e5e7eb;
+  color: #111111;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.theme-toggle span,
+.theme-toggle i {
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== MOBILE LANDSCAPE LEFT BAR ==================== */
+
+.landscape-leftbar {
+  display: none;
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  /* Fixed viewport dimensions */
+  html, body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Body background extends into safe areas */
+  body {
+    background: var(--gradient-bg) !important;
+  }
+
+  .app-shell {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Notch area blocker - covers notch with solid color */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: env(safe-area-inset-left, 0px);
+    height: 100vh;
+    background: #1f1f1f;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  :root[data-notch-side="right"] body::before {
+    left: auto;
+    right: 0;
+    width: env(safe-area-inset-right, 0px);
+  }
+
+  :root[data-notch-side="none"] body::before {
+    display: none;
+  }
+
+  :root[data-theme="light"] body::before {
+    background: #f3f4f6;
+  }
+
+  /* Left bar - positioned based on notch detection */
+  .landscape-leftbar {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: env(safe-area-inset-left, 0px);
+    width: var(--landscape-leftbar-width);
+    height: calc(100vh - env(safe-area-inset-top, 0px));
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #1f1f1f;
+    border-right: 1px solid var(--border-medium);
+  }
+
+  /* Left bar when notch is on RIGHT or no notch detected */
+  :root[data-notch-side="right"] .landscape-leftbar,
+  :root[data-notch-side="none"] .landscape-leftbar {
+    left: 0;
+  }
+
+  :root[data-theme="light"] .landscape-leftbar {
+    background: #f3f4f6;
+    border-right-color: var(--border-medium);
+  }
+
+  .landscape-leftbar-toggle {
+    width: 44px; /* Fixed - touch target */
+    height: 44px; /* Fixed - touch target */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    color: var(--text-main);
+    flex-shrink: 0;
+  }
+
+  .landscape-leftbar-logo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.125rem;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .landscape-leftbar-logo img {
+    max-width: 38px; /* Fixed - icon size */
+    max-height: 38px; /* Fixed - icon size */
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    animation: slideUpFade var(--anim-slow) var(--ease-out);
+    animation-delay: 0s;
+    animation-fill-mode: both;
+  }
+
+  .landscape-leftbar-logo img.animate {
+    animation: slideUpFade var(--anim-slow) var(--ease-out);
+    animation-delay: 0s;
+    animation-fill-mode: both;
+  }
+
+  .landscape-leftbar .theme-toggle {
+    width: 32px; /* Fixed - touch target */
+    height: 32px; /* Fixed - touch target */
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+  }
+
+  .landscape-leftbar .theme-toggle span {
+    font-size: 0.9rem;
+  }
+
+  .app-header {
+    display: none !important;
+  }
+
+  /* Sidebar - DEFAULT (notch on left) */
+  .sidebar {
+    position: fixed !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
+    width: 80vw !important;
+    max-width: 360px !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-left: 0.625rem !important; /* ← Override base sidebar's safe-area left padding */
+    padding-right: 0.625rem !important;
+    transform: translateX(-100%) !important;
+    z-index: 20 !important;
+    overflow: hidden !important;
+  }
+
+  /* Sidebar - notch on RIGHT or no notch */
+  :root[data-notch-side="right"] .sidebar,
+  :root[data-notch-side="none"] .sidebar {
+    left: var(--landscape-leftbar-width) !important;
+  }
+
+  .sidebar[data-open="true"] {
+    transform: translateX(0) !important;
+  }
+
+  /* Main content - positioned after leftbar */
+  /* Main content - DEFAULT (notch on left) */
+  .main-content {
+    position: fixed !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    right: 0 !important; /* ← Extends to right edge */
+    bottom: 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0.25rem 0.5rem !important;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: transparent !important;
+  }
+
+  /* Main content - notch on RIGHT */
+  :root[data-notch-side="right"] .main-content {
+    left: var(--landscape-leftbar-width) !important;
+    right: env(safe-area-inset-right, 0px) !important; /* ← Respects right safe area */
+  }
+
+  /* Main content - no notch */
+  :root[data-notch-side="none"] .main-content {
+    left: var(--landscape-leftbar-width) !important;
+    right: 0 !important; /* ← Full width */
+  }
+
+  .main-content .page-root {
+    padding: 0.125rem 0.125rem 0.75rem !important;
+    max-width: 100%;
+    background: transparent !important;
+  }
+
+  .page-root .card {
+    margin-top: 0.25rem !important;
+    padding: 0.625rem 1rem 1.125rem !important;
+    border-radius: var(--radius-md) !important;
+    max-width: 100%;
+  }
+
+  .card .content-header,
+  .card .calculator-header {
+    margin-bottom: 0.75rem !important;
+  }
+}
+
+/* ==================== SIDEBAR NAVIGATION ==================== */
+
+.sidebar {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  z-index: 30;
+  height: calc(100vh - var(--header-height));
+  padding: 0.75rem 0.625rem 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); /* Safe area bottom */
+  padding-left: max(0.625rem, env(safe-area-inset-left, 0px)); /* Safe area left */
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  border-right: 1px solid var(--border-medium);
+  background: var(--gradient-sidebar);
+  backdrop-filter: blur(18px);
+  transform: translateX(-100%);
+  overflow: hidden;
+  transition: transform 0.22s var(--ease-out);
+}
+
+:root[data-theme="light"] .sidebar {
+  background: var(--gradient-sidebar);
+  border-right-color: var(--border-medium);
+}
+
+/* PHASE 2: Standardized breakpoint */
+@media (max-width: 600px) {
+  .app-header {
+    padding: var(--space-sm) 0.75rem;
+    padding-top: max(var(--space-sm), env(safe-area-inset-top)); /* ← PRESERVE safe area */
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    min-height: 60px; /* Fixed - mobile header height */
+  }
+
+  /* Sidebar positioned below mobile header */
+  .sidebar {
+    top: calc(var(--header-height-mobile) + env(safe-area-inset-top, 0px)) !important;
+    height: calc(100vh - var(--header-height-mobile) - env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+/* Sidebar Header (Breadcrumb) */
+.sidebar-header {
+  font-size: clamp(0.7rem, 1.8vw, 0.78rem); /* PHASE 2: Responsive font */
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  padding: 0.25rem 0.25rem 0.25rem 0.375rem;
+}
+
+.sidebar-breadcrumb {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: clamp(0.7rem, 1.8vw, 0.78rem); /* PHASE 2: Responsive font */
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sidebar-breadcrumb-part {
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color var(--anim-fast) var(--ease-standard);
+}
+
+.sidebar-breadcrumb-part.current {
+  cursor: default;
+  color: var(--text-main);
+}
+
+.sidebar-breadcrumb-separator {
+  color: var(--text-muted);
+}
+
+/* Sidebar Navigation Menu */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-right: 0.25rem;
+  overflow-y: auto;
+}
+
+.nav-item {
+  border-radius: 0;
+  padding: 0.3125rem 0.375rem;
+  font-size: clamp(0.82rem, 2vw, 0.88rem); /* PHASE 2: Responsive font */
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  justify-content: flex-start;
+  border: none;
+  background: transparent;
+  transition: background 0.18s var(--ease-standard), 
+              color 0.18s var(--ease-standard);
+}
+
+.nav-index {
+  font-size: clamp(0.72rem, 1.8vw, 0.78rem); /* PHASE 2: Responsive font */
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 1.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  align-self: flex-start;
+}
+
+.nav-icon {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+  margin-left: 0.25rem;
+  margin-right: 0.375rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-width: 14px; /* Fixed - icon size */
+  justify-content: center;
+  align-self: center;
+}
+
+.nav-label {
+  font-size: clamp(1.1rem, 2.5vw, 1.2rem); /* PHASE 2: Responsive font */
+  line-height: 1.1;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: center;
+}
+
+.nav-item:hover .nav-index,
+.nav-item.active .nav-index {
+  color: var(--accent-gold);
+}
+
+.nav-item:hover .nav-icon {
+  opacity: 1;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="light"] .nav-item:hover {
+  background: var(--bg-hover);
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.75rem 0.25rem 0 0.375rem;
+}
+
+/* Sidebar Responsive Behavior */
+@media (min-width: 841px) {
+  .sidebar[data-open="true"] {
+    transform: translateX(0);
+    transition: transform 0.22s var(--ease-out), width var(--anim-normal) var(--ease-out);
+  }
+}
+
+@media (max-width: 840px) {
+  .sidebar {
+    width: 80vw; /* Mobile sidebar - 80% screen width */
+    max-width: 360px; /* Desktop sidebar - max readable width */
+  }
+
+  .sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+}
+
+/* ==================== SEARCH BAR SECTION ==================== */
+
+.sidebar-search {
+  padding: var(--space-sm) var(--gap-md) 0.75rem;
+  border-bottom: 1px solid rgba(148, 148, 148, 0.3);
+}
+
+:root[data-theme="light"] .sidebar-search {
+  border-bottom-color: rgba(148, 163, 184, 0.3);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  background: #262626;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 0.5rem;
+  transition: border-color var(--anim-normal) var(--ease-standard), 
+              background var(--anim-normal) var(--ease-standard);
+}
+
+:root[data-theme="light"] .search-input-wrapper {
+  background: #ffffff;
+  border-color: var(--border-medium);
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--accent);
+  background: #2c2c2c;
+}
+
+:root[data-theme="light"] .search-input-wrapper:focus-within {
+  background: #f9fafb;
+}
+
+.search-icon {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: clamp(0.82rem, 2vw, 0.88rem); /* PHASE 2: Responsive font */
+  outline: none;
+  padding: 0;
+  min-width: 0;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.search-clear {
+  flex-shrink: 0;
+  width: 18px; /* Fixed - icon size */
+  height: 18px; /* Fixed - icon size */
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  transition: background var(--anim-fast) var(--ease-standard), 
+              color var(--anim-fast) var(--ease-standard);
+}
+
+.search-clear:hover {
+  background: var(--bg-disabled);
+  color: var(--text-main);
+}
+
+.search-results {
+  margin-top: var(--space-sm);
+  max-height: 320px; /* Search results max height */
+  overflow-y: auto;
+  border-radius: var(--radius-sm);
+  background: #1f1f1f;
+  border: 1px solid var(--border-strong);
+}
+
+:root[data-theme="light"] .search-results {
+  background: #ffffff;
+  border-color: var(--border-light);
+}
+
+.search-result-item {
+  padding: var(--space-sm) var(--gap-md);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(148, 148, 148, 0.2);
+  transition: background var(--anim-fast) var(--ease-standard);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover,
+.search-result-item.selected {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="light"] .search-result-item:hover,
+:root[data-theme="light"] .search-result-item.selected {
+  background: var(--bg-hover);
+}
+
+.search-result-title {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  margin-bottom: 0.1875rem;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.search-result-icon {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.search-result-path {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.search-no-results {
+  padding: 0.75rem var(--gap-md);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.search-match {
+  background: var(--bg-highlight);
+  font-weight: 500;
+  border-radius: 2px; /* Fixed - highlight border */
+  padding: 0 0.125rem;
+}
+
+:root[data-theme="light"] .search-match {
+  background: var(--bg-highlight);
+}
+
+/* ==================== MAIN CONTENT AREA ==================== */
+
+.main-content {
+  grid-area: main;
+  padding: var(--space-md);
+  display: flex;
+  justify-content: center;
+}
+
+.page-root {
+  max-width: 980px; /* Optimal reading width (66-75 chars per line) */
+  width: 100%;
+  padding: var(--space-sm) 0.25rem 1.5rem;
+}
+
+.card {
+  position: relative;
+  background: var(--gradient-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: clamp(1.125rem, 3vw, 1.75rem) clamp(0.875rem, 2.5vw, 2rem) clamp(1.25rem, 3vw, 1.875rem); /* PHASE 2: Responsive padding */
+  margin-top: clamp(0.5rem, 2vw, 1rem); /* PHASE 2: Responsive margin */
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+}
+
+:root[data-theme="light"] .card {
+  background: var(--gradient-card);
+  box-shadow: 0 18px 30px rgba(148, 163, 184, 0.35),
+    0 0 0 1px rgba(148, 163, 184, 0.3);
+}
+
+/* Card animation using slideUpFade keyframes */
+.card.preload {
+  animation: none;
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.card.loaded {
+  animation: slideUpFade var(--anim-slow) var(--ease-out) 0s;
+  animation-fill-mode: both;
+}
+
+/* ==================== MODULE ISOLATION LAYERS ==================== */
+
+/* Layer 1: CSS Containment - Prevent layout/style leakage */
+.card {
+  contain: layout style;
+  isolation: isolate;
+}
+
+/* Layer 2: Module Boundary - Reset + Theme inheritance */
+.module-boundary {
+  all: revert;
+  
+  /* Re-enable theme variables (one-way flow: app → module) */
+  color: var(--text-main);
+  background: var(--bg-card);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  
+  /* Prevent position escaping */
+  position: relative;
+  
+  /* Ensure consistent box model */
+  box-sizing: border-box;
+  
+  /* Contain module content */
+  overflow: auto;
+  width: 100%;
+}
+
+/* Ensure all children inherit box-sizing */
+.module-boundary * {
+  box-sizing: inherit;
+}
+
+/* Nested boundaries (for future transclusion) */
+.module-boundary .module-boundary {
+  all: revert;
+  
+  /* Re-apply theme variables */
+  color: var(--text-main);
+  background: var(--bg-card);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  
+  position: relative;
+  box-sizing: border-box;
+  overflow: auto;
+  width: 100%;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+
+/* PHASE 2: Removed - obsolete with standardized breakpoints */
+/* @media (max-width: 480px) was here */
+
+/* ============================================
+   PORTRAIT MOBILE MODE - MAXIMIZE HORIZONTAL SPACE
+   ============================================ */
+@media (max-width: 600px) and (orientation: portrait) {
+  /* Remove horizontal padding from main content area */
+  .main-content {
+    padding: 0.5rem 0; /* Vertical preserved, horizontal removed */
+  }
+
+  .page-root {
+    padding: 0.5rem 0.25rem 1rem; /* Minimal horizontal */
+  }
+
+  /* Content cards: Moderate padding reduction */
+  .card {
+    margin: 0.5rem 0.25rem;
+    padding: 1.125rem 0.875rem 1.25rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* Sidebar: Moderate horizontal padding reduction */
+  .sidebar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1f1f1f" id="theme-color-meta" />
+
+    <!-- PWA support (no auto-hide bars) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <title>Unstablon</title>
+
+    <!-- Favicon - Traditional Static Approach -->
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon/favicon.svg">
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/favicon/apple-touch-icon.png">
+
+    <!-- Android/PWA Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/favicon/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/favicon/icon-512.png">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="./css/app.min.css">
+    <!-- Uni Sans Font -->
+    <link href="https://fonts.cdnfonts.com/css/uni-sans" rel="stylesheet">
+    <!-- FontAwesome loaded dynamically by fontawesome-loader.js -->
+    <!-- MathJax loaded dynamically by modules (via utilities/mathjax-loader.js) -->
+
+    <!-- SES hardens JavaScript environment -->
+    <script src="./vendor/ses/ses.umd.min.js"></script>
+    <script>
+      lockdown(); // Initialize SES 
+    </script>
+
+    <!-- Main Application Script -->
+    <script type="module" src="./javascript/app.min.js"></script>
+  </head>
+
+  <body>
+    <!-- Mobile Landscape Left Bar (44px vertical sidebar) - MOVED OUTSIDE app-shell -->
+    <div class="landscape-leftbar">
+      <!-- Toggle button at top -->
+      <button
+        id="landscapeToggle"
+        class="landscape-leftbar-toggle sidebar-toggle"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+      >
+        <span class="sidebar-toggle-icon"></span>
+      </button>
+
+      <!-- Logo in middle -->
+      <div class="landscape-leftbar-logo">
+        <img
+          id="landscapeLogo"
+          src="./assets/logo-dark.png"
+          alt="Logo"
+          loading="eager"
+        />
+      </div>
+
+      <!-- Theme toggle at bottom -->
+      <button
+        id="landscapeThemeToggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="Toggle theme"
+      >
+        <span id="landscapeThemeIcon">☾</span>
+      </button>
+    </div>
+
+    <div class="app-shell">
+      <!-- Header Section -->
+      <header class="app-header">
+        <div class="header-bar">
+          <!-- Sidebar Toggle Button -->
+          <button
+            id="sidebarToggle"
+            class="sidebar-toggle"
+            type="button"
+            aria-label="Toggle navigation"
+            aria-expanded="false"
+          >
+            <span class="sidebar-toggle-icon"></span>
+            <span class="sidebar-toggle-label">Menu</span>
+          </button>
+
+          <!-- Logo and Banner -->
+          <div class="header-center">
+            <div class="header-logo-wrap">
+              <img
+                id="headerLogo"
+                src="./assets/logo-dark.png"
+                alt="Unstablon Logo"
+                class="header-logo-img"
+                loading="eager"
+              />
+            </div>
+            <div class="header-banner-wrap">
+              <img
+                id="headerBanner"
+                src="./assets/banner-dark.png"
+                alt="Unstablon"
+                class="header-banner-img"
+                loading="eager"
+              />
+              <p class="header-tagline">A static, modular PKM for experimental scientists</p>
+            </div>
+          </div>
+
+          <!-- Theme Toggle Button -->
+          <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+            aria-label="Toggle theme"
+          >
+            <span id="themeIcon">☾</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Sidebar Navigation -->
+      <aside
+        id="sidebar"
+        class="sidebar"
+        data-open="false"
+        aria-label="Main navigation"
+      >
+
+      <!-- Search Bar Section (populated by sidebar.js) -->
+      <div class="sidebar-search"></div>
+
+        <!-- Breadcrumb Navigation -->
+        <div class="sidebar-header">
+          <div class="sidebar-breadcrumb" id="sidebarBreadcrumb">Home</div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav id="sidebarNav" class="sidebar-nav"></nav>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+          <div>Footer</div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <div class="page-root">
+          <section id="contentCard" class="card preload"></section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
