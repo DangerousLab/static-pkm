@@ -18,9 +18,15 @@ export const state = {
   loadedScripts: new Set(),
   moduleFactories: new Map(),
   moduleReadyCallbacks: new Map(),
-  // NEW: Cache computed widths per folder path
+  // Cache computed widths per folder path
   folderWidthCache: new Map(),
+  // In-memory cache of fetched module code
+  moduleCodeCache: new Map(), // scriptUrl -> code string
+  // Track in-progress preload operations
+  preloadPromises: new Map(), // scriptUrl -> Promise<code>
 };
+
+
 
 export const themeController = {
   getTheme() {

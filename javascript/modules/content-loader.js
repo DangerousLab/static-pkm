@@ -60,9 +60,30 @@ export function clearActiveInstance() {
 
 /**
  * Fetch module code as text (for compartment evaluation)
- * Service worker will cache this automatically in PWA mode
+ * Coordinates with preloader using Promises to avoid redundant fetches
  */
 export async function fetchModuleCode(src) {
+  // Check if code is already cached by preloader
+  if (state.moduleCodeCache.has(src)) {
+    const cachedCode = state.moduleCodeCache.get(src);
+    console.log('[ContentLoader] Using cached code from preloader:', src, '(', cachedCode.length, 'bytes )');
+    return cachedCode;
+  }
+  
+  // Check if preloader is currently fetching this module
+  if (state.preloadPromises.has(src)) {
+    console.log('[ContentLoader] Waiting for preloader to finish fetching:', src);
+    try {
+      const code = await state.preloadPromises.get(src);
+      console.log('[ContentLoader] Received code from preloader:', src, '(', code.length, 'bytes )');
+      return code;
+    } catch (error) {
+      console.warn('[ContentLoader] Preloader failed, fetching directly:', error.message);
+      // Fall through to fetch ourselves
+    }
+  }
+  
+  // Not cached and not being preloaded, fetch from network
   console.log('[ContentLoader] Fetching module as text:', src);
   
   const response = await fetch(src);
@@ -72,6 +93,9 @@ export async function fetchModuleCode(src) {
   
   const code = await response.text();
   console.log('[ContentLoader] Fetched', code.length, 'bytes');
+  
+  // Cache for future use
+  state.moduleCodeCache.set(src, code);
   
   return code;
 }
@@ -286,6 +310,12 @@ export function loadDocument(node, done) {
  */
 export function openNode(node) {
   if (!node) return;
+
+  // Skip reload if this node is already active
+  if (state.activeNode && state.activeNode.id === node.id) {
+    console.log('[ContentLoader] Node', node.id, 'already active, skipping reload');
+    return;
+  }
 
   clearActiveInstance();
 

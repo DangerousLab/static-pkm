@@ -165,8 +165,8 @@ export function preloadFolderModules(folderNode) {
 
     console.log('[Preloader] Loading module', index + 1, '/', modulesToPreload.length, ':', mod.id);
 
-    // Fetch module code as text (service worker caches this!)
-    fetch(scriptSrc)
+    // Create Promise for this fetch operation
+    const fetchPromise = fetch(scriptSrc)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to fetch: ${response.status}`);
@@ -175,6 +175,10 @@ export function preloadFolderModules(folderNode) {
       })
       .then(async (moduleCode) => {
         state.loadedScripts.add(scriptSrc);
+        
+        // Store code in memory cache for content-loader
+        state.moduleCodeCache.set(scriptSrc, moduleCode);
+        console.log('[Preloader] Cached code for', scriptSrc, '(', moduleCode.length, 'bytes )');
         
         // Extract display name from code WITHOUT executing
         const displayName = extractDisplayNameFromCode(moduleCode);
@@ -185,17 +189,27 @@ export function preloadFolderModules(folderNode) {
         
         state.preloadedModules.add(mod.id);
         
-        // Continue to next module
-        if (window.requestIdleCallback) {
-          requestIdleCallback(() => preloadNext(index + 1));
-        } else {
-          Promise.resolve().then(() => preloadNext(index + 1));
-        }
+        // Clean up Promise tracker
+        state.preloadPromises.delete(scriptSrc);
+        
+        return moduleCode;
       })
       .catch(error => {
         console.error('[Preloader] Failed to preload module:', scriptSrc, error);
         state.preloadedModules.add(mod.id);
         
+        // Clean up Promise tracker
+        state.preloadPromises.delete(scriptSrc);
+        
+        throw error;
+      });
+    
+    // Store Promise so content-loader can await it
+    state.preloadPromises.set(scriptSrc, fetchPromise);
+    
+    // Wait for fetch to complete, then continue
+    fetchPromise
+      .finally(() => {
         if (window.requestIdleCallback) {
           requestIdleCallback(() => preloadNext(index + 1));
         } else {
