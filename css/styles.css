@@ -241,8 +241,8 @@ body {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-items: center; /* Center middle column content */
   column-gap: var(--gap-xl);
+  position: relative; /* ← Establish positioning context for absolute logo */
 }
 
 /* Sidebar Toggle Button */
@@ -335,6 +335,14 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--gap-lg);
+  position: absolute; /* ← Absolute positioning */
+  left: 50%; /* ← Center horizontally */
+  transform: translateX(-50%); /* ← Perfect center */
+  pointer-events: none; /* ← Let clicks pass through to grid items below */
+}
+
+.header-center > * {
+  pointer-events: auto; /* ← Re-enable clicks on logo/banner elements */
 }
 
 .header-logo-wrap {
@@ -614,6 +622,8 @@ body {
     width: 80vw !important;
     max-width: 360px !important;
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-left: 0.625rem !important; /* ← Override base sidebar's safe-area left padding */
+    padding-right: 0.625rem !important;
     transform: translateX(-100%) !important;
     z-index: 20 !important;
     overflow: hidden !important;
@@ -704,7 +714,7 @@ body {
   border-right-color: var(--border-medium);
 }
 
-/* PHASE 2: Standardized breakpoint - was 640px */
+/* PHASE 2: Standardized breakpoint */
 @media (max-width: 600px) {
   .app-header {
     padding: var(--space-sm) 0.75rem;
@@ -713,7 +723,14 @@ body {
     padding-right: max(0.75rem, env(safe-area-inset-right));
     min-height: 60px; /* Fixed - mobile header height */
   }
+
+  /* Sidebar positioned below header INCLUDING safe area padding */
+  .sidebar {
+    top: calc(60px + max(var(--space-sm), env(safe-area-inset-top, 0px))) !important; /* ← Account for header + safe area */
+    height: calc(100vh - 60px - max(var(--space-sm), env(safe-area-inset-top, 0px))) !important;
+  }
 }
+
 
 /* Sidebar Header (Breadcrumb) */
 .sidebar-header {
