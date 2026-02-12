@@ -7,7 +7,7 @@ import { dom, state, themeController } from '../core/state.js';
 import { scriptUrlFromFile, factoryNameFromId, waitForFactory } from '../core/utils.js';
 import { autoRender, dynamicRender } from '../loader/index.js';
 import { instanceManager } from '../core/instance-manager.js';
-import { createShadowRoot, createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
+import { createSandboxedDocument, createSandboxedWindow } from '../core/dom-isolation.js';
 import { createSecureCompartment, buildCompartmentGlobals } from '../core/js-isolation.js';
 import { messageTunnel } from '../core/message-tunnel.js';
 
@@ -134,22 +134,19 @@ export async function loadModule(node, done) {
   }
   
   // All modules loaded here are USER layer (apply isolation)
-  console.log('[ContentLoader] Applying USER LAYER isolation (SES + Shadow DOM)');
+  console.log('[ContentLoader] Applying USER LAYER isolation (SES + Scoped CSS)');
   
   // Create instance ID first
   const instanceId = instanceManager.generateInstanceId(node.id, null, 'card1');
   
-  // Create shadow root container
+  // Create regular DOM container (no shadow root in v3.0)
   const container = document.createElement("div");
   container.className = "module-container";
   container.dataset.instanceId = instanceId;
   dom.card.appendChild(container);
   
-  // Create isolated shadow DOM (Platform Resources auto-inject)
-  const { shadowRoot, contentRoot } = await createShadowRoot(container, instanceId);
-  
-  // Create sandboxed APIs
-  const sandboxedDocument = createSandboxedDocument(instanceId, shadowRoot);
+  // Create sandboxed APIs (scoped to container)
+  const sandboxedDocument = createSandboxedDocument(instanceId, container);
   const sandboxedWindow = createSandboxedWindow(instanceId);
   const tunnel = messageTunnel.createInstanceAPI(instanceId);
   
@@ -171,7 +168,7 @@ export async function loadModule(node, done) {
     .then(({ factory }) => {
       // Create options object
       const options = {
-        root: contentRoot,        // Shadow DOM root (for module UI)
+        container: container,
         themeController: themeController,
         dynamicRender: dynamicRender,
         instanceId: instanceId,
@@ -200,10 +197,10 @@ export async function loadModule(node, done) {
       }
 
       requestAnimationFrame(async () => { 
-        // Shadow DOM handles CSS isolation automatically
-        // No need for scopeModuleStyles()
+        // v3.0: CSS isolation via scoped class prefixes
+        // Modules use .modulename- prefix pattern
         
-        await autoRender(contentRoot);
+        await autoRender(container);
         dom.card.classList.remove("preload");
         dom.card.classList.add("loaded");
         
@@ -214,8 +211,7 @@ export async function loadModule(node, done) {
         moduleId: node.id,
         parentId: null,
         cardId: 'card1',
-        rootElement: contentRoot,
-        shadowRoot: shadowRoot,
+        rootElement: container,
         container: container
       });
 

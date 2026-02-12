@@ -1,116 +1,24 @@
 /**
  * DOM Isolation Layer
- * Shadow DOM setup + Proxied document/window APIs
+ * Proxied document/window APIs for SES compartments
  */
 
-import { registerShadowRoot, unregisterShadowRoot } from '../loader/platform-resources.js';
-
-export async function createShadowRoot(container, instanceId) {
-  // Create closed shadow root (maximum isolation)
-  const shadowRoot = container.attachShadow({ mode: 'closed' });
-  
-  // Register with Platform Resources system FIRST
-  // This injects all loaded platform resources (MathJax, FontAwesome, etc.)
-  registerShadowRoot(shadowRoot, instanceId);
-  
-  // Inject theme CSS into shadow root (async - loads CSS files)
-  await injectThemeStyles(shadowRoot);
-  
-  // Create module content container (in shadow root)
-  const contentRoot = document.createElement('div');
-  contentRoot.className = 'module-content';
-  contentRoot.dataset.instanceId = instanceId;
-  shadowRoot.appendChild(contentRoot);
-  
-  return { shadowRoot, contentRoot };
-}
-
-/**
- * Inject theme styles into shadow root
- * Uses <link> tags for browser-native caching and simpler implementation
- */
-export async function injectThemeStyles(shadowRoot) {
-  // Create style container
-  const styleContainer = document.createElement('div');
-  styleContainer.className = 'shadow-styles';
-  
-  // 1. Load CSS variables (theme colors, spacing, etc.)
-  const variablesLink = document.createElement('link');
-  variablesLink.rel = 'stylesheet';
-  variablesLink.href = './css/styles.css';
-  styleContainer.appendChild(variablesLink);
-  
-  // 2. Load shared module patterns
-  const modulesLink = document.createElement('link');
-  modulesLink.rel = 'stylesheet';
-  modulesLink.href = './css/modules.css';
-  styleContainer.appendChild(modulesLink);
-  
-  // 3. Add base shadow DOM styles inline (critical rendering path)
-  const baseStyles = document.createElement('style');
-  baseStyles.textContent = `
-    /* Base Shadow DOM styles - CRITICAL for proper rendering */
-    :host {
-      display: block;
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
-      
-      /* Base typography - matches main document */
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-      
-      /* Text rendering */
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-    }
-    
-    /* Module content container inherits theme variables */
-    .module-content {
-      color: var(--text-main);
-      background: transparent;
-      font-family: inherit;
-      font-size: inherit;
-      line-height: inherit;
-      box-sizing: border-box;
-      width: 100%;
-      height: 100%;
-    }
-    
-    /* Ensure all children inherit box-sizing and font properties */
-    .module-content *,
-    .module-content *::before,
-    .module-content *::after {
-      box-sizing: inherit;
-      font-family: inherit;
-    }
-  `;
-  styleContainer.appendChild(baseStyles);
-  
-  // Insert styles at beginning of shadow root
-  shadowRoot.insertBefore(styleContainer, shadowRoot.firstChild);
-  
-  console.log('[DOMIsolation] Injected theme styles via <link> tags (browser-cached)');
-}
-
-export function createSandboxedDocument(instanceId, shadowRoot) {
+export function createSandboxedDocument(instanceId, container) {
   // DOM node limits (prevents DoS attacks)
   const MAX_NODES = 10000;  // Maximum nodes per module
   const WARN_THRESHOLD = 0.8;  // Warn at 80% capacity
   let nodeCount = 0;
   let warningSent = false;
   
-  // Proxied document that restricts access
+  // Proxied document that restricts access to module container
   return new Proxy({}, {
     get(target, prop) {
-      // Allow safe methods scoped to shadow root
+      // Allow safe methods scoped to module container
       if (prop === 'querySelector') {
-        return shadowRoot.querySelector.bind(shadowRoot);
+        return container.querySelector.bind(container);
       }
       if (prop === 'querySelectorAll') {
-        return shadowRoot.querySelectorAll.bind(shadowRoot);
+        return container.querySelectorAll.bind(container);
       }
       if (prop === 'createElement') {
         // Return wrapped createElement with node counting
