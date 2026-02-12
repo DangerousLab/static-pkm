@@ -1,25 +1,35 @@
 /**
  * Shared Module CSS Patterns
  * File: css/modules.css
- * Version: 2.0 (Phase 2 Updates)
- * Last Updated: 2026-02-08
+ * Version: 3.0 (v3.0 Architecture Migration)
+ * Last Updated: 2026-02-12
  * 
  * This file contains reusable CSS patterns used by multiple modules.
  * Only add patterns that are used by 3+ modules OR likely useful for future modules.
  * 
- * Naming Convention: Use 'shared-' prefix for all classes
+ * Naming Convention: Use 'shared-' prefix for shared patterns
+ * Module-Specific: Use '.modulename-' prefix for module isolation
  * 
- * PHASE 1 CHANGES:
+ * PHASE 1 CHANGES (2026-02-08):
  * - Replaced hardcoded RGBA values with CSS variables
  * - Replaced animation timing values with CSS variables
  * - Added documentation comments
  * 
- * PHASE 2 CHANGES:
+ * PHASE 2 CHANGES (2026-02-08):
  * - Converted px to rem for scalable spacing
  * - Added clamp() for responsive font sizing
  * - Used spacing/gap/radius variables from styles.css
  * - Standardized all breakpoints to 600px/768px/900px
  * - Made padding/margins responsive with clamp()
+ * 
+ * v3.0 ARCHITECTURE (2026-02-12):
+ * - Migrated from Shadow DOM to scoped CSS via class prefixes
+ * - Modules now use .modulename- prefix for isolation
+ * - Shared patterns remain unprefixed (global app layer)
+ * - CSS loads globally once, works across all modules
+ * - Simpler debugging: full DOM tree visible in DevTools
+ * - Better performance: no per-module shadow root overhead
+ * - Resources (MathJax, FontAwesome) load once in document.head
  */
 
 /* ============================================
@@ -313,8 +323,15 @@
  * - Always use CSS variables for colors, spacing, and timing
  * - Include both light/dark theme support
  * - Add responsive breakpoints (600px/768px/900px)
- * - Use 'shared-' prefix for all classes
+ * - Use 'shared-' prefix for shared patterns
+ * - Use '.modulename-' prefix for module-specific styles (v3.0)
  * - Document which modules use each pattern
+ * 
+ * v3.0 CSS ISOLATION STRATEGY:
+ * - Global app styles: css/styles.css (theme, typography, layout)
+ * - Shared patterns: css/modules.css (reusable .shared-* classes)
+ * - Module styles: inline <style> blocks with .modulename- prefix
+ * - NO shadow DOM: Regular DOM with scoped class naming
  * 
  * BORDER RADIUS SCALE (from styles.css):
  * - 0.5rem (8px):   Small elements (inputs, buttons, small cards)
