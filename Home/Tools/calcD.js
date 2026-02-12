@@ -8,7 +8,7 @@
     // ==================== NO INLINE STYLES NEEDED ====================
     // All styles now come from css/modules.css (shared classes)
 
-    const container = document.createElement('div');
+    const moduleContent = document.createElement('div');
     moduleContent.className = 'calcd-root';
 
     // Using shared classes from css/modules.css
