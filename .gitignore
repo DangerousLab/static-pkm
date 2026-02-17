@@ -26,3 +26,5 @@ ROLLUP-GUIDE.md
 
 # Backups
 backup-*/
+/.claude
+.mcp.json
