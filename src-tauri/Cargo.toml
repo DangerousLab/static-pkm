@@ -1,0 +1,58 @@
+[package]
+name = "unstablon-pkm"
+version = "2.0.0"
+description = "Unstablon - Science-focused Native PKM"
+authors = ["Unstablon Team"]
+edition = "2021"
+rust-version = "1.70"
+
+[lib]
+name = "unstablon_pkm_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Tauri
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled", "modern_sqlite"] }
+
+# File watching
+notify = { version = "6", default-features = false, features = ["macos_kqueue"] }
+
+# Markdown parsing
+pulldown-cmark = "0.9"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-shell = "2"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

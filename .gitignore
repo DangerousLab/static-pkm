@@ -11,6 +11,13 @@ javascript/app.min.js.map
 javascript/tree.json
 javascript/cache-manifest.json
 
+# Vite build output
+dist/
+
+# Tauri build outputs
+src-tauri/target/
+src-tauri/Cargo.lock
+
 # HTTPS certificates (local testing only)
 .cert/
 
