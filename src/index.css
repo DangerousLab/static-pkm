@@ -1,5 +1,5 @@
 /* Core layout styles - modular CSS architecture */
-@import '../css/main.css';
+@import './css/main.css';
 
 @tailwind base;
 @tailwind components;

@@ -11,8 +11,8 @@ const generateBuildArtifacts = () => ({
   buildStart() {
     console.log('[Build] Generating CSS entry...');
     execSync('node scripts/generate-css-entry.mjs', { stdio: 'inherit' });
-    console.log('[Build] Generating navigation tree...');
-    execSync('node scripts/generate-tree.mjs', { stdio: 'inherit' });
+    console.log('[Build] Generating navigation tree for PWA...');
+    execSync('node scripts/generate-tree.mjs --pwa', { stdio: 'inherit' });
   },
 });
 

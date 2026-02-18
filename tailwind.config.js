@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}', './src/css/**/*.css'],
   // Use 'selector' strategy with data-theme attribute
   // Base styles are dark theme, data-theme="light" triggers light mode
   darkMode: ['selector', '[data-theme="light"]'],

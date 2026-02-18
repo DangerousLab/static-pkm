@@ -75,28 +75,11 @@ preflight_checks() {
         check_command openssl && print_success "OpenSSL available" || print_warning "OpenSSL not found"
     fi
 
-    [ -d "javascript" ] && [ -f "index.html" ] && print_success "Project structure OK" || { print_error "Invalid structure"; exit 1; }
-    [ -d "css" ] && print_success "CSS directory OK" || { print_error "CSS directory not found"; exit 1; }
+    [ -d "src" ] && [ -f "index.html" ] && print_success "Project structure OK" || { print_error "Invalid structure"; exit 1; }
+    [ -d "src/css" ] && print_success "CSS directory OK" || { print_error "CSS directory not found"; exit 1; }
+    [ -d "public" ] && print_success "Public directory OK" || { print_error "Public directory not found"; exit 1; }
 }
 
-################################################################################
-# Backup
-################################################################################
-
-backup_files() {
-    [ "$SCRIPTS_ONLY" = true ] && return
-
-    local backup_dir="backup-$(date +%Y%m%d-%H%M%S)"
-
-    if [ -f "package.json" ] || [ -f "rollup.config.js" ]; then
-        mkdir -p "$backup_dir"
-        [ -f "package.json" ] && cp package.json "$backup_dir/"
-        [ -f "rollup.config.js" ] && cp rollup.config.js "$backup_dir/"
-        [ -f "rollup.config.css.js" ] && cp rollup.config.css.js "$backup_dir/"
-        [ -f "postcss.config.cjs" ] && cp postcss.config.cjs "$backup_dir/"
-        print_info "Backup: $backup_dir/"
-    fi
-}
 
 ################################################################################
 # HTTPS Certificate
@@ -147,12 +130,14 @@ create_cache_config() {
   "version": "1.0",
   "scanDirectories": {
     "javascript": { "extensions": [".js"], "enabled": true },
-    "Home": {
+    "public/Home": {
       "extensions": [".html", ".md", ".js"],
       "enabled": true,
       "overrides": { ".md": { "cacheAllImages": true } }
     },
-    "css": { "extensions": [".css"], "enabled": true }
+    "src/css": { "extensions": [".css"], "enabled": true },
+    "public/assets": { "extensions": [".js", ".css", ".png", ".jpg", ".svg", ".ico", ".woff", ".woff2"], "enabled": true },
+    "public/vendor": { "extensions": null, "enabled": true }
   },
   "cdnDetection": {
     "domains": ["cdn.", "cdnjs.", "jsdelivr.", "unpkg.", "fonts.googleapis.com", "fonts.gstatic.com", "fonts.cdnfonts.com"]
@@ -167,78 +152,6 @@ EOF
     print_success "Created cache-scan.config.json"
 }
 
-create_postcss_config() {
-    [ "$SCRIPTS_ONLY" = true ] && return
-    [ -f "postcss.config.cjs" ] && return
-
-    cat > postcss.config.cjs << 'EOF'
-module.exports = {
-  plugins: {
-    'postcss-import': {},
-    'cssnano': {
-      preset: ['default', {
-        discardComments: { removeAll: true },
-        normalizeWhitespace: true,
-        colormin: true,
-        minifyFontValues: true,
-        minifySelectors: true
-      }]
-    }
-  }
-};
-EOF
-    print_success "Created postcss.config.cjs"
-}
-
-create_rollup_config_js() {
-    [ "$SCRIPTS_ONLY" = true ] && return
-    [ -f "rollup.config.js" ] && return
-
-    cat > rollup.config.js << 'EOF'
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import terser from '@rollup/plugin-terser';
-
-export default {
-  input: 'javascript/app.js',
-  output: {
-    file: 'javascript/app.min.js',
-    format: 'es',
-    sourcemap: true
-  },
-  plugins: [
-    nodeResolve(),
-    terser({
-      compress: { drop_console: ['log', 'debug'] },
-      format: { comments: false }
-    })
-  ]
-};
-EOF
-    print_success "Created rollup.config.js"
-}
-
-create_rollup_config_css() {
-    [ "$SCRIPTS_ONLY" = true ] && return
-    [ -f "rollup.config.css.js" ] && return
-
-    cat > rollup.config.css.js << 'EOF'
-import postcss from 'rollup-plugin-postcss';
-
-export default {
-  input: 'css/main.css',
-  output: { file: 'css/app.min.css' },
-  plugins: [
-    postcss({
-      extract: true,
-      minimize: true,
-      sourceMap: true,
-      extensions: ['.css']
-    })
-  ]
-};
-EOF
-    print_success "Created rollup.config.css.js"
-}
 
 ################################################################################
 # Script Generators
@@ -251,12 +164,19 @@ create_tree_generator() {
     cat > scripts/generate-tree.mjs << 'TREESCRIPT'
 #!/usr/bin/env node
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from 'fs';
-import { join, basename, extname } from 'path';
+import { join, basename, extname, dirname } from 'path';
+import { mkdirSync } from 'fs';
 
-const HOME_DIR = 'Home';
-const OUTPUT_FILE = 'javascript/tree.json';
+// Parse command-line arguments
+const args = process.argv.slice(2);
+const isPWAMode = args.includes('--pwa');
 
-console.log('[Tree] Scanning /Home...');
+const HOME_DIR = 'public/Home';
+const OUTPUT_FILE = isPWAMode ? 'dist-pwa/data/tree.json' : 'public/data/tree.json';
+
+console.log(`[Tree] Scanning ${HOME_DIR}...`);
+console.log(`[Tree] Output mode: ${isPWAMode ? 'PWA (dist-pwa/data/)' : 'Default (public/data/)'}`);
+
 
 // Determine node type based on file extension
 function extToType(ext) {
@@ -397,6 +317,14 @@ function buildFolderNode(dirPath, relativePath) {
 
 // Main
 const tree = buildFolderNode(HOME_DIR, 'Home');
+
+// Ensure output directory exists
+const outputDir = dirname(OUTPUT_FILE);
+if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+    console.log(`[Tree] Created directory: ${outputDir}`);
+}
+
 writeFileSync(OUTPUT_FILE, JSON.stringify(tree, null, 2));
 console.log(`[Tree] Generated ${OUTPUT_FILE}`);
 TREESCRIPT
@@ -413,10 +341,10 @@ create_css_generator() {
 import { readdirSync, statSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const CSS_DIR = 'css';
+const CSS_DIR = 'src/css';
 const OUTPUT_FILE = 'main.css';
 
-console.log('[CSS] Scanning css/ directory...');
+console.log('[CSS] Scanning src/css/ directory...');
 
 function scanDirectory(dirPath, relativePath = '') {
     const cssFiles = [];
@@ -662,8 +590,8 @@ async function generateCacheManifest() {
 
     // Core files differ between PWA and legacy builds
     const coreFiles = isPWAMode
-        ? ['./', './index.html', './manifest.json', './favicon.ico', './tree.json']
-        : ['./', './index.html', './manifest.json', './favicon.ico', './javascript/app.min.js', './javascript/tree.json', './css/app.min.css'];
+        ? ['./', './index.html', './manifest.json', './favicon.ico', './data/tree.json']
+        : ['./', './index.html', './manifest.json', './favicon.ico', './javascript/app.min.js', './javascript/tree.json', './src/css/app.min.css'];
 
     manifest.preCache.local.push(...coreFiles);
 
@@ -688,9 +616,12 @@ async function generateCacheManifest() {
         if (!dirConfig.enabled) continue;
 
         // In PWA mode, scan from dist-pwa directory
-        const scanPath = isPWAMode ? join('dist-pwa', dirName) : dirName;
+        // For public/* directories, strip the 'public/' prefix since Vite copies them to root
+        const distDirName = dirName.startsWith('public/') ? dirName.replace('public/', '') : dirName;
+        const scanPath = isPWAMode ? join('dist-pwa', distDirName) : dirName;
 
-        if (dirName === 'Home' || dirName === 'assets' || dirName === 'vendor') {
+        // Scan all files for directories that should be fully cached (Home, assets, vendor)
+        if (dirName.endsWith('Home') || dirName.endsWith('assets') || dirName.endsWith('vendor')) {
             const files = scanDirectory(scanPath, null, config.excludePatterns);
             manifest.preCache.local.push(...files);
         }
@@ -757,6 +688,59 @@ CACHESCRIPT
     print_success "Created scripts/generate-cache-manifest.mjs"
 }
 
+create_pwa_copy_script() {
+    print_header "Copy PWA Assets Script"
+
+    cat > scripts/copy-pwa-assets.mjs << 'COPYSCRIPT'
+#!/usr/bin/env node
+import { cpSync, existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
+
+const PWA_OUT_DIR = 'dist-pwa';
+
+console.log('[PWA] Copying static assets to', PWA_OUT_DIR);
+
+// Assets to copy from /public/ directory
+// Note: Vite already copies most public files, but we ensure user content and vendor assets are present
+const assets = [
+  { src: 'public/Home', dest: join(PWA_OUT_DIR, 'Home'), type: 'dir' },
+  { src: 'public/vendor', dest: join(PWA_OUT_DIR, 'vendor'), type: 'dir' },
+  // tree.json is generated directly to dist-pwa/data/tree.json by generate-tree.mjs --pwa
+  // manifest.json, favicon.ico, and service-worker.js are copied by Vite from /public/
+];
+
+// Ensure output directory exists
+if (!existsSync(PWA_OUT_DIR)) {
+  mkdirSync(PWA_OUT_DIR, { recursive: true });
+}
+
+// Copy each asset
+for (const asset of assets) {
+  if (!existsSync(asset.src)) {
+    console.warn(`[PWA] Warning: ${asset.src} does not exist, skipping`);
+    continue;
+  }
+
+  try {
+    if (asset.type === 'dir') {
+      cpSync(asset.src, asset.dest, { recursive: true, force: true });
+      console.log(`[PWA] Copied directory: ${asset.src} → ${asset.dest}`);
+    } else {
+      cpSync(asset.src, asset.dest, { force: true });
+      console.log(`[PWA] Copied file: ${asset.src} → ${asset.dest}`);
+    }
+  } catch (error) {
+    console.error(`[PWA] Error copying ${asset.src}:`, error.message);
+  }
+}
+
+console.log('[PWA] Asset copy complete');
+COPYSCRIPT
+
+    chmod +x scripts/copy-pwa-assets.mjs 2>/dev/null || true
+    print_success "Created scripts/copy-pwa-assets.mjs"
+}
+
 ################################################################################
 # Install & Build
 ################################################################################
@@ -776,9 +760,6 @@ initial_build() {
 
     npm run build:tree 2>/dev/null || print_warning "Tree generation skipped"
     npm run generate:css-entry || { print_error "CSS entry failed"; exit 1; }
-    npm run build:css:legacy || { print_error "CSS build failed"; exit 1; }
-    npm run build:js:legacy || { print_error "JS build failed"; exit 1; }
-    npm run cache:generate || print_warning "Cache manifest failed"
 
     print_success "Build complete"
 }
@@ -795,22 +776,19 @@ print_summary() {
         echo "  - scripts/generate-css-entry.mjs"
         echo "  - scripts/generate-tree.mjs"
         echo "  - scripts/generate-cache-manifest.mjs"
+        echo "  - scripts/copy-pwa-assets.mjs"
         echo "  - cache-scan.config.json"
     else
         echo "Files created:"
-        echo "  - rollup.config.js / rollup.config.css.js"
-        echo "  - postcss.config.cjs"
         echo "  - cache-scan.config.json"
-        echo "  - scripts/*.mjs (3 generators)"
+        echo "  - scripts/*.mjs (4 generators)"
         [ -f ".cert/cert.pem" ] && echo "  - .cert/*.pem (HTTPS certs)"
         echo ""
         echo "Build output:"
-        echo "  - css/main.css / css/app.min.css"
-        echo "  - javascript/app.min.js"
-        echo "  - javascript/cache-manifest.json"
-        echo "  - javascript/tree.json"
+        echo "  - src/css/main.css"
+        echo "  - public/data/tree.json"
         echo ""
-        echo "Next: npm run build:web (for GitHub Pages)"
+        echo "Next: npm run build:pwa (for PWA)"
         echo "      npm run tauri:dev (for desktop)"
     fi
 }
@@ -826,15 +804,12 @@ main() {
     echo ""
 
     preflight_checks
-    backup_files
     generate_cert
     create_cache_config
-    create_postcss_config
-    create_rollup_config_js
-    create_rollup_config_css
     create_tree_generator
     create_css_generator
     create_cache_generator
+    create_pwa_copy_script
     install_deps
     initial_build
     print_summary

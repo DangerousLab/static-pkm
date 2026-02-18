@@ -3,13 +3,10 @@ node_modules/
 *.log
 
 # Build outputs (auto-generated)
-css/main.css
-css/app.min.css
-css/app.min.css.map
-javascript/app.min.js
-javascript/app.min.js.map
-javascript/tree.json
-javascript/cache-manifest.json
+src/css/main.css
+src/css/app.min.css
+src/css/app.min.css.map
+public/data/tree.json
 
 # Vite build output
 dist/
@@ -31,6 +28,7 @@ ROLLUP-GUIDE.md
 scripts/generate-css-entry.mjs
 scripts/generate-tree.mjs
 scripts/generate-cache-manifest.mjs
+scripts/copy-pwa-assets.mjs
 cache-scan.config.json
 postcss.config.cjs
 rollup.config.js

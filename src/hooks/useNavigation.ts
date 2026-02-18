@@ -53,6 +53,7 @@ export function useNavigation(): {
   /**
    * Load navigation tree from source
    * Always uses tree.json which has proper titles from build step
+   * Unified path: ./data/tree.json for both Tauri and PWA builds
    */
   const loadNavigationTree = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -61,34 +62,26 @@ export function useNavigation(): {
     try {
       let tree: FolderNode;
 
-      // Try to fetch tree.json - it has correct displayNames from build step
-      // Tauri build has it at ./javascript/tree.json
-      // PWA build has it at ./tree.json
-      // Try both locations with fallback
-      let response = await fetch('./javascript/tree.json');
-
-      if (!response.ok) {
-        // Try PWA location
-        response = await fetch('./tree.json');
-      }
+      // Fetch tree.json from unified location (both builds use ./data/tree.json)
+      const response = await fetch('./data/tree.json');
 
       if (response.ok) {
         // Check if response is actually JSON (not HTML fallback)
         const contentType = response.headers.get('content-type');
         if (contentType?.includes('application/json')) {
           tree = (await response.json()) as FolderNode;
-          console.log('[INFO] [useNavigation] Loaded tree.json successfully');
+          console.log('[INFO] [useNavigation] Loaded tree.json from ./data/tree.json');
         } else {
           throw new Error('tree.json returned non-JSON response (likely HTML fallback)');
         }
       } else {
-        console.warn('[WARN] [useNavigation] tree.json not available at either location');
+        console.warn('[WARN] [useNavigation] tree.json not available at ./data/tree.json');
 
         // Fall back to dynamic generation in Tauri mode
         if (isTauriContext()) {
           console.log('[INFO] [useNavigation] Falling back to Tauri IPC for tree');
           const { getNavigationTree } = await import('@core/ipc/commands');
-          tree = await getNavigationTree('./Home');
+          tree = await getNavigationTree('./public/Home');
         } else {
           throw new Error('Failed to load navigation tree: tree.json not available');
         }
