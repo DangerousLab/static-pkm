@@ -1,10 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
+
+// Vite plugin to auto-generate build artifacts (CSS entry, navigation tree)
+const generateBuildArtifacts = () => ({
+  name: 'generate-build-artifacts',
+  buildStart() {
+    console.log('[Vite] Generating build artifacts...');
+    try {
+      // Generate CSS entry point
+      execSync('node scripts/generate-css-entry.mjs', { stdio: 'inherit' });
+
+      // Generate navigation tree JSON
+      execSync('node scripts/generate-tree.mjs', { stdio: 'inherit' });
+    } catch (error) {
+      console.error('[Vite] Failed to generate build artifacts:', error);
+      throw error;
+    }
+  }
+});
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [generateBuildArtifacts(), react()],
 
   // Vite options for Tauri
   // - Prevents vite from obscuring rust errors

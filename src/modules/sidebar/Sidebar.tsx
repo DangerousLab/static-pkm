@@ -53,6 +53,8 @@ function Sidebar(): React.JSX.Element {
   }, [activeNode]); // Only depend on activeNode to avoid loops
 
   // Handle click outside to close (overlay for narrow viewports)
+  // Note: This is defined but not currently used - preserved for future use
+  // @ts-expect-error - Unused but preserved for future overlay click handling
   const handleOverlayClick = useCallback((): void => {
     if (isOpen && shouldAutoClose) {
       close();
