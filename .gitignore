@@ -24,6 +24,15 @@ src-tauri/Cargo.lock
 # Build documentation
 ROLLUP-GUIDE.md
 
+# Generated scripts and configs (created by setup-dev.sh)
+scripts/generate-css-entry.mjs
+scripts/generate-tree.mjs
+scripts/generate-cache-manifest.mjs
+cache-scan.config.json
+postcss.config.cjs
+rollup.config.js
+rollup.config.css.js
+
 # OS files
 .DS_Store
 

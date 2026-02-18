@@ -11,7 +11,6 @@ on:
       - 'javascript/**/*.js'
       - 'css/**/*.css'
       - 'Home/**/*'
-      - 'scripts/**/*.mjs'
       - 'rollup.config*.js'
       - 'package.json'
       - 'package-lock.json'
@@ -21,6 +20,7 @@ on:
       - 'service-worker.js'
       - 'vendor/**'
       - 'assets/**'
+      - 'setup-dev.sh'
       
       # Exclude build artifacts - these should never trigger a build
       - '!javascript/app.min.js'
@@ -52,7 +52,10 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-      
+
+      - name: Generate build scripts
+        run: bash setup-dev.sh --scripts-only
+
       - name: Install dependencies
         run: npm ci
       
