@@ -1,0 +1,36 @@
+{
+  "version": "ad11001",
+  "generated": "2026-02-12T02:11:10.720Z",
+  "preCache": {
+    "local": [
+      "./",
+      "./index.html",
+      "./manifest.json",
+      "./favicon.ico",
+      "./javascript/app.min.js",
+      "./javascript/tree.json",
+      "./css/app.min.css",
+      "./Home/Test/testcssonly.js",
+      "./Home/Test/testevents.js",
+      "./Home/Test/testisolation.js",
+      "./Home/Test/testresources.js",
+      "./Home/Test/testsecurity.js",
+      "./Home/Tools/calcA.js",
+      "./Home/Tools/calcB.js",
+      "./Home/Tools/calcC.js",
+      "./Home/Tools/calcD.js",
+      "./Home/Tools/nitricCalculator.js",
+      "./Home/calcE.js",
+      "./Home/mathTest.js"
+    ],
+    "cdn": [
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css",
+      "./modules.css",
+      "./styles.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-brands-400.woff2",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-regular-400.woff2",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-solid-900.woff2",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/webfonts/fa-v4compatibility.woff2"
+    ]
+  }
+}
