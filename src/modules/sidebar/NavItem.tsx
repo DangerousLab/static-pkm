@@ -1,6 +1,6 @@
 import { useNavigationStore } from '@core/state/navigationStore';
-import type { NavigationNode, FolderNode, ContentNode } from '@/types/navigation';
-import { isFolderNode, isContentNode } from '@/types/navigation';
+import type { NavigationNode } from '@/types/navigation';
+import { isFolderNode, isContentNode, getNodeDisplayName } from '@/types/navigation';
 
 interface NavItemProps {
   node: NavigationNode;
@@ -8,7 +8,7 @@ interface NavItemProps {
 
 /**
  * Individual navigation item component
- * Renders folder or content item with appropriate icon and click handler
+ * Uses original CSS class names for consistent styling
  */
 function NavItem({ node }: NavItemProps): React.JSX.Element {
   const setCurrentFolder = useNavigationStore((state) => state.setCurrentFolder);
@@ -41,27 +41,21 @@ function NavItem({ node }: NavItemProps): React.JSX.Element {
     }
   };
 
-  // Get display name
-  const displayName = isFolderNode(node) ? node.name : node.title;
+  // Get display name using helper function
+  const displayName = getNodeDisplayName(node);
 
   return (
-    <li>
-      <button
-        onClick={handleClick}
-        className={`nav-item w-full flex items-center gap-2 px-3 py-2 rounded-md text-left transition-colors duration-fast ${
-          isActive
-            ? 'bg-bg-highlight text-accent-gold'
-            : 'text-text-main hover:bg-bg-hover'
-        }`}
-        type="button"
-      >
-        <span className="nav-item-icon">{getIcon()}</span>
-        <span className="nav-item-label truncate">{displayName}</span>
-        {isFolderNode(node) && (
-          <span className="nav-item-arrow ml-auto text-text-muted">→</span>
-        )}
-      </button>
-    </li>
+    <button
+      onClick={handleClick}
+      className={`nav-item ${isActive ? 'active' : ''}`}
+      type="button"
+    >
+      <span className="nav-icon">{getIcon()}</span>
+      <span className="nav-label">{displayName}</span>
+      {isFolderNode(node) && (
+        <span className="nav-arrow">→</span>
+      )}
+    </button>
   );
 }
 

@@ -68,10 +68,12 @@ export async function indexContent(path: string): Promise<void> {
 
 /**
  * Rebuild the entire search index
+ * @param homePath - Path to Home directory
+ * @returns Number of files indexed
  */
-export async function rebuildIndex(): Promise<void> {
-  console.log('[INFO] [IPC] rebuildIndex');
-  return invoke<void>('rebuild_index');
+export async function rebuildIndex(homePath: string): Promise<number> {
+  console.log('[INFO] [IPC] rebuildIndex:', homePath);
+  return invoke<number>('rebuild_index', { homePath });
 }
 
 /**

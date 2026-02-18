@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
 import { isTauriContext } from '@core/ipc/commands';
 import type { FolderNode, ContentNode, NavigationNode } from '@/types/navigation';
@@ -52,7 +52,7 @@ export function useNavigation(): {
 
   /**
    * Load navigation tree from source
-   * Uses Tauri IPC in native mode, fetches tree.json in PWA mode
+   * Always uses tree.json which has proper titles from build step
    */
   const loadNavigationTree = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -61,17 +61,23 @@ export function useNavigation(): {
     try {
       let tree: FolderNode;
 
-      if (isTauriContext()) {
-        // Native mode: Use Tauri IPC
-        const { getNavigationTree } = await import('@core/ipc/commands');
-        tree = await getNavigationTree('./Home');
+      // Try to fetch tree.json - it has correct displayNames from build step
+      const response = await fetch('./javascript/tree.json');
+
+      if (response.ok) {
+        tree = (await response.json()) as FolderNode;
+        console.log('[INFO] [useNavigation] Loaded tree.json successfully');
       } else {
-        // PWA mode: Fetch tree.json
-        const response = await fetch('./javascript/tree.json');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch tree.json: ${response.statusText}`);
+        console.warn('[WARN] [useNavigation] tree.json not available, status:', response.status);
+
+        // Fall back to dynamic generation in Tauri mode
+        if (isTauriContext()) {
+          console.log('[INFO] [useNavigation] Falling back to Tauri IPC for tree');
+          const { getNavigationTree } = await import('@core/ipc/commands');
+          tree = await getNavigationTree('./Home');
+        } else {
+          throw new Error('Failed to load navigation tree: tree.json not available');
         }
-        tree = await response.json() as FolderNode;
       }
 
       setNavigationTree(tree);
@@ -83,11 +89,13 @@ export function useNavigation(): {
         setActiveNode(firstContent);
       }
 
+      setLoading(false);
       console.log('[INFO] [useNavigation] Navigation tree loaded successfully');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load navigation tree';
       console.error('[ERROR] [useNavigation]', message);
       setError(message);
+      setLoading(false);
     }
   }, [setNavigationTree, setCurrentFolder, setActiveNode, setLoading, setError]);
 

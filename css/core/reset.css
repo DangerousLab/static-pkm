@@ -1,0 +1,41 @@
+/* ==================== GLOBAL RESETS ==================== */
+
+* {
+  box-sizing: border-box;
+}
+
+/* Prevent pinch-zoom on touch devices */
+html, body {
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #1f1f1f;
+  background-image: var(--gradient-bg);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  transition: background var(--anim-normal) var(--ease-standard), color var(--anim-normal) var(--ease-standard);
+}
+
+:root[data-theme="light"] body {
+  background-color: #f3f4f6;
+  background-image: var(--gradient-bg);
+}
+
+html {
+  background: #1f1f1f;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+:root[data-theme="light"] html {
+  background: #f3f4f6;
+}
+
+body {
+  background-attachment: local;
+}

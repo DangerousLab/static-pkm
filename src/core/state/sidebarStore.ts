@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 /** Sidebar store state interface */
 interface SidebarState {
@@ -25,53 +24,44 @@ interface SidebarState {
 const DEFAULT_WIDTH = 240;
 
 /**
- * Sidebar store with partial persistence
+ * Sidebar store - no persistence (defaults to closed on reload)
  * Manages sidebar open/close state and dimensions
  */
-export const useSidebarStore = create<SidebarState>()(
-  persist(
-    (set) => ({
-      isOpen: false,
-      width: DEFAULT_WIDTH,
-      hoverNeeded: false,
-      hoverWidth: DEFAULT_WIDTH,
+export const useSidebarStore = create<SidebarState>()((set) => ({
+  isOpen: false,
+  width: DEFAULT_WIDTH,
+  hoverNeeded: false,
+  hoverWidth: DEFAULT_WIDTH,
 
-      toggle: () =>
-        set((state) => {
-          const newOpen = !state.isOpen;
-          console.log('[INFO] [sidebarStore] Sidebar toggled:', newOpen ? 'open' : 'closed');
-          return { isOpen: newOpen };
-        }),
-
-      open: () => {
-        console.log('[INFO] [sidebarStore] Sidebar opened');
-        set({ isOpen: true });
-      },
-
-      close: () => {
-        console.log('[INFO] [sidebarStore] Sidebar closed');
-        set({ isOpen: false });
-      },
-
-      setWidth: (width: number) => {
-        console.log('[INFO] [sidebarStore] Sidebar width set:', width);
-        set({ width });
-      },
-
-      setHoverNeeded: (hoverNeeded: boolean) => {
-        console.log('[INFO] [sidebarStore] Hover needed:', hoverNeeded);
-        set({ hoverNeeded });
-      },
-
-      setHoverWidth: (hoverWidth: number) => {
-        console.log('[INFO] [sidebarStore] Hover width set:', hoverWidth);
-        set({ hoverWidth });
-      },
+  toggle: () =>
+    set((state) => {
+      const newOpen = !state.isOpen;
+      console.log('[INFO] [sidebarStore] Sidebar toggled:', newOpen ? 'open' : 'closed');
+      return { isOpen: newOpen };
     }),
-    {
-      name: 'unstablon-sidebar',
-      // Only persist isOpen state, not computed dimensions
-      partialize: (state) => ({ isOpen: state.isOpen }),
-    }
-  )
-);
+
+  open: () => {
+    console.log('[INFO] [sidebarStore] Sidebar opened');
+    set({ isOpen: true });
+  },
+
+  close: () => {
+    console.log('[INFO] [sidebarStore] Sidebar closed');
+    set({ isOpen: false });
+  },
+
+  setWidth: (width: number) => {
+    console.log('[INFO] [sidebarStore] Sidebar width set:', width);
+    set({ width });
+  },
+
+  setHoverNeeded: (hoverNeeded: boolean) => {
+    console.log('[INFO] [sidebarStore] Hover needed:', hoverNeeded);
+    set({ hoverNeeded });
+  },
+
+  setHoverWidth: (hoverWidth: number) => {
+    console.log('[INFO] [sidebarStore] Hover width set:', hoverWidth);
+    set({ hoverWidth });
+  },
+}));

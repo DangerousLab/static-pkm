@@ -1,0 +1,224 @@
+/* ==================== HEADER LAYOUT ==================== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1f1f1f;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+:root[data-theme="light"] .app-header {
+  background: #f3f4f6;
+}
+
+.header-bar {
+  width: 100%;
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  border: none;
+  background: transparent;
+  color: #e5e5e5;
+  cursor: pointer;
+  padding: 0.125rem 0.5rem;
+  height: 2rem;
+  position: relative;
+  z-index: 50;
+}
+
+:root[data-theme="light"] .sidebar-toggle {
+  color: #111111;
+}
+
+.sidebar-toggle-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .sidebar-toggle-label {
+    display: none;
+  }
+}
+
+@media (min-width: 601px) {
+  .sidebar-toggle-label {
+    display: inline;
+  }
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-lg);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.header-center > * {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.header-logo-wrap {
+  height: clamp(44px, 10vh, 72px);
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-logo-img {
+  max-height: 100%;
+  height: clamp(44px, 10vh, 72px);
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.header-banner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  height: clamp(44px, 10vh, 72px);
+  flex-shrink: 0;
+}
+
+.header-banner-img {
+  max-height: clamp(38px, 8vh, 56px);
+  height: auto;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.header-tagline {
+  font-family: 'Uni Sans', system-ui, sans-serif;
+  font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  font-weight: normal;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.theme-toggle {
+  justify-self: end;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #262626;
+  cursor: pointer;
+  color: #f5f5f5;
+  transition: background var(--anim-normal) var(--ease-standard),
+              border-color var(--anim-normal) var(--ease-standard),
+              transform var(--anim-normal) var(--ease-standard);
+}
+
+:root[data-theme="light"] .theme-toggle {
+  background: #e5e7eb;
+  color: #111111;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+}
+
+/* ==================== HAMBURGER ICON ANIMATION ==================== */
+
+.sidebar-toggle-icon {
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background var(--anim-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: var(--radius-full);
+  transition: transform var(--anim-fast) var(--ease-standard),
+              opacity var(--anim-fast) var(--ease-standard),
+              top var(--anim-fast) var(--ease-standard),
+              bottom var(--anim-fast) var(--ease-standard);
+}
+
+.sidebar-toggle-icon::before {
+  top: -5px;
+}
+
+.sidebar-toggle-icon::after {
+  bottom: -5px;
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon {
+  background: transparent;
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon::after {
+  bottom: 0;
+  transform: rotate(-45deg);
+}
+
+/* ==================== MOBILE HEADER SIZE OVERRIDE ==================== */
+
+/* Hide banner+tagline before they overlap with buttons */
+@media (max-width: 840px) {
+  .header-banner-wrap {
+    display: none;
+  }
+}
+
+/* Compact header for small mobile */
+@media (max-width: 600px) {
+  .header-logo-wrap {
+    height: 44px;
+  }
+
+  .header-logo-img {
+    height: 44px;
+  }
+}

@@ -1,54 +1,37 @@
+/* Core layout styles - modular CSS architecture */
+@import '../css/main.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Base layer customizations */
 @layer base {
-  /* Prevent pinch-zoom on touch devices */
-  html,
-  body {
-    @apply touch-pan-x touch-pan-y;
-    overscroll-behavior: none;
-  }
-
-  /* Base body styles */
-  body {
-    @apply m-0 min-h-screen text-text-main font-sans;
-    @apply bg-gradient-bg transition-colors duration-normal;
-  }
-
-  /* Theme-aware status bar background */
-  html {
-    @apply min-h-screen;
-    background: #1f1f1f;
-    min-height: -webkit-fill-available;
-  }
-
-  /* Light theme overrides */
-  [data-theme='light'] html {
-    background: #f3f4f6;
-  }
-
-  [data-theme='light'] body {
-    background-color: #f3f4f6;
-    @apply bg-gradient-bg-light text-light-text-main;
-  }
-
   /* Root container */
   #root {
-    @apply min-h-screen;
+    min-height: 100vh;
   }
 }
 
-/* Component layer */
+/* Component layer for React-specific components */
 @layer components {
-  /* Card preload state */
-  .card-preload {
-    @apply opacity-0;
+  /* Sidebar overlay for narrow viewports */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Utility layer for scrollbar hiding */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  /* Card loaded state */
-  .card-loaded {
-    @apply opacity-100 transition-opacity duration-slow;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

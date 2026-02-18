@@ -1,23 +1,43 @@
+import { useCallback } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
+import { useSidebarStore } from '@core/state/sidebarStore';
+import { useShouldAutoCloseSidebar } from '@hooks/useWindowSize';
 import ContentLoader from '@modules/content/ContentLoader';
+import ErrorBoundary from '@components/ErrorBoundary';
 
 /**
  * Main content area component
- * Displays the currently active content (module/page/document)
  */
 function MainContent(): React.JSX.Element {
   const isLoading = useNavigationStore((state) => state.isLoading);
+  const navigationTree = useNavigationStore((state) => state.navigationTree);
+  const isOpen = useSidebarStore((state) => state.isOpen);
+  const close = useSidebarStore((state) => state.close);
+  const shouldAutoClose = useShouldAutoCloseSidebar();
+
+  // Close sidebar when clicking on content area (if viewport requires it)
+  const handleContentClick = useCallback((): void => {
+    if (isOpen && shouldAutoClose) {
+      close();
+    }
+  }, [isOpen, shouldAutoClose, close]);
 
   return (
-    <main className="main-content flex justify-center px-4 py-6">
-      <div className="page-root w-full max-w-[980px]">
+    <main className="main-content" onClick={handleContentClick}>
+      <div className="page-root">
         <section
           id="contentCard"
-          className={`card rounded-lg bg-gradient-card p-6 shadow-lg transition-opacity duration-slow ${
-            isLoading ? 'card-preload opacity-0' : 'card-loaded opacity-100'
-          }`}
+          className={`card ${isLoading ? 'preload' : 'loaded'}`}
         >
-          <ContentLoader />
+          {!navigationTree ? (
+            <div className="loading-message">
+              Loading navigation...
+            </div>
+          ) : (
+            <ErrorBoundary>
+              <ContentLoader />
+            </ErrorBoundary>
+          )}
         </section>
       </div>
     </main>

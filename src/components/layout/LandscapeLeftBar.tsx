@@ -1,10 +1,11 @@
 import { useThemeStore } from '@core/state/themeStore';
 import { useSidebarStore } from '@core/state/sidebarStore';
+import { getThemeImagePaths } from '@modules/theme/useThemeImages';
 
 /**
  * Landscape mode left bar component
- * Shows on mobile devices in landscape orientation
- * Contains sidebar toggle, logo, and theme toggle in vertical layout
+ * Shows on mobile devices in landscape orientation only (controlled by CSS)
+ * Uses original CSS class names for responsive layout
  */
 function LandscapeLeftBar(): React.JSX.Element {
   const theme = useThemeStore((state) => state.theme);
@@ -12,34 +13,42 @@ function LandscapeLeftBar(): React.JSX.Element {
   const toggleSidebar = useSidebarStore((state) => state.toggle);
   const isOpen = useSidebarStore((state) => state.isOpen);
 
-  const logoSrc = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
+  const { logo: logoSrc } = getThemeImagePaths(theme);
 
   return (
-    <div className="landscape-leftbar fixed left-0 top-0 bottom-0 w-landscape-bar flex-col items-center justify-between py-4 bg-bg-panel z-50 hidden landscape:flex">
+    <div className="landscape-leftbar">
       {/* Toggle button at top */}
       <button
-        onClick={toggleSidebar}
-        className="landscape-leftbar-toggle sidebar-toggle p-2 rounded-md hover:bg-bg-hover transition-colors"
+        id="landscapeToggle"
+        className="landscape-leftbar-toggle sidebar-toggle"
         type="button"
         aria-label="Toggle navigation"
         aria-expanded={isOpen}
+        data-open={isOpen}
+        onClick={toggleSidebar}
       >
-        <span className="sidebar-toggle-icon block w-5 h-0.5 bg-text-main relative before:absolute before:w-full before:h-full before:bg-text-main before:-top-1.5 after:absolute after:w-full after:h-full after:bg-text-main after:top-1.5" />
+        <span className="sidebar-toggle-icon" />
       </button>
 
       {/* Logo in middle */}
       <div className="landscape-leftbar-logo">
-        <img src={logoSrc} alt="Logo" className="w-8 h-auto" loading="eager" />
+        <img
+          id="landscapeLogo"
+          src={logoSrc}
+          alt="Logo"
+          loading="eager"
+        />
       </div>
 
       {/* Theme toggle at bottom */}
       <button
-        onClick={toggleTheme}
-        className="theme-toggle p-2 rounded-full hover:bg-bg-hover transition-colors"
+        id="landscapeThemeToggle"
+        className="theme-toggle"
         type="button"
         aria-label="Toggle theme"
+        onClick={toggleTheme}
       >
-        <span className="text-lg">{theme === 'dark' ? '☾' : '☀'}</span>
+        <span id="landscapeThemeIcon">{theme === 'dark' ? '☾' : '☀'}</span>
       </button>
     </div>
   );

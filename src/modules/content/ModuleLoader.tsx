@@ -1,120 +1,153 @@
-import { useEffect, useRef, useCallback, type RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 import { useThemeStore, type Theme } from '@core/state/themeStore';
-import { createModuleSandbox, type SandboxedModule } from './sandbox';
 import type { ModuleNode } from '@/types/navigation';
-import type { ModuleInstance, ThemeController } from '@/types/content';
 
 interface ModuleLoaderProps {
   node: ModuleNode;
-  container: RefObject<HTMLDivElement>;
   onError: (error: string) => void;
+}
+
+/** Module instance interface returned by factory functions */
+interface ModuleInstance {
+  destroy?: () => void;
+  onThemeChange?: (theme: Theme) => void;
+  getState?: () => unknown;
+  setState?: (state: unknown) => void;
 }
 
 /**
  * Module loader component
- * Handles loading, sandboxing, and rendering of user JavaScript modules
+ * Handles loading and rendering of user JavaScript modules
+ * Creates its own container element and manages the module lifecycle
  */
-function ModuleLoader({ node, container, onError }: ModuleLoaderProps): React.JSX.Element | null {
+function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
   const theme = useThemeStore((state) => state.theme);
   const moduleInstanceRef = useRef<ModuleInstance | null>(null);
-  const sandboxRef = useRef<SandboxedModule | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Create theme controller for modules
-  const themeController: ThemeController = {
-    getCurrentTheme: () => useThemeStore.getState().theme,
-    subscribe: (callback: (theme: Theme) => void) => {
-      return useThemeStore.subscribe((state) => callback(state.theme));
-    },
-  };
-
-  // Cleanup function
-  const cleanup = useCallback(() => {
-    if (moduleInstanceRef.current?.destroy) {
-      try {
-        moduleInstanceRef.current.destroy();
-        console.log('[INFO] [ModuleLoader] Module destroyed:', node.id);
-      } catch (err) {
-        console.error('[ERROR] [ModuleLoader] Error destroying module:', err);
-      }
-    }
-    moduleInstanceRef.current = null;
-    sandboxRef.current = null;
-
-    // Clear container
-    if (container.current) {
-      container.current.innerHTML = '';
-    }
-  }, [node.id, container]);
+  console.log('[DEBUG] [ModuleLoader] Component rendering for:', node.id);
 
   // Load and render module
   useEffect(() => {
+    console.log('[DEBUG] [ModuleLoader] useEffect STARTING for:', node.id);
+    console.log('[DEBUG] [ModuleLoader] containerRef.current:', containerRef.current);
+
+    const containerElement = containerRef.current;
+    if (!containerElement) {
+      console.error('[ERROR] [ModuleLoader] Container ref not available at effect start');
+      return;
+    }
+
+    console.log('[DEBUG] [ModuleLoader] Container element found');
+    console.log('[DEBUG] [ModuleLoader] Container isConnected:', containerElement.isConnected);
+    console.log('[DEBUG] [ModuleLoader] Container parentElement:', containerElement.parentElement?.tagName);
+
     let cancelled = false;
+    let currentInstance: ModuleInstance | null = null;
 
     async function loadModule(): Promise<void> {
-      if (!container.current) return;
+      console.log('[DEBUG] [ModuleLoader] loadModule() called, cancelled:', cancelled);
 
-      // Cleanup previous module
-      cleanup();
+      if (!containerElement) {
+        console.error('[ERROR] [ModuleLoader] Container lost during loadModule');
+        return;
+      }
+
+      // Clear container before loading new module
+      console.log('[DEBUG] [ModuleLoader] Clearing container innerHTML');
+      containerElement.innerHTML = '';
 
       try {
         console.log('[INFO] [ModuleLoader] Loading module:', node.id, 'from', node.file);
 
-        // Fetch module code
-        const response = await fetch(node.file);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch module: ${response.statusText}`);
-        }
-        const code = await response.text();
-
-        if (cancelled) return;
-
-        // Create sandbox
-        const sandbox = createModuleSandbox(container.current, node.id);
-        sandboxRef.current = sandbox;
-
-        // Execute module in sandbox
+        // Get factory name from module ID
         const factoryName = getFactoryName(node.id);
-        const moduleInfo = sandbox.execute(code, factoryName);
+        console.log('[INFO] [ModuleLoader] Looking for factory:', factoryName);
 
-        if (cancelled) return;
+        // Check if factory already exists (script might be cached)
+        let factory = (window as unknown as Record<string, unknown>)[factoryName];
+        console.log('[DEBUG] [ModuleLoader] Factory on window:', typeof factory);
 
-        // Handle auto-render modules (CSS-only)
-        if (moduleInfo?.type === 'auto') {
-          console.log('[INFO] [ModuleLoader] Auto-render module:', node.id);
-          if (moduleInfo.style) {
-            const styleEl = document.createElement('style');
-            styleEl.textContent = moduleInfo.style;
-            container.current.appendChild(styleEl);
-          }
-          if (moduleInfo.content) {
-            const contentEl = document.createElement('div');
-            contentEl.innerHTML = moduleInfo.content;
-            container.current.appendChild(contentEl);
+        if (typeof factory !== 'function') {
+          // Need to load the script
+          console.log('[INFO] [ModuleLoader] Factory not found, loading script...');
+
+          // Build proper script URL (relative to root)
+          const scriptSrc = './' + node.file;
+          console.log('[DEBUG] [ModuleLoader] Script URL:', scriptSrc);
+
+          // Create a promise that resolves when script loads and executes
+          factory = await loadScript(scriptSrc, factoryName);
+          console.log('[DEBUG] [ModuleLoader] Script loaded, factory type:', typeof factory);
+        }
+
+        if (cancelled) {
+          console.log('[DEBUG] [ModuleLoader] Cancelled after script load, returning');
+          return;
+        }
+
+        if (typeof factory !== 'function') {
+          throw new Error(`Module factory '${factoryName}' not found on window after script load`);
+        }
+
+        console.log('[INFO] [ModuleLoader] Calling factory:', factoryName);
+        console.log('[DEBUG] [ModuleLoader] Container before factory call:');
+        console.log('[DEBUG] [ModuleLoader]   - isConnected:', containerElement.isConnected);
+        console.log('[DEBUG] [ModuleLoader]   - innerHTML length:', containerElement.innerHTML.length);
+        console.log('[DEBUG] [ModuleLoader]   - parentElement:', containerElement.parentElement?.tagName);
+
+        // Create module instance with options
+        const instance = factory({
+          container: containerElement,
+          themeController: {
+            getCurrentTheme: () => useThemeStore.getState().theme,
+            subscribe: (callback: (theme: Theme) => void) => {
+              return useThemeStore.subscribe((state) => callback(state.theme));
+            },
+          },
+          // MathJax dynamic rendering (stub for now - full implementation in Phase 9)
+          dynamicRender: async (container: HTMLElement) => {
+            // Check if MathJax is available
+            if (window.MathJax?.typesetPromise) {
+              try {
+                await window.MathJax.typesetPromise([container]);
+                console.log('[INFO] [ModuleLoader] MathJax typeset complete');
+              } catch (err) {
+                console.warn('[WARN] [ModuleLoader] MathJax typeset failed:', err);
+              }
+            }
+          },
+          // MathJax API (stub for now)
+          mathAPI: {
+            clearMath: () => {
+              console.log('[INFO] [ModuleLoader] mathAPI.clearMath() called');
+              // MathJax cleanup will be implemented in Phase 9
+            },
+          },
+        }) as ModuleInstance;
+
+        console.log('[DEBUG] [ModuleLoader] Factory returned, instance:', !!instance);
+        console.log('[DEBUG] [ModuleLoader] Container after factory call:');
+        console.log('[DEBUG] [ModuleLoader]   - isConnected:', containerElement.isConnected);
+        console.log('[DEBUG] [ModuleLoader]   - innerHTML length:', containerElement.innerHTML.length);
+        console.log('[DEBUG] [ModuleLoader]   - children count:', containerElement.children.length);
+        console.log('[DEBUG] [ModuleLoader]   - innerHTML preview:', containerElement.innerHTML.substring(0, 200));
+
+        if (cancelled) {
+          console.log('[DEBUG] [ModuleLoader] Cancelled after factory, destroying instance');
+          // If cancelled during factory execution, destroy immediately
+          if (instance?.destroy) {
+            try {
+              instance.destroy();
+            } catch (err) {
+              console.error('[ERROR] [ModuleLoader] Error destroying cancelled module:', err);
+            }
           }
           return;
         }
 
-        // Get factory function from sandbox
-        const factory = sandbox.getFactory(factoryName);
-        if (!factory) {
-          throw new Error(`Module factory '${factoryName}' not found`);
-        }
-
-        // Create module instance
-        const instance = factory({
-          container: container.current,
-          themeController,
-        }) as ModuleInstance;
-
-        if (cancelled) return;
-
+        currentInstance = instance;
         moduleInstanceRef.current = instance;
-
-        // Render module
-        if (instance.render) {
-          instance.render(container.current, { container: container.current, themeController });
-        }
-
         console.log('[INFO] [ModuleLoader] Module loaded successfully:', node.id);
       } catch (err) {
         if (!cancelled) {
@@ -127,11 +160,32 @@ function ModuleLoader({ node, container, onError }: ModuleLoaderProps): React.JS
 
     loadModule();
 
+    // Cleanup function
     return () => {
+      console.log('[DEBUG] [ModuleLoader] CLEANUP called for:', node.id);
+      console.log('[DEBUG] [ModuleLoader] Cleanup - currentInstance:', !!currentInstance);
+      console.log('[DEBUG] [ModuleLoader] Cleanup - containerElement.innerHTML length:', containerElement?.innerHTML?.length);
+
       cancelled = true;
-      cleanup();
+
+      // Destroy module instance
+      if (currentInstance?.destroy) {
+        try {
+          currentInstance.destroy();
+          console.log('[INFO] [ModuleLoader] Module destroyed:', node.id);
+        } catch (err) {
+          console.error('[ERROR] [ModuleLoader] Error destroying module:', err);
+        }
+      }
+      moduleInstanceRef.current = null;
+
+      // Clear container
+      if (containerElement) {
+        console.log('[DEBUG] [ModuleLoader] Cleanup - clearing container innerHTML');
+        containerElement.innerHTML = '';
+      }
     };
-  }, [node.id, node.file, container, cleanup, onError, themeController]);
+  }, [node.id, node.file, onError]);
 
   // Handle theme changes
   useEffect(() => {
@@ -140,9 +194,63 @@ function ModuleLoader({ node, container, onError }: ModuleLoaderProps): React.JS
     }
   }, [theme]);
 
-  // This component doesn't render anything directly
-  // Content is injected into the container ref
-  return null;
+  console.log('[DEBUG] [ModuleLoader] Returning JSX for container div');
+
+  // Render the container div that modules will inject content into
+  return <div ref={containerRef} className="module-container" />;
+}
+
+/**
+ * Load a script and wait for the factory function to be available
+ * Uses async/await pattern without setTimeout
+ */
+async function loadScript(src: string, factoryName: string): Promise<unknown> {
+  console.log('[DEBUG] [loadScript] Starting to load:', src);
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = src;
+
+    script.onload = () => {
+      console.log('[INFO] [ModuleLoader] Script loaded:', src);
+      // Script has executed synchronously, factory should be available
+      const factory = (window as unknown as Record<string, unknown>)[factoryName];
+      console.log('[DEBUG] [loadScript] After load, factory type:', typeof factory);
+
+      if (typeof factory === 'function') {
+        resolve(factory);
+      } else {
+        console.log('[DEBUG] [loadScript] Factory not immediately available, waiting...');
+        // Check if module uses __moduleReady callback pattern
+        const originalReady = (window as unknown as Record<string, unknown>).__moduleReady;
+        (window as unknown as Record<string, unknown>).__moduleReady = (name: string) => {
+          console.log('[DEBUG] [loadScript] __moduleReady called with:', name);
+          if (name === factoryName) {
+            // Restore original
+            (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
+            const f = (window as unknown as Record<string, unknown>)[factoryName];
+            resolve(f);
+          }
+        };
+        // Also resolve immediately if factory is available (race condition handling)
+        const f = (window as unknown as Record<string, unknown>)[factoryName];
+        if (typeof f === 'function') {
+          (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
+          resolve(f);
+        }
+      }
+    };
+
+    script.onerror = () => {
+      console.error('[ERROR] [loadScript] Failed to load:', src);
+      reject(new Error(`Failed to load module script: ${src}`));
+    };
+
+    // Add script to document
+    console.log('[DEBUG] [loadScript] Appending script to document.head');
+    document.head.appendChild(script);
+  });
 }
 
 /**

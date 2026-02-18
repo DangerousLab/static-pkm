@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useSearchStore, type SearchIndexItem, type SearchResultItem } from '@core/state/searchStore';
 import { useNavigationStore } from '@core/state/navigationStore';
-import type { NavigationNode, ContentNode, FolderNode } from '@/types/navigation';
+import type { NavigationNode, FolderNode } from '@/types/navigation';
 import { isContentNode, isFolderNode } from '@/types/navigation';
 
 /**
@@ -41,7 +41,7 @@ function buildSearchIndex(tree: FolderNode): SearchIndexItem[] {
       items.push({
         id: node.id,
         title: node.title,
-        path: node.path,
+        path: node.file,
         type: node.type as 'module' | 'page' | 'document',
         tags: 'tags' in node && Array.isArray(node.tags) ? node.tags : [],
         node: node,

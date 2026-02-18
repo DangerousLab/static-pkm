@@ -1,56 +1,67 @@
 import { useThemeStore } from '@core/state/themeStore';
 import { useSidebarStore } from '@core/state/sidebarStore';
-import SidebarToggle from '@modules/sidebar/SidebarToggle';
+import { getThemeImagePaths } from '@modules/theme/useThemeImages';
 
 /**
  * Application header component
- * Contains logo, banner, tagline, and theme toggle
  */
 function Header(): React.JSX.Element {
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const toggleSidebar = useSidebarStore((state) => state.toggle);
+  const isOpen = useSidebarStore((state) => state.isOpen);
 
-  // Dynamic image sources based on theme
-  const logoSrc = theme === 'dark' ? './assets/logo-dark.png' : './assets/logo-light.png';
-  const bannerSrc = theme === 'dark' ? './assets/banner-dark.png' : './assets/banner-light.png';
+  const { logo: logoSrc, banner: bannerSrc } = getThemeImagePaths(theme);
 
   return (
-    <header className="app-header sticky top-0 z-50 bg-bg/95 backdrop-blur-sm">
-      <div className="header-bar flex items-center justify-between px-4 h-header-height mobile:h-header-mobile">
+    <header className="app-header">
+      <div className="header-bar">
         {/* Sidebar Toggle Button */}
-        <SidebarToggle />
+        <button
+          id="sidebarToggle"
+          className="sidebar-toggle"
+          type="button"
+          aria-label="Toggle navigation"
+          aria-expanded={isOpen}
+          data-open={isOpen}
+          onClick={toggleSidebar}
+        >
+          <span className="sidebar-toggle-icon" />
+          <span className="sidebar-toggle-label">Menu</span>
+        </button>
 
-        {/* Logo and Banner */}
-        <div className="header-center flex items-center gap-4 flex-1 justify-center">
+        {/* Logo and Banner - centered */}
+        <div className="header-center">
           <div className="header-logo-wrap">
             <img
+              id="headerLogo"
               src={logoSrc}
               alt="Unstablon Logo"
-              className="header-logo-img h-12 w-auto animate-slide-up-fade"
+              className="header-logo-img"
               loading="eager"
             />
           </div>
-          <div className="header-banner-wrap flex flex-col items-start">
+          <div className="header-banner-wrap">
             <img
+              id="headerBanner"
               src={bannerSrc}
               alt="Unstablon"
-              className="header-banner-img h-8 w-auto animate-slide-up-fade-delay-1"
+              className="header-banner-img"
               loading="eager"
             />
-            <p className="header-tagline text-text-muted text-xs mt-1 animate-slide-up-fade-delay-2 hidden tablet:block">
-              A static, modular PKM for experimental scientists
-            </p>
+            <p className="header-tagline">A static, modular PKM for experimental scientists</p>
           </div>
         </div>
 
         {/* Theme Toggle Button */}
         <button
-          onClick={toggleTheme}
-          className="theme-toggle p-2 rounded-full hover:bg-bg-hover transition-colors duration-fast"
+          id="themeToggle"
+          className="theme-toggle"
           type="button"
           aria-label="Toggle theme"
+          onClick={toggleTheme}
         >
-          <span className="text-xl">{theme === 'dark' ? '☾' : '☀'}</span>
+          <span id="themeIcon">{theme === 'dark' ? '☾' : '☀'}</span>
         </button>
       </div>
     </header>

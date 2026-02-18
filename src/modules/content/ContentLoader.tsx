@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
-import { useThemeStore } from '@core/state/themeStore';
 import ModuleLoader from './ModuleLoader';
 import type { ContentNode } from '@/types/navigation';
 
@@ -10,11 +9,7 @@ import type { ContentNode } from '@/types/navigation';
  */
 function ContentLoader(): React.JSX.Element {
   const activeNode = useNavigationStore((state) => state.activeNode);
-  const isLoading = useNavigationStore((state) => state.isLoading);
-  const setLoading = useNavigationStore((state) => state.setLoading);
-  const theme = useThemeStore((state) => state.theme);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Clear error when active node changes
@@ -24,7 +19,7 @@ function ContentLoader(): React.JSX.Element {
 
   if (!activeNode) {
     return (
-      <div className="empty-state flex flex-col items-center justify-center min-h-[200px] text-text-muted">
+      <div className="flex flex-col items-center justify-center min-h-[200px] text-text-muted">
         <p>Select a module from the sidebar to begin</p>
       </div>
     );
@@ -32,8 +27,10 @@ function ContentLoader(): React.JSX.Element {
 
   if (error) {
     return (
-      <div className="error-state p-4 rounded-md bg-danger/10 border border-danger/20">
-        <h3 className="text-danger font-medium mb-2">Error Loading Content</h3>
+      <div className="p-4 rounded-sm bg-danger/10 border border-danger/20">
+        <h3 className="text-danger font-medium mb-2">
+          Error Loading Content
+        </h3>
         <p className="text-text-muted text-sm">{error}</p>
       </div>
     );
@@ -43,25 +40,23 @@ function ContentLoader(): React.JSX.Element {
   switch (activeNode.type) {
     case 'module':
       return (
-        <div ref={containerRef} className="module-container w-full">
-          <ModuleLoader
-            node={activeNode}
-            container={containerRef}
-            onError={setError}
-          />
-        </div>
+        <ModuleLoader
+          key={activeNode.id}
+          node={activeNode}
+          onError={setError}
+        />
       );
 
     case 'page':
       return (
-        <div className="page-container w-full">
+        <div className="page-container">
           <PageViewer node={activeNode} onError={setError} />
         </div>
       );
 
     case 'document':
       return (
-        <div className="document-container w-full">
+        <div className="document-container">
           <DocumentViewer node={activeNode} onError={setError} />
         </div>
       );
@@ -93,7 +88,8 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
     async function loadPage(): Promise<void> {
       try {
         setIsLoading(true);
-        const response = await fetch(node.file);
+        const url = './' + node.file;
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to fetch page: ${response.statusText}`);
         }
@@ -125,7 +121,7 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
 
   return (
     <div
-      className="page-content prose prose-invert max-w-none"
+      className="page-content"
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );
@@ -144,7 +140,8 @@ function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
     async function loadDocument(): Promise<void> {
       try {
         setIsLoading(true);
-        const response = await fetch(node.file);
+        const url = './' + node.file;
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to fetch document: ${response.statusText}`);
         }
@@ -177,7 +174,7 @@ function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
   // For now, render as preformatted text
   // TODO: Add markdown rendering
   return (
-    <pre className="document-content whitespace-pre-wrap font-mono text-sm text-text-main bg-bg-panel p-4 rounded-md overflow-auto">
+    <pre className="whitespace-pre-wrap font-mono text-sm text-text-main bg-bg-panel p-4 rounded-sm overflow-auto">
       {content}
     </pre>
   );

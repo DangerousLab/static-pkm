@@ -5,16 +5,15 @@ import LandscapeLeftBar from './LandscapeLeftBar';
 
 /**
  * Main application shell component
- * Provides the grid layout structure for the app
  */
 function AppShell(): React.JSX.Element {
   return (
     <>
-      {/* Landscape mode left bar (mobile landscape only) */}
+      {/* Landscape mode left bar (mobile landscape only - controlled by CSS) */}
       <LandscapeLeftBar />
 
       {/* Main app grid */}
-      <div className="app-shell grid min-h-screen grid-rows-[auto_1fr] grid-cols-1 pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="app-shell">
         <Header />
         <Sidebar />
         <MainContent />

@@ -17,36 +17,32 @@ function Breadcrumb({ path, onNavigate, onBack }: BreadcrumbProps): React.JSX.El
   const canGoBack = path.length > 1;
 
   return (
-    <div className="sidebar-breadcrumb flex items-center gap-2">
+    <div className="sidebar-breadcrumb">
       {/* Back button */}
       {canGoBack && (
         <button
           onClick={onBack}
-          className="back-button p-1 rounded hover:bg-bg-hover transition-colors"
+          className="breadcrumb-back"
           type="button"
           aria-label="Go back"
         >
-          <span className="text-text-muted">←</span>
+          ←
         </button>
       )}
 
       {/* Breadcrumb path */}
-      <div className="breadcrumb-path flex items-center gap-1 text-sm overflow-x-auto">
-        {path.map((folder, index) => (
-          <span key={folder.path} className="flex items-center">
-            {index > 0 && <span className="text-text-muted mx-1">/</span>}
-            <button
-              onClick={() => onNavigate(folder)}
-              className={`breadcrumb-segment hover:text-accent-gold transition-colors ${
-                index === path.length - 1 ? 'text-text-main font-medium' : 'text-text-muted'
-              }`}
-              type="button"
-            >
-              {folder.name}
-            </button>
-          </span>
-        ))}
-      </div>
+      {path.map((folder, index) => (
+        <span key={folder.path}>
+          {index > 0 && <span className="sidebar-breadcrumb-separator">/</span>}
+          <button
+            onClick={() => onNavigate(folder)}
+            className={`sidebar-breadcrumb-part ${index === path.length - 1 ? 'current' : ''}`}
+            type="button"
+          >
+            {folder.name}
+          </button>
+        </span>
+      ))}
     </div>
   );
 }

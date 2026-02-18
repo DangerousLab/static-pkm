@@ -1,0 +1,11 @@
+/* ==================== APP SHELL LAYOUT ==================== */
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "header"
+    "main";
+  min-height: 100vh;
+}

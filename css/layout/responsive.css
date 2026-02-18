@@ -1,0 +1,227 @@
+/* ==================== PORTRAIT MOBILE OVERRIDES ==================== */
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .main-content {
+    padding: 0.5rem 0;
+  }
+
+  .page-root {
+    padding: 0.5rem 0.25rem 1rem;
+  }
+
+  .card {
+    margin: 0.5rem 0.25rem;
+    padding: 1.125rem 0.875rem 1.25rem;
+    border-radius: var(--radius-md);
+  }
+
+  .sidebar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+/* ==================== MOBILE LANDSCAPE MODE ==================== */
+
+.landscape-leftbar {
+  display: none;
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  html, body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--gradient-bg) !important;
+  }
+
+  .app-shell {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Notch area blocker */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: env(safe-area-inset-left, 0px);
+    height: 100vh;
+    background: #1f1f1f;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  :root[data-notch-side="right"] body::before {
+    left: auto;
+    right: 0;
+    width: env(safe-area-inset-right, 0px);
+  }
+
+  :root[data-notch-side="none"] body::before {
+    display: none;
+  }
+
+  :root[data-theme="light"] body::before {
+    background: #f3f4f6;
+  }
+
+  .landscape-leftbar {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: env(safe-area-inset-left, 0px);
+    width: var(--landscape-leftbar-width);
+    height: calc(100vh - env(safe-area-inset-top, 0px));
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #1f1f1f;
+    border-right: 1px solid var(--border-medium);
+  }
+
+  :root[data-notch-side="right"] .landscape-leftbar,
+  :root[data-notch-side="none"] .landscape-leftbar {
+    left: 0;
+  }
+
+  :root[data-theme="light"] .landscape-leftbar {
+    background: #f3f4f6;
+    border-right-color: var(--border-medium);
+  }
+
+  .landscape-leftbar-toggle {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    color: var(--text-main);
+    flex-shrink: 0;
+  }
+
+  .landscape-leftbar-logo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.125rem;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .landscape-leftbar-logo img {
+    max-width: 38px;
+    max-height: 38px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    animation: slideUpFade var(--anim-slow) var(--ease-out);
+    animation-delay: 0s;
+    animation-fill-mode: both;
+  }
+
+  .landscape-leftbar-logo img.animate {
+    animation: slideUpFade var(--anim-slow) var(--ease-out);
+    animation-delay: 0s;
+    animation-fill-mode: both;
+  }
+
+  .landscape-leftbar .theme-toggle {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+  }
+
+  .landscape-leftbar .theme-toggle span {
+    font-size: 0.9rem;
+  }
+
+  .app-header {
+    display: none !important;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
+    width: 80vw !important;
+    max-width: 360px !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+    transform: translateX(-100%) !important;
+    z-index: 20 !important;
+    overflow: hidden !important;
+  }
+
+  :root[data-notch-side="right"] .sidebar,
+  :root[data-notch-side="none"] .sidebar {
+    left: var(--landscape-leftbar-width) !important;
+  }
+
+  .sidebar[data-open="true"] {
+    transform: translateX(0) !important;
+  }
+
+  .main-content {
+    position: fixed !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0.25rem 0.5rem !important;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: transparent !important;
+  }
+
+  :root[data-notch-side="right"] .main-content {
+    left: var(--landscape-leftbar-width) !important;
+    right: env(safe-area-inset-right, 0px) !important;
+  }
+
+  :root[data-notch-side="none"] .main-content {
+    left: var(--landscape-leftbar-width) !important;
+    right: 0 !important;
+  }
+
+  .main-content .page-root {
+    padding: 0.125rem 0.125rem 0.75rem !important;
+    max-width: 100%;
+    background: transparent !important;
+  }
+
+  .page-root .card {
+    margin-top: 0.25rem !important;
+    padding: 0.625rem 1rem 1.125rem !important;
+    border-radius: var(--radius-md) !important;
+    max-width: 100%;
+  }
+
+  .card .content-header,
+  .card .calculator-header {
+    margin-bottom: 0.75rem !important;
+  }
+}

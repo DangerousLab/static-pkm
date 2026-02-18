@@ -1,77 +1,169 @@
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useSidebarStore } from '@core/state/sidebarStore';
 import { useNavigationStore, selectBreadcrumbPath } from '@core/state/navigationStore';
+import { useIsMobile, useShouldAutoCloseSidebar } from '@hooks/useWindowSize';
+import { getNodeId } from '@/types/navigation';
 import Breadcrumb from './Breadcrumb';
 import NavItem from './NavItem';
 import SearchBar from '@modules/search/SearchBar';
-import type { NavigationNode, FolderNode } from '@/types/navigation';
 
 /**
  * Sidebar navigation component
- * Contains search, breadcrumb, navigation items, and footer
  */
 function Sidebar(): React.JSX.Element {
   const isOpen = useSidebarStore((state) => state.isOpen);
   const width = useSidebarStore((state) => state.width);
+  const hoverNeeded = useSidebarStore((state) => state.hoverNeeded);
+  const hoverWidth = useSidebarStore((state) => state.hoverWidth);
+  const setWidth = useSidebarStore((state) => state.setWidth);
+  const setHoverNeeded = useSidebarStore((state) => state.setHoverNeeded);
+  const setHoverWidth = useSidebarStore((state) => state.setHoverWidth);
   const close = useSidebarStore((state) => state.close);
 
   const navigationTree = useNavigationStore((state) => state.navigationTree);
   const currentFolder = useNavigationStore((state) => state.currentFolder);
   const setCurrentFolder = useNavigationStore((state) => state.setCurrentFolder);
+  const activeNode = useNavigationStore((state) => state.activeNode);
+
+  const isMobile = useIsMobile();
+  const shouldAutoClose = useShouldAutoCloseSidebar();
+  const [isHovering, setIsHovering] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   // Get breadcrumb path
   const breadcrumbPath = selectBreadcrumbPath(navigationTree, currentFolder);
 
   // Handle back navigation
-  const handleBack = (): void => {
+  const handleBack = useCallback((): void => {
     if (breadcrumbPath.length > 1) {
       const parentFolder = breadcrumbPath[breadcrumbPath.length - 2];
       if (parentFolder) {
         setCurrentFolder(parentFolder);
       }
     }
-  };
+  }, [breadcrumbPath, setCurrentFolder]);
+
+  // Auto-close sidebar when content changes (if viewport requires it)
+  // This handles nav item clicks that select a module/page/document
+  useEffect(() => {
+    if (isOpen && shouldAutoClose && activeNode) {
+      close();
+    }
+  }, [activeNode]); // Only depend on activeNode to avoid loops
+
+  // Handle click outside to close (overlay for narrow viewports)
+  const handleOverlayClick = useCallback((): void => {
+    if (isOpen && shouldAutoClose) {
+      close();
+    }
+  }, [isOpen, shouldAutoClose, close]);
 
   // Current folder children
   const children = currentFolder?.children ?? [];
 
+  // Calculate sidebar width based on content
+  // Runs when folder changes OR when sidebar opens
+  useEffect(() => {
+    if (!sidebarRef.current || !navRef.current || isMobile || !isOpen) return;
+
+    // Use requestAnimationFrame to ensure DOM is fully rendered before measuring
+    const measureAndCalculate = (): void => {
+      if (!navRef.current) return;
+
+      const navItems = navRef.current.querySelectorAll('.nav-label');
+      let maxScrollWidth = 0;
+
+      navItems.forEach((item) => {
+        const el = item as HTMLElement;
+        if (el.scrollWidth > maxScrollWidth) {
+          maxScrollWidth = el.scrollWidth;
+        }
+      });
+
+      // Calculate widths: scrollWidth + icon (24px) + padding (56px) + buffer (20px)
+      const calculatedWidth = maxScrollWidth + 100;
+      const baseWidth = Math.min(Math.max(calculatedWidth, 240), 320);
+      setWidth(baseWidth);
+
+      // Check if content needs more space than base width allows
+      const needsHover = calculatedWidth > baseWidth;
+
+      if (needsHover) {
+        // Calculate hover width to fit all content
+        const expandedWidth = maxScrollWidth + 120;
+        setHoverNeeded(true);
+        setHoverWidth(expandedWidth);
+      } else {
+        setHoverNeeded(false);
+      }
+    };
+
+    // Wait for next frame to ensure items are rendered
+    const frameId = requestAnimationFrame(measureAndCalculate);
+    return () => cancelAnimationFrame(frameId);
+  }, [currentFolder, isMobile, isOpen, setWidth, setHoverNeeded, setHoverWidth]);
+
+  // Handle mouse enter for hover expansion
+  const handleMouseEnter = useCallback((): void => {
+    if (!isMobile && isOpen) {
+      setIsHovering(true);
+    }
+  }, [isMobile, isOpen]);
+
+  // Handle mouse leave
+  const handleMouseLeave = useCallback((): void => {
+    setIsHovering(false);
+  }, []);
+
+  // Calculate current width (hover or base)
+  // If hovering AND hoverNeeded, use hoverWidth; otherwise use base width
+  const currentWidth = isHovering && hoverNeeded ? hoverWidth : width;
+
   return (
-    <aside
-      id="sidebar"
-      className={`sidebar fixed top-header-height left-0 bottom-0 z-40 flex flex-col bg-gradient-sidebar transition-transform duration-normal ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      } sidebar:relative sidebar:translate-x-0 sidebar:top-0`}
-      style={{ width: `${width}px` }}
-      data-open={isOpen}
-      aria-label="Main navigation"
-    >
-      {/* Search Bar */}
-      <div className="sidebar-search p-3 border-b border-border-subtle">
-        <SearchBar />
-      </div>
+    <>
+      <aside
+        ref={sidebarRef}
+        id="sidebar"
+        className="sidebar"
+        style={!isMobile ? { width: `${currentWidth}px` } : undefined}
+        data-open={isOpen}
+        aria-label="Main navigation"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Search Bar Section */}
+        <div className="sidebar-search">
+          <SearchBar />
+        </div>
 
-      {/* Breadcrumb Navigation */}
-      <div className="sidebar-header p-3 border-b border-border-subtle">
-        <Breadcrumb path={breadcrumbPath} onNavigate={setCurrentFolder} onBack={handleBack} />
-      </div>
+        {/* Breadcrumb Navigation */}
+        <div className="sidebar-header">
+          <Breadcrumb path={breadcrumbPath} onNavigate={setCurrentFolder} onBack={handleBack} />
+        </div>
 
-      {/* Navigation Menu */}
-      <nav id="sidebarNav" className="sidebar-nav flex-1 overflow-y-auto p-2">
-        {children.length > 0 ? (
-          <ul className="space-y-1">
-            {children.map((node) => (
-              <NavItem key={node.path} node={node} />
-            ))}
-          </ul>
-        ) : (
-          <p className="text-text-muted text-sm p-2">No items in this folder</p>
-        )}
-      </nav>
+        {/* Navigation Menu */}
+        <nav ref={navRef} id="sidebarNav" className="sidebar-nav">
+          {children.length > 0 ? (
+            children.map((node) => (
+              <NavItem key={getNodeId(node)} node={node} />
+            ))
+          ) : (
+            <p className="empty-folder-message">
+              No items in this folder
+            </p>
+          )}
+        </nav>
 
-      {/* Sidebar Footer */}
-      <div className="sidebar-footer p-3 border-t border-border-subtle text-text-muted text-xs">
-        <div>Unstablon PKM</div>
-      </div>
-    </aside>
+        {/* Sidebar Footer */}
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-content">
+            <span>Unstablon PKM</span>
+            <span className="version">v2.0</span>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
 

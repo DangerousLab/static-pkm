@@ -2,11 +2,9 @@
  * Global type declarations
  */
 
-// SES Compartment type (from lockdown)
-declare class Compartment {
-  constructor(globals: Record<string, unknown>);
-  evaluate(code: string): unknown;
-}
+// Note: SES Compartment is NOT used for user modules.
+// User modules in /Home/Tools/ are TRUSTED (user's own code).
+// SES will only be used for community plugins (Plugin Layer) in the future.
 
 // Tauri global (available when running in Tauri context)
 interface Window {
@@ -17,6 +15,7 @@ interface Window {
       emit: (event: string, payload?: unknown) => Promise<void>;
     };
   };
+  // Note: MathJax type is declared in src/loaders/useMathJax.ts
 }
 
 // Module factory pattern used by user modules

@@ -1,28 +1,25 @@
 import { useEffect } from 'react';
 import AppShell from '@components/layout/AppShell';
-import { useThemeStore } from '@core/state/themeStore';
 import { useNavigation } from '@hooks/useNavigation';
+import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts';
+import { useThemeEffect } from '@modules/theme';
+import { useThemeImages } from '@modules/theme/useThemeImages';
 
 /**
  * Root application component
- * Sets up theme, loads navigation tree, and renders the main app shell
+ * Sets up theme, keyboard shortcuts, loads navigation tree, and renders the main app shell
  */
 function App(): React.JSX.Element {
-  const theme = useThemeStore((state) => state.theme);
   const { loadNavigationTree, error } = useNavigation();
 
-  // Apply theme to document root
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+  // Apply theme effects (document attribute, meta color, events)
+  useThemeEffect();
 
-    // Update meta theme-color for mobile
-    const metaThemeColor = document.getElementById('theme-color-meta');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'dark' ? '#1f1f1f' : '#f3f4f6');
-    }
+  // Preload theme images
+  useThemeImages();
 
-    console.log('[INFO] [App] Theme applied:', theme);
-  }, [theme]);
+  // Enable global keyboard shortcuts
+  useKeyboardShortcuts();
 
   // Load navigation tree on mount
   useEffect(() => {

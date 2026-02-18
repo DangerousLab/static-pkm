@@ -1,0 +1,90 @@
+/* ==================== MAIN CONTENT AREA ==================== */
+
+.main-content {
+  grid-area: main;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.page-root {
+  max-width: 900px;
+  width: 100%;
+  padding: 0.25rem 0.25rem 1.5rem;
+}
+
+/* ==================== CARD COMPONENT ==================== */
+
+.card {
+  position: relative;
+  background: var(--gradient-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12),
+              0 1px 2px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  contain: layout style;
+  isolation: isolate;
+  padding: clamp(1.125rem, 3vw, 1.75rem) clamp(0.875rem, 2.5vw, 2rem) clamp(1.25rem, 3vw, 1.875rem);
+  margin-top: clamp(0.5rem, 2vw, 1rem);
+}
+
+:root[data-theme="light"] .card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08),
+              0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.card.preload {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.card.loaded {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--anim-normal) var(--ease-out),
+              transform var(--anim-normal) var(--ease-out);
+}
+
+.loading-message {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ==================== MODULE ISOLATION BOUNDARY ==================== */
+
+.module-boundary {
+  all: revert;
+
+  color: var(--text-main);
+  background: var(--bg-card);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+
+  position: relative;
+  box-sizing: border-box;
+  overflow: auto;
+  width: 100%;
+}
+
+.module-boundary * {
+  box-sizing: inherit;
+}
+
+.module-boundary .module-boundary {
+  all: revert;
+
+  color: var(--text-main);
+  background: var(--bg-card);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+
+  position: relative;
+  box-sizing: border-box;
+  overflow: auto;
+  width: 100%;
+}

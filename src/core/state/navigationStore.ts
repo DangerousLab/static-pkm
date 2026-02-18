@@ -105,3 +105,35 @@ export function selectBreadcrumbPath(
   findPath(tree, currentFolder);
   return path;
 }
+
+/**
+ * Find the parent folder of a content node
+ * Returns the folder that contains the given node
+ */
+export function findParentFolder(
+  tree: FolderNode | null,
+  node: ContentNode
+): FolderNode | null {
+  if (!tree || !node.file) return tree;
+
+  // Get parent path from node's file path
+  const pathParts = node.file.split('/');
+  if (pathParts.length <= 1) return tree;
+
+  const parentPath = pathParts.slice(0, -1).join('/');
+
+  function findFolderByPath(folder: FolderNode, targetPath: string): FolderNode | null {
+    if (folder.path === targetPath) return folder;
+
+    for (const child of folder.children) {
+      if (child.type === 'folder') {
+        const found = findFolderByPath(child, targetPath);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  }
+
+  return findFolderByPath(tree, parentPath) ?? tree;
+}

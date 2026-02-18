@@ -1,12 +1,12 @@
 import { useRef, useCallback } from 'react';
 import { useSearchStore } from '@core/state/searchStore';
-import { useNavigationStore } from '@core/state/navigationStore';
+import { useNavigationStore, findParentFolder } from '@core/state/navigationStore';
 import SearchResults from './SearchResults';
 import { useSearch } from '@hooks/useSearch';
+import type { ContentNode } from '@/types/navigation';
 
 /**
  * Search bar component
- * Input field with keyboard navigation and results dropdown
  */
 function SearchBar(): React.JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -20,7 +20,23 @@ function SearchBar(): React.JSX.Element {
   const isFocused = useSearchStore((state) => state.isFocused);
   const setFocused = useSearchStore((state) => state.setFocused);
 
+  const navigationTree = useNavigationStore((state) => state.navigationTree);
   const setActiveNode = useNavigationStore((state) => state.setActiveNode);
+  const setCurrentFolder = useNavigationStore((state) => state.setCurrentFolder);
+
+  // Navigate to a search result - sets active node AND navigates to its parent folder
+  const navigateToResult = useCallback(
+    (node: ContentNode): void => {
+      // Find and navigate to parent folder
+      const parentFolder = findParentFolder(navigationTree, node);
+      if (parentFolder) {
+        setCurrentFolder(parentFolder);
+      }
+      // Set the active node
+      setActiveNode(node);
+    },
+    [navigationTree, setCurrentFolder, setActiveNode]
+  );
 
   // Use search hook for filtering
   useSearch(query);
@@ -41,7 +57,7 @@ function SearchBar(): React.JSX.Element {
           if (results.length > 0 && selectedIndex >= 0) {
             const selectedResult = results[selectedIndex];
             if (selectedResult) {
-              setActiveNode(selectedResult.node);
+              navigateToResult(selectedResult.node);
               clearSearch();
               inputRef.current?.blur();
             }
@@ -54,7 +70,7 @@ function SearchBar(): React.JSX.Element {
           break;
       }
     },
-    [results, selectedIndex, selectNext, selectPrevious, setActiveNode, clearSearch]
+    [results, selectedIndex, selectNext, selectPrevious, navigateToResult, clearSearch]
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -72,24 +88,42 @@ function SearchBar(): React.JSX.Element {
     });
   };
 
+  const handleClear = (): void => {
+    clearSearch();
+    inputRef.current?.focus();
+  };
+
   return (
-    <div className="search-container relative">
-      <input
-        ref={inputRef}
-        type="search"
-        value={query}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        placeholder="Search..."
-        className="search-input w-full px-3 py-2 rounded-md bg-bg-panel border border-border-subtle text-text-main placeholder:text-text-muted focus:outline-none focus:border-accent-gold transition-colors"
-        aria-label="Search"
-        aria-expanded={isFocused && results.length > 0}
-        aria-controls="search-results"
-        role="combobox"
-        autoComplete="off"
-      />
+    <div>
+      <div className="search-input-wrapper">
+        <span className="search-icon">🔍</span>
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder="Search..."
+          className="search-input"
+          aria-label="Search"
+          aria-expanded={isFocused && results.length > 0}
+          aria-controls="search-results"
+          role="combobox"
+          autoComplete="off"
+        />
+        {query && (
+          <button
+            type="button"
+            className="search-clear"
+            onClick={handleClear}
+            aria-label="Clear search"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {/* Search results dropdown */}
       {isFocused && query && (
@@ -97,7 +131,7 @@ function SearchBar(): React.JSX.Element {
           results={results}
           selectedIndex={selectedIndex}
           onSelect={(node) => {
-            setActiveNode(node);
+            navigateToResult(node);
             clearSearch();
           }}
         />
