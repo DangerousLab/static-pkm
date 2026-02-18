@@ -2,6 +2,15 @@
 node_modules/
 *.log
 
+# Build outputs (auto-generated)
+css/main.css
+css/app.min.css
+css/app.min.css.map
+javascript/app.min.js
+javascript/app.min.js.map
+javascript/tree.json
+javascript/cache-manifest.json
+
 # Vite build output
 dist/
 
@@ -11,6 +20,9 @@ src-tauri/Cargo.lock
 
 # HTTPS certificates (local testing only)
 .cert/
+
+# Build documentation
+ROLLUP-GUIDE.md
 
 # OS files
 .DS_Store
