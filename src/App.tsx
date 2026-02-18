@@ -4,6 +4,8 @@ import { useNavigation } from '@hooks/useNavigation';
 import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts';
 import { useThemeEffect } from '@modules/theme';
 import { useThemeImages } from '@modules/theme/useThemeImages';
+import { usePWA } from '@modules/pwa/usePWA';
+import { CacheProgressOverlay } from '@modules/pwa/CacheProgressOverlay';
 
 /**
  * Root application component
@@ -11,6 +13,7 @@ import { useThemeImages } from '@modules/theme/useThemeImages';
  */
 function App(): React.JSX.Element {
   const { loadNavigationTree, error } = useNavigation();
+  const pwaState = usePWA();
 
   // Apply theme effects (document attribute, meta color, events)
   useThemeEffect();
@@ -25,6 +28,25 @@ function App(): React.JSX.Element {
   useEffect(() => {
     loadNavigationTree();
   }, [loadNavigationTree]);
+
+  // Conditionally inject manifest (prevent Opera GX bug)
+  useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile || pwaState.isInstalled) {
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = './manifest.json';
+      document.head.appendChild(link);
+      console.log('[App] Manifest injected');
+
+      return () => {
+        // Cleanup on unmount
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      };
+    }
+  }, [pwaState.isInstalled]);
 
   // Show error if navigation tree fails to load
   if (error) {
@@ -44,7 +66,22 @@ function App(): React.JSX.Element {
     );
   }
 
-  return <AppShell />;
+  return (
+    <>
+      {/* Show cache progress overlay during PWA first install */}
+      {pwaState.cacheProgress > 0 && pwaState.cacheProgress < 100 && (
+        <CacheProgressOverlay
+          progress={pwaState.cacheProgress}
+          current={pwaState.cacheCurrent}
+          total={pwaState.cacheTotal}
+          url={pwaState.cacheUrl}
+        />
+      )}
+
+      {/* Main app shell */}
+      <AppShell />
+    </>
+  );
 }
 
 export default App;

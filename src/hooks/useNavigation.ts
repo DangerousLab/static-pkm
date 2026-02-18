@@ -62,13 +62,27 @@ export function useNavigation(): {
       let tree: FolderNode;
 
       // Try to fetch tree.json - it has correct displayNames from build step
-      const response = await fetch('./javascript/tree.json');
+      // Tauri build has it at ./javascript/tree.json
+      // PWA build has it at ./tree.json
+      // Try both locations with fallback
+      let response = await fetch('./javascript/tree.json');
+
+      if (!response.ok) {
+        // Try PWA location
+        response = await fetch('./tree.json');
+      }
 
       if (response.ok) {
-        tree = (await response.json()) as FolderNode;
-        console.log('[INFO] [useNavigation] Loaded tree.json successfully');
+        // Check if response is actually JSON (not HTML fallback)
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          tree = (await response.json()) as FolderNode;
+          console.log('[INFO] [useNavigation] Loaded tree.json successfully');
+        } else {
+          throw new Error('tree.json returned non-JSON response (likely HTML fallback)');
+        }
       } else {
-        console.warn('[WARN] [useNavigation] tree.json not available, status:', response.status);
+        console.warn('[WARN] [useNavigation] tree.json not available at either location');
 
         // Fall back to dynamic generation in Tauri mode
         if (isTauriContext()) {

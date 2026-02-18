@@ -1,0 +1,48 @@
+/* ==================== HAMBURGER ICON ANIMATION ==================== */
+
+.sidebar-toggle-icon {
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background var(--anim-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: var(--radius-full);
+  transition: transform var(--anim-fast) var(--ease-standard),
+              opacity var(--anim-fast) var(--ease-standard),
+              top var(--anim-fast) var(--ease-standard),
+              bottom var(--anim-fast) var(--ease-standard);
+}
+
+.sidebar-toggle-icon::before {
+  top: -5px;
+}
+
+.sidebar-toggle-icon::after {
+  bottom: -5px;
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon {
+  background: transparent;
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.sidebar-toggle[data-open="true"] .sidebar-toggle-icon::after {
+  bottom: 0;
+  transform: rotate(-45deg);
+}

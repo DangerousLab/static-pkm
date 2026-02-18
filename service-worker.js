@@ -11,7 +11,7 @@
  * - Persistent storage API for maximum cache retention
  */
 
-const CACHE_MANIFEST_URL = './javascript/cache-manifest.json';
+const CACHE_MANIFEST_URL = './cache-manifest.json';
 let CACHE_VERSION = 'v1.0.0';
 let CACHE_NAME = `unstablon-offline-${CACHE_VERSION}`;
 let PRECACHE_URLS = [];
@@ -21,12 +21,19 @@ let PRECACHE_URLS = [];
  */
 async function loadCacheManifest() {
   try {
+    console.log('[SW DEBUG] Loading cache manifest from:', CACHE_MANIFEST_URL);
     const response = await fetch(CACHE_MANIFEST_URL, { cache: 'no-cache' });
+    console.log('[SW DEBUG] Manifest fetch response:', response.status, response.statusText);
+
     if (!response.ok) {
       throw new Error('Failed to load cache manifest');
     }
 
     const manifest = await response.json();
+    console.log('[SW DEBUG] Manifest loaded successfully');
+    console.log('[SW DEBUG] Manifest version:', manifest.version);
+    console.log('[SW DEBUG] Local files:', manifest.preCache.local.length);
+    console.log('[SW DEBUG] CDN files:', manifest.preCache.cdn.length);
     
     // SECURITY: Validate manifest structure
     if (!manifest.version || !manifest.preCache) {
@@ -189,42 +196,98 @@ self.addEventListener('install', (event) => {
 
   event.waitUntil(
     loadCacheManifest()
-      .then(() => caches.open(CACHE_NAME))
+      .then(() => {
+        console.log('[SW DEBUG] Manifest loaded, PRECACHE_URLS length:', PRECACHE_URLS.length);
+        console.log('[SW DEBUG] First 5 URLs:', PRECACHE_URLS.slice(0, 5));
+        return caches.open(CACHE_NAME);
+      })
       .then(cache => {
         console.log('[SW] Opened cache:', CACHE_NAME);
+        console.log('[SW DEBUG] Cache object:', cache);
 
         const totalAssets = PRECACHE_URLS.length;
         let cachedAssets = 0;
         let failedAssets = [];
 
         // Cache each URL individually to track progress
+        console.log(`[SW DEBUG] Starting to cache ${totalAssets} URLs...`);
         const cachePromises = PRECACHE_URLS.map(async (url, index) => {
+          console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Starting: ${url}`);
+          const startTime = Date.now();
+
           try {
             const isCDN = url.startsWith('http://') || url.startsWith('https://');
+
+            // CRITICAL: Convert relative URLs to FULL ABSOLUTE URLs for cache matching
+            // Browser requests come as full URLs like http://localhost:4173/assets/app.js
+            // Cache API matches by full URL, not path strings
+            const baseUrl = self.registration.scope; // e.g., "http://localhost:4173/"
+            let cacheUrl = url;
+            if (!isCDN) {
+              // Resolve relative URL to absolute using service worker scope
+              cacheUrl = new URL(url, baseUrl).href;
+            }
+
+            console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Original: ${url}, Cache URL: ${cacheUrl}`);
+            console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Is CDN: ${isCDN}`);
 
             if (isCDN) {
               // CDN resources - handle CORS
               try {
-                const response = await fetch(url, { 
+                console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Fetching CDN with CORS...`);
+                const response = await fetch(url, {
                   mode: 'cors',
                   cache: 'force-cache'
                 });
+                console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] CDN response: ${response.status} ${response.statusText}`);
                 if (response.ok) {
                   await cache.put(url, response);
+                  console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] CDN cached successfully`);
                 } else {
                   throw new Error(`HTTP ${response.status}`);
                 }
               } catch (corsError) {
+                console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] CORS failed, trying no-cors: ${corsError.message}`);
                 // Fallback to no-cors for opaque responses
-                const response = await fetch(url, { 
+                const response = await fetch(url, {
                   mode: 'no-cors',
                   cache: 'force-cache'
                 });
                 await cache.put(url, response);
+                console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] CDN cached with no-cors`);
               }
             } else {
-              // Local resources - use cache.add
-              await cache.add(url);
+              // Local resources - explicit fetch and cache
+              console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Fetching local resource...`);
+              // CRITICAL: Fetch with same properties browser will use during normal requests
+              // This ensures caches.match() will find the entry later
+              const response = await fetch(cacheUrl, {
+                cache: 'reload' // Force fresh fetch during install
+                // NO credentials - browser default is 'omit' for same-origin
+                // NO mode - browser default is 'cors' for cross-origin, 'no-cors' for same-origin
+              });
+
+              console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Response status: ${response.status} ${response.statusText}`);
+              console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Response type: ${response.type}`);
+              console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Content-Type: ${response.headers.get('Content-Type')}`);
+
+              // Log response size if available
+              const contentLength = response.headers.get('Content-Length');
+              if (contentLength) {
+                console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Content-Length: ${contentLength} bytes`);
+              }
+
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+
+              // Cache with absolute URL - this matches how browser requests come in
+              const clonedResponse = response.clone();
+              await cache.put(cacheUrl, clonedResponse);
+              console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] Cached as: ${cacheUrl}`);
+
+              const elapsed = Date.now() - startTime;
+              console.log(`[SW DEBUG] [${index + 1}/${totalAssets}] ✓ Cached successfully in ${elapsed}ms`);
             }
 
             cachedAssets++;
@@ -242,13 +305,15 @@ self.addEventListener('install', (event) => {
               });
             });
 
-            // Log every 10th item to avoid spam
-            if (cachedAssets % 10 === 0 || cachedAssets === totalAssets) {
-              console.log(`[SW] Progress: ${cachedAssets}/${totalAssets} (${progress}%)`);
-            }
+            console.log(`[SW] Progress: ${cachedAssets}/${totalAssets} (${progress}%)`);
           } catch (error) {
+            const elapsed = Date.now() - startTime;
             failedAssets.push({ url, error: error.message });
-            console.warn(`[SW] Failed to cache: ${url}`, error.message);
+            console.error(`[SW DEBUG] [${index + 1}/${totalAssets}] ✗ FAILED in ${elapsed}ms: ${url}`);
+            console.error(`[SW DEBUG] Error details:`, error);
+            console.error(`[SW DEBUG] Error name: ${error.name}`);
+            console.error(`[SW DEBUG] Error message: ${error.message}`);
+            console.error(`[SW DEBUG] Error stack:`, error.stack);
           }
         });
 
@@ -324,8 +389,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip non-http protocols
+  // Skip non-http protocols (includes tauri://)
   if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // CRITICAL: Skip Tauri protocol requests
+  // Tauri serves from tauri://localhost or custom protocols
+  if (url.protocol === 'tauri:' || url.hostname === 'tauri.localhost') {
     return;
   }
 
@@ -338,29 +409,40 @@ self.addEventListener('fetch', (event) => {
           return addSecurityHeaders(cachedResponse, url);
         }
 
-        // Not in cache (unexpected) - fetch from network
-        console.warn('[SW] Unexpected cache miss:', url.pathname);
-        return fetch(event.request)
-          .then(response => {
-            // Add security headers to network response too
-            return addSecurityHeaders(response, url);
-          })
-          .catch(error => {
-            console.error('[SW] Fetch failed:', url.pathname, error);
-
-            // Return offline fallback for HTML pages
-            if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('./index.html')
-                .then(fallback => addSecurityHeaders(fallback, url));
+        // Cache miss - try matching by URL only (ignore request properties)
+        // This handles cases where request credentials/mode differ from cached version
+        return caches.match(event.request.url, { ignoreVary: true })
+          .then(urlMatch => {
+            if (urlMatch) {
+              console.log('[SW] Cache hit by URL (request properties differed):', url.pathname);
+              return addSecurityHeaders(urlMatch, url);
             }
 
-            return new Response('Offline - Resource not available', {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
+            // Not in cache (unexpected) - fetch from network
+            console.warn('[SW] Unexpected cache miss:', url.pathname);
+            return fetch(event.request)
+              .then(response => {
+                // Add security headers to network response too
+                return addSecurityHeaders(response, url);
               })
-            });
+              .catch(error => {
+                console.error('[SW] Fetch failed:', url.pathname, error);
+
+                // Return offline fallback for HTML pages
+                if (event.request.headers.get('accept').includes('text/html')) {
+                  const fallbackUrl = new URL('./index.html', self.registration.scope).href;
+                  return caches.match(fallbackUrl, { ignoreVary: true })
+                    .then(fallback => addSecurityHeaders(fallback, url));
+                }
+
+                return new Response('Offline - Resource not available', {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                  headers: new Headers({
+                    'Content-Type': 'text/plain'
+                  })
+                });
+              });
           });
       })
   );
@@ -371,31 +453,34 @@ self.addEventListener('fetch', (event) => {
  */
 function addSecurityHeaders(response, url) {
   if (!response) return response;
-  
-  const headers = new Headers(response.headers);
-  
+
+  // CRITICAL: Clone response before reading properties
+  // This prevents "body already consumed" errors
+  const clonedResponse = response.clone();
+  const headers = new Headers(clonedResponse.headers);
+
   // SECURITY: Add CSP for HTML files
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname === './') {
-    headers.set('Content-Security-Policy', 
+    headers.set('Content-Security-Policy',
       "default-src 'self'; " +
       "script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
-      "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
-      "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net data:; " +
+      "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com; " +
+      "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com data:; " +
       "img-src 'self' data: blob:; " +
       "connect-src 'self'"
     );
   }
-  
+
   // SECURITY: Prevent MIME sniffing
   headers.set('X-Content-Type-Options', 'nosniff');
-  
+
   // SECURITY: Frame protection (clickjacking)
   headers.set('X-Frame-Options', 'SAMEORIGIN');
-  
+
   // Clone response with new headers
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
+  return new Response(clonedResponse.body, {
+    status: clonedResponse.status,
+    statusText: clonedResponse.statusText,
     headers: headers
   });
 }

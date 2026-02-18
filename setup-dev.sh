@@ -155,13 +155,13 @@ create_cache_config() {
     "css": { "extensions": [".css"], "enabled": true }
   },
   "cdnDetection": {
-    "domains": ["cdn.", "cdnjs.", "jsdelivr.", "unpkg.", "fonts.googleapis.com", "fonts.gstatic.com"]
+    "domains": ["cdn.", "cdnjs.", "jsdelivr.", "unpkg.", "fonts.googleapis.com", "fonts.gstatic.com", "fonts.cdnfonts.com"]
   },
   "mathJax": {
     "autoExpand": true,
     "fonts": ["MathJax_Main-Regular.woff", "MathJax_Math-Italic.woff", "MathJax_Size2-Regular.woff", "MathJax_Size1-Regular.woff", "MathJax_AMS-Regular.woff"]
   },
-  "excludePatterns": ["node_modules", ".git", ".DS_Store", "app.min.js", "app.min.css", "tree.json", "cache-manifest.json"]
+  "excludePatterns": ["node_modules", ".git", ".DS_Store", "app.min.js", "app.min.css", "tree.json", "cache-manifest.json", "vendor/ses"]
 }
 EOF
     print_success "Created cache-scan.config.json"
@@ -484,6 +484,11 @@ import http from 'http';
 const ROOT = process.cwd();
 const CONFIG_FILE = 'cache-scan.config.json';
 
+// Check for --pwa flag
+const isPWAMode = process.argv.includes('--pwa');
+const SCAN_DIR = isPWAMode ? 'dist-pwa' : 'javascript';
+const OUTPUT_FILE = isPWAMode ? 'dist-pwa/cache-manifest.json' : 'javascript/cache-manifest.json';
+
 function loadConfig() {
     if (!existsSync(CONFIG_FILE)) {
         console.error('[Cache] Config not found');
@@ -507,7 +512,11 @@ function scanDirectory(dirPath, extensions = null, exclude = []) {
     const items = readdirSync(dirPath);
     for (const item of items) {
         const fullPath = join(dirPath, item);
-        const relativePath = './' + relative(ROOT, fullPath).replace(/\\/g, '/');
+
+        // In PWA mode, make paths relative to dist-pwa/, otherwise relative to ROOT
+        const baseDir = isPWAMode ? 'dist-pwa' : ROOT;
+        const relativePath = './' + relative(baseDir, fullPath).replace(/\\/g, '/');
+
         if (exclude.some(pattern => relativePath.includes(pattern))) continue;
 
         const stats = statSync(fullPath);
@@ -642,7 +651,7 @@ function expandMathJaxResources(urls, config) {
 }
 
 async function generateCacheManifest() {
-    console.log('[Cache] Generating manifest...');
+    console.log(`[Cache] Generating manifest (mode: ${isPWAMode ? 'PWA' : 'legacy'})...`);
 
     const config = loadConfig();
     const manifest = {
@@ -651,20 +660,42 @@ async function generateCacheManifest() {
         preCache: { local: [], cdn: [] }
     };
 
-    const coreFiles = ['./', './index.html', './manifest.json', './favicon.ico', './javascript/app.min.js', './javascript/tree.json', './css/app.min.css'];
+    // Core files differ between PWA and legacy builds
+    const coreFiles = isPWAMode
+        ? ['./', './index.html', './manifest.json', './favicon.ico', './tree.json']
+        : ['./', './index.html', './manifest.json', './favicon.ico', './javascript/app.min.js', './javascript/tree.json', './css/app.min.css'];
+
     manifest.preCache.local.push(...coreFiles);
 
+    // For PWA mode, scan dist-pwa/assets/ for Vite-generated JS/CSS bundles
+    if (isPWAMode && existsSync('dist-pwa/assets')) {
+        const assetFiles = scanDirectory('dist-pwa/assets', ['.js', '.css'], config.excludePatterns);
+        manifest.preCache.local.push(...assetFiles);
+    }
+
     const allCDNUrls = [];
+
+    // CRITICAL: Scan root index.html for CDN URLs in PWA mode
+    // The root HTML file contains CDN links (fonts, scripts) but isn't in any scanned subdirectory
+    if (isPWAMode && existsSync('dist-pwa/index.html')) {
+        const indexContent = readFileSync('dist-pwa/index.html', 'utf-8');
+        const indexUrls = extractHTMLUrls(indexContent);
+        allCDNUrls.push(...indexUrls);
+        console.log(`[Cache] Found ${indexUrls.length} CDN URLs in root index.html`);
+    }
 
     for (const [dirName, dirConfig] of Object.entries(config.scanDirectories)) {
         if (!dirConfig.enabled) continue;
 
+        // In PWA mode, scan from dist-pwa directory
+        const scanPath = isPWAMode ? join('dist-pwa', dirName) : dirName;
+
         if (dirName === 'Home' || dirName === 'assets' || dirName === 'vendor') {
-            const files = scanDirectory(dirName, null, config.excludePatterns);
+            const files = scanDirectory(scanPath, null, config.excludePatterns);
             manifest.preCache.local.push(...files);
         }
 
-        const files = scanDirectory(dirName, dirConfig.extensions, config.excludePatterns);
+        const files = scanDirectory(scanPath, dirConfig.extensions, config.excludePatterns);
 
         for (const file of files) {
             if (!existsSync(file)) continue;
@@ -710,9 +741,9 @@ async function generateCacheManifest() {
     manifest.preCache.local = [...new Set(manifest.preCache.local)];
     manifest.preCache.cdn = [...new Set(expandedUrls)];
 
-    writeFileSync('javascript/cache-manifest.json', JSON.stringify(manifest, null, 2));
+    writeFileSync(OUTPUT_FILE, JSON.stringify(manifest, null, 2));
 
-    console.log(`[Cache] Generated (v${manifest.version})`);
+    console.log(`[Cache] Generated (v${manifest.version}) → ${OUTPUT_FILE}`);
     console.log(`[Cache] Local: ${manifest.preCache.local.length}, CDN: ${manifest.preCache.cdn.length}`);
 }
 
