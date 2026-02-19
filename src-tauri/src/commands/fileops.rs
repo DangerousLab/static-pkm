@@ -118,28 +118,49 @@ fn build_folder_node(path: &str, name: &str, vault_root: &str) -> Result<FolderN
             let file_path_str = normalized_path.clone();
 
             if utils::is_module_file(&file_path_str) {
+                let title = if let Ok(content) = fs::read_to_string(&entry_path) {
+                    utils::extract_title_from_content(&content)
+                        .unwrap_or_else(|| utils::path_to_title(&file_path_str))
+                } else {
+                    utils::path_to_title(&file_path_str)
+                };
+
                 children.push(NavigationNode::Module(ModuleNode {
                     id: utils::path_to_id(&file_path_str),
                     name: entry_name.clone(),
                     path: relative_path.clone(),
-                    title: utils::path_to_title(&file_path_str),
+                    title,
                     file: relative_path,
                     tags: Vec::new(),
                 }));
             } else if utils::is_page_file(&file_path_str) {
+                let title = if let Ok(content) = fs::read_to_string(&entry_path) {
+                    utils::extract_title_from_content(&content)
+                        .unwrap_or_else(|| utils::path_to_title(&file_path_str))
+                } else {
+                    utils::path_to_title(&file_path_str)
+                };
+
                 children.push(NavigationNode::Page(PageNode {
                     id: utils::path_to_id(&file_path_str),
                     name: entry_name.clone(),
                     path: relative_path.clone(),
-                    title: utils::path_to_title(&file_path_str),
+                    title,
                     file: relative_path,
                 }));
             } else if utils::is_document_file(&file_path_str) {
+                let title = if let Ok(content) = fs::read_to_string(&entry_path) {
+                    utils::extract_title_from_content(&content)
+                        .unwrap_or_else(|| utils::path_to_title(&file_path_str))
+                } else {
+                    utils::path_to_title(&file_path_str)
+                };
+
                 children.push(NavigationNode::Document(DocumentNode {
                     id: utils::path_to_id(&file_path_str),
                     name: entry_name.clone(),
                     path: relative_path.clone(),
-                    title: utils::path_to_title(&file_path_str),
+                    title,
                     file: relative_path,
                 }));
             }

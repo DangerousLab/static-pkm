@@ -43,6 +43,65 @@ pub fn normalize_path(path: &str) -> String {
     path.replace('\\', "/")
 }
 
+/// Extract title from file content
+/// Priority:
+/// 1) YAML frontmatter `title:` field (markdown)
+/// 2) First `#` heading (markdown)
+/// 3) First `<h1>` tag content (HTML/JavaScript)
+/// 4) None (falls back to filename)
+pub fn extract_title_from_content(content: &str) -> Option<String> {
+    let mut in_frontmatter = false;
+    let mut frontmatter_started = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        // Track YAML frontmatter bounds (---)
+        if trimmed == "---" {
+            if !frontmatter_started {
+                frontmatter_started = true;
+                in_frontmatter = true;
+                continue;
+            } else {
+                in_frontmatter = false;
+                continue;
+            }
+        }
+
+        // YAML frontmatter title field
+        if in_frontmatter && trimmed.starts_with("title:") {
+            let value = trimmed[6..].trim().trim_matches(['\'', '"']);
+            if !value.is_empty() {
+                return Some(value.to_string());
+            }
+        }
+
+        // Markdown h1 heading (only outside frontmatter)
+        if !in_frontmatter && trimmed.starts_with("# ") {
+            let title = trimmed[2..].trim();
+            if !title.is_empty() {
+                return Some(title.to_string());
+            }
+        }
+
+        // HTML <h1> tag - extract content between <h1> and </h1>
+        if let Some(start) = trimmed.find("<h1") {
+            // Find the closing > of the opening tag
+            if let Some(tag_end) = trimmed[start..].find('>') {
+                let after_tag = &trimmed[start + tag_end + 1..];
+                // Find the closing </h1>
+                if let Some(end) = after_tag.find("</h1>") {
+                    let title = after_tag[..end].trim();
+                    if !title.is_empty() {
+                        return Some(title.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
