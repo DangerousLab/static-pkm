@@ -460,12 +460,14 @@ function addSecurityHeaders(response, url) {
   const headers = new Headers(clonedResponse.headers);
 
   // SECURITY: Add CSP for HTML files
+  // Relaxed CSP: Platform and Content layers are trusted.
+  // Strict CSP only needed for Plugin layer (not yet implemented).
   if (url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname === './') {
     headers.set('Content-Security-Policy',
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
-      "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com; " +
-      "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.cdnfonts.com data:; " +
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+      "style-src 'self' 'unsafe-inline' data:; " +
+      "font-src 'self' data:; " +
       "img-src 'self' data: blob:; " +
       "connect-src 'self'"
     );

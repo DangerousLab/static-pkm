@@ -61,6 +61,13 @@ export default defineConfig({
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
 
+  // Compile-time environment variables
+  define: {
+    'import.meta.env.VITE_BUILD_MODE': JSON.stringify(
+      process.env.TAURI_ENV_PLATFORM ? 'tauri' : 'web'
+    ),
+  },
+
   // env prefix for Tauri
   envPrefix: ['VITE_', 'TAURI_ENV_'],
 });

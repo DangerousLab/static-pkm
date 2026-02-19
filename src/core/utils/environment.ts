@@ -35,8 +35,33 @@ export function getDeploymentEnv(): DeploymentEnv {
 }
 
 /**
- * Get resource URL strategy based on environment
+ * Get build-time environment mode
+ * Set at compile time by Vite (avoids race condition with Tauri injection)
+ */
+export function getBuildMode(): 'tauri' | 'pwa' | 'web' {
+  const mode = import.meta.env.VITE_BUILD_MODE;
+  if (mode === 'tauri') return 'tauri';
+  if (mode === 'pwa') return 'pwa';
+  return 'web';
+}
+
+/**
+ * Get resource URL based on build-time environment
+ * Uses compile-time detection to avoid race conditions with ES module initialization
  *
+ * @param localPath - Path to local bundled resource (e.g., './vendor/fontawesome/css/all.min.css')
+ * @param cdnUrl - CDN URL for web (e.g., 'https://cdnjs.cloudflare.com/...')
+ * @returns URL to use for the current environment
+ */
+export function getResourceUrlSync(localPath: string, cdnUrl: string): string {
+  const mode = getBuildMode();
+  return mode === 'tauri' || mode === 'pwa' ? localPath : cdnUrl;
+}
+
+/**
+ * Get resource URL strategy based on environment (deprecated)
+ *
+ * @deprecated Use getResourceUrlSync() instead for build-time certainty
  * @param localPath - Path to local bundled resource (e.g., './vendor/fontawesome/css/all.min.css')
  * @param cdnUrl - CDN URL for web (e.g., 'https://cdnjs.cloudflare.com/...')
  * @returns URL to use for the current environment

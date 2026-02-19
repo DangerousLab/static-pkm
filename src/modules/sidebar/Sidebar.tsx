@@ -161,7 +161,7 @@ function Sidebar(): React.JSX.Element {
         <div className="sidebar-footer">
           <div className="sidebar-footer-content">
             <span>Unstablon PKM</span>
-            <span className="version">v2.0</span>
+            <span className="version">v0.1.0-alpha</span>
           </div>
         </div>
       </aside>

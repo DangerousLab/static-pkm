@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getResourceUrl } from '@core/utils/environment';
+import { getResourceUrlSync } from '@core/utils/environment';
 
 /** FontAwesome CDN URL (for web/PWA) - v7.0.1 */
 const FONTAWESOME_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css';
@@ -8,7 +8,7 @@ const FONTAWESOME_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0
 const FONTAWESOME_LOCAL = './vendor/fontawesome/css/all.min.css';
 
 /** Get FontAwesome URL based on environment */
-const FONTAWESOME_URL = getResourceUrl(FONTAWESOME_LOCAL, FONTAWESOME_CDN);
+const FONTAWESOME_URL = getResourceUrlSync(FONTAWESOME_LOCAL, FONTAWESOME_CDN);
 
 /** Loading state */
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';

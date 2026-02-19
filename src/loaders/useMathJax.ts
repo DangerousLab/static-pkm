@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { getResourceUrl } from '@core/utils/environment';
+import { getResourceUrlSync } from '@core/utils/environment';
 
 /** MathJax CDN URL (for web/PWA) - v3.2.2 (v4 has flicker issues with dynamic re-rendering) */
 const MATHJAX_CDN = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
@@ -8,7 +8,7 @@ const MATHJAX_CDN = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 const MATHJAX_LOCAL = './vendor/mathjax/tex-mml-chtml.js';
 
 /** Get MathJax URL based on environment */
-const MATHJAX_URL = getResourceUrl(MATHJAX_LOCAL, MATHJAX_CDN);
+const MATHJAX_URL = getResourceUrlSync(MATHJAX_LOCAL, MATHJAX_CDN);
 
 /** MathJax global interface */
 interface MathJaxGlobal {
