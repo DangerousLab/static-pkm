@@ -25,19 +25,19 @@ function NavItem({ node }: NavItemProps): React.JSX.Element {
     }
   };
 
-  // Get icon based on node type
-  const getIcon = (): string => {
+  // Get FontAwesome icon class based on node type
+  const getIconClass = (): string => {
     switch (node.type) {
       case 'folder':
-        return '📁';
+        return 'fa-solid fa-folder';
       case 'module':
-        return '⚡';
+        return 'fa-solid fa-bolt';
       case 'page':
-        return '📄';
+        return 'fa-solid fa-file';
       case 'document':
-        return '📝';
+        return 'fa-solid fa-file-lines';
       default:
-        return '📄';
+        return 'fa-solid fa-file';
     }
   };
 
@@ -50,7 +50,9 @@ function NavItem({ node }: NavItemProps): React.JSX.Element {
       className={`nav-item ${isActive ? 'active' : ''}`}
       type="button"
     >
-      <span className="nav-icon">{getIcon()}</span>
+      <span className="nav-icon">
+        <i className={getIconClass()} />
+      </span>
       <span className="nav-label">{displayName}</span>
       {isFolderNode(node) && (
         <span className="nav-arrow">→</span>

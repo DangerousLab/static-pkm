@@ -1,7 +1,14 @@
 import { useEffect, useCallback, useState } from 'react';
+import { getResourceUrl } from '@core/utils/environment';
 
-/** MathJax CDN URL */
-const MATHJAX_URL = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+/** MathJax CDN URL (for web/PWA) - v3.2.2 (v4 has flicker issues with dynamic re-rendering) */
+const MATHJAX_CDN = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+
+/** MathJax local URL (for native app) - v3.2.2 */
+const MATHJAX_LOCAL = './vendor/mathjax/tex-mml-chtml.js';
+
+/** Get MathJax URL based on environment */
+const MATHJAX_URL = getResourceUrl(MATHJAX_LOCAL, MATHJAX_CDN);
 
 /** MathJax global interface */
 interface MathJaxGlobal {
@@ -37,22 +44,31 @@ async function loadMathJax(): Promise<void> {
   }
 
   globalLoadState = 'loading';
-  console.log('[INFO] [useMathJax] Loading MathJax from CDN');
+  console.log('[INFO] [useMathJax] Loading MathJax:', MATHJAX_URL);
 
   loadPromise = new Promise((resolve, reject) => {
-    // Configure MathJax before loading
+    // Configure MathJax 3.2.2 before loading (matching old vanilla JS version)
     window.MathJax = {
       tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']],
       },
-      svg: {
-        fontCache: 'global',
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
       },
       startup: {
         ready: () => {
-          console.log('[INFO] [useMathJax] MathJax ready');
+          // Call the original MathJax ready function
+          console.log('[INFO] [useMathJax] MathJax startup.ready called');
+
+          // IMPORTANT: Call the original MathJax.startup.ready() (MathJax 3 uses defaultReady)
+          if (typeof (window.MathJax as any).startup?.defaultReady === 'function') {
+            (window.MathJax as any).startup.defaultReady();
+          }
+
+          // Mark as loaded after initialization
           globalLoadState = 'loaded';
+          console.log('[INFO] [useMathJax] MathJax loaded from CDN');
           resolve();
         },
       },
@@ -118,10 +134,30 @@ export function useMathJax(): {
 
   /**
    * Typeset math in an element
+   *
+   * For re-rendering scenarios (user changes values), this provides a flicker-free approach:
+   * 1. Clone the element's existing rendered content
+   * 2. Update the element's HTML with new raw LaTeX
+   * 3. Create a hidden staging area to render the new content
+   * 4. Once MathJax finishes, swap the staged content back
+   *
+   * This ensures users never see raw LaTeX during transitions.
    */
   const typeset = useCallback(async (element?: HTMLElement): Promise<void> => {
     if (!window.MathJax?.typesetPromise) {
-      console.warn('[WARN] [useMathJax] MathJax not loaded');
+      console.warn('[WARN] [useMathJax] MathJax.typesetPromise not available yet');
+      // If MathJax is loading, wait for it
+      if (globalLoadState === 'loading') {
+        console.log('[INFO] [useMathJax] Waiting for MathJax to finish loading...');
+        await loadMathJax();
+        // Try again after loading
+        if (window.MathJax?.typesetPromise) {
+          const elements = element ? [element] : undefined;
+          await window.MathJax.typesetPromise(elements);
+          console.log('[INFO] [useMathJax] Typeset complete (after waiting)');
+          return;
+        }
+      }
       return;
     }
 

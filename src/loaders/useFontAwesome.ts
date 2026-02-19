@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
+import { getResourceUrl } from '@core/utils/environment';
 
-/** FontAwesome CDN URL */
-const FONTAWESOME_URL = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
+/** FontAwesome CDN URL (for web/PWA) - v7.0.1 */
+const FONTAWESOME_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css';
+
+/** FontAwesome local URL (for native app) - v7.2.0 bundled */
+const FONTAWESOME_LOCAL = './vendor/fontawesome/css/all.min.css';
+
+/** Get FontAwesome URL based on environment */
+const FONTAWESOME_URL = getResourceUrl(FONTAWESOME_LOCAL, FONTAWESOME_CDN);
 
 /** Loading state */
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
@@ -30,7 +37,7 @@ async function loadFontAwesome(): Promise<void> {
   }
 
   globalLoadState = 'loading';
-  console.log('[INFO] [useFontAwesome] Loading FontAwesome from CDN');
+  console.log('[INFO] [useFontAwesome] Loading FontAwesome:', FONTAWESOME_URL);
 
   loadPromise = new Promise((resolve, reject) => {
     const link = document.createElement('link');

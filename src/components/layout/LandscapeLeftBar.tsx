@@ -48,7 +48,9 @@ function LandscapeLeftBar(): React.JSX.Element {
         aria-label="Toggle theme"
         onClick={toggleTheme}
       >
-        <span id="landscapeThemeIcon">{theme === 'dark' ? '☾' : '☀'}</span>
+        <span id="landscapeThemeIcon">
+          <i className={theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
+        </span>
       </button>
     </div>
   );

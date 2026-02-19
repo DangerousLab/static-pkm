@@ -6,6 +6,7 @@ import { useThemeEffect } from '@modules/theme';
 import { useThemeImages } from '@modules/theme/useThemeImages';
 import { usePWA } from '@modules/pwa/usePWA';
 import { CacheProgressOverlay } from '@modules/pwa/CacheProgressOverlay';
+import { useFontAwesome } from '@/loaders';
 
 /**
  * Root application component
@@ -14,6 +15,9 @@ import { CacheProgressOverlay } from '@modules/pwa/CacheProgressOverlay';
 function App(): React.JSX.Element {
   const { loadNavigationTree, error } = useNavigation();
   const pwaState = usePWA();
+
+  // Load FontAwesome icons (lazy - won't block render)
+  useFontAwesome();
 
   // Apply theme effects (document attribute, meta color, events)
   useThemeEffect();

@@ -21,7 +21,7 @@ function ThemeToggle(): React.JSX.Element {
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
     >
       <span className="text-xl transition-transform duration-normal hover:scale-110">
-        {theme === 'dark' ? '☾' : '☀'}
+        <i className={theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
       </span>
     </button>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useThemeStore, type Theme } from '@core/state/themeStore';
+import { useMathJax } from '@/loaders';
 import type { ModuleNode } from '@/types/navigation';
 
 interface ModuleLoaderProps {
@@ -22,6 +23,8 @@ interface ModuleInstance {
  */
 function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
   const theme = useThemeStore((state) => state.theme);
+  // Load MathJax (hook ensures it's loaded before modules use dynamicRender)
+  useMathJax();
   const moduleInstanceRef = useRef<ModuleInstance | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -105,23 +108,43 @@ function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
               return useThemeStore.subscribe((state) => callback(state.theme));
             },
           },
-          // MathJax dynamic rendering (stub for now - full implementation in Phase 9)
+          /**
+           * Re-render passive content after dynamic DOM updates
+           * Assumes libraries are already loaded (use after initial autoRender)
+           * For user modules that update innerHTML dynamically
+           *
+           * MathJax 3 pattern for re-rendering:
+           * 1. Call typesetClear() to reset processing state
+           * 2. Call typesetPromise() to re-process the content
+           */
           dynamicRender: async (container: HTMLElement) => {
-            // Check if MathJax is available
+            if (!container) return;
+
+            console.log('[Loader] Dynamic re-render...');
+
+            // MathJax is already loaded from initial autoRender
             if (window.MathJax?.typesetPromise) {
-              try {
-                await window.MathJax.typesetPromise([container]);
-                console.log('[INFO] [ModuleLoader] MathJax typeset complete');
-              } catch (err) {
-                console.warn('[WARN] [ModuleLoader] MathJax typeset failed:', err);
+              // CRITICAL for re-rendering: Clear MathJax's memory of already-processed elements
+              // Without this, MathJax skips re-processing and nothing updates
+              if (typeof (window.MathJax as any).typesetClear === 'function') {
+                (window.MathJax as any).typesetClear([container]);
+                console.log('[Loader] MathJax state cleared for re-rendering');
               }
+
+              // Now re-typeset with fresh state
+              await window.MathJax.typesetPromise([container]);
+              console.log('[Loader] Dynamic re-render complete');
             }
+
+            // Icons don't need re-rendering (CSS-based, no JS needed after load)
+            // Add other library re-renders here if needed in future
           },
-          // MathJax API (stub for now)
+          // MathJax API
           mathAPI: {
             clearMath: () => {
-              console.log('[INFO] [ModuleLoader] mathAPI.clearMath() called');
-              // MathJax cleanup will be implemented in Phase 9
+              // MathJax 3 doesn't need explicit cleanup for re-typesetting
+              // The typeset function handles it automatically
+              console.log('[INFO] [ModuleLoader] mathAPI.clearMath() called (no-op for MathJax 3)');
             },
           },
         }) as ModuleInstance;

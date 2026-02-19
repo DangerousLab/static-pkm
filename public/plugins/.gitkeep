@@ -1,0 +1,10 @@
+# User Plugins Directory
+
+This directory contains user-installed/created plugins that extend Unstablon functionality.
+
+Plugins here are:
+- User-modifiable (not shipped with the app by default)
+- Loaded at runtime
+- Follow the plugin manifest system
+
+See PLUGINS-GUIDE.md for plugin development documentation.

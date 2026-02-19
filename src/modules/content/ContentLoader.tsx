@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
+import { useMathJax } from '@/loaders';
 import ModuleLoader from './ModuleLoader';
 import type { ContentNode } from '@/types/navigation';
 
@@ -81,7 +82,10 @@ interface ViewerProps {
 function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { isLoaded: mathJaxLoaded, typeset } = useMathJax();
 
+  // Load page content
   useEffect(() => {
     let cancelled = false;
 
@@ -115,12 +119,20 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
     };
   }, [node.file, onError]);
 
+  // Typeset MathJax after content loads
+  useEffect(() => {
+    if (!isLoading && mathJaxLoaded && contentRef.current && content) {
+      typeset(contentRef.current);
+    }
+  }, [isLoading, mathJaxLoaded, content, typeset]);
+
   if (isLoading) {
     return <div className="text-text-muted">Loading page...</div>;
   }
 
   return (
     <div
+      ref={contentRef}
       className="page-content"
       dangerouslySetInnerHTML={{ __html: content }}
     />

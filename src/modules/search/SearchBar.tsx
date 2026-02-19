@@ -96,7 +96,9 @@ function SearchBar(): React.JSX.Element {
   return (
     <div>
       <div className="search-input-wrapper">
-        <span className="search-icon">🔍</span>
+        <span className="search-icon">
+          <i className="fa-solid fa-magnifying-glass" />
+        </span>
         <input
           ref={inputRef}
           type="search"
@@ -120,7 +122,7 @@ function SearchBar(): React.JSX.Element {
             onClick={handleClear}
             aria-label="Clear search"
           >
-            ✕
+            <i className="fa-solid fa-xmark" />
           </button>
         )}
       </div>

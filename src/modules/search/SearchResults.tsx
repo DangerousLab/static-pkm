@@ -35,26 +35,42 @@ function SearchResults({
       className="search-results"
       role="listbox"
     >
-      {results.map((result, index) => (
-        <div
-          key={result.id}
-          role="option"
-          aria-selected={index === selectedIndex}
-          className={`search-result-item ${index === selectedIndex ? 'selected' : ''}`}
-          onMouseDown={(e) => {
-            e.preventDefault(); // Prevent blur before click
-            onSelect(result.node);
-          }}
-        >
-          <div className="search-result-icon">
-            {result.type === 'module' ? '⚡' : result.type === 'page' ? '📄' : '📝'}
+      {results.map((result, index) => {
+        // Get FontAwesome icon class based on result type
+        const getIconClass = (): string => {
+          switch (result.type) {
+            case 'module':
+              return 'fa-solid fa-bolt';
+            case 'page':
+              return 'fa-solid fa-file';
+            case 'document':
+              return 'fa-solid fa-file-lines';
+            default:
+              return 'fa-solid fa-file';
+          }
+        };
+
+        return (
+          <div
+            key={result.id}
+            role="option"
+            aria-selected={index === selectedIndex}
+            className={`search-result-item ${index === selectedIndex ? 'selected' : ''}`}
+            onMouseDown={(e) => {
+              e.preventDefault(); // Prevent blur before click
+              onSelect(result.node);
+            }}
+          >
+            <div className="search-result-icon">
+              <i className={getIconClass()} />
+            </div>
+            <div>
+              <div className="search-result-title">{result.title}</div>
+              <div className="search-result-path">{result.path}</div>
+            </div>
           </div>
-          <div>
-            <div className="search-result-title">{result.title}</div>
-            <div className="search-result-path">{result.path}</div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -61,7 +61,9 @@ function Header(): React.JSX.Element {
           aria-label="Toggle theme"
           onClick={toggleTheme}
         >
-          <span id="themeIcon">{theme === 'dark' ? '☾' : '☀'}</span>
+          <span id="themeIcon">
+            <i className={theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
+          </span>
         </button>
       </div>
     </header>
