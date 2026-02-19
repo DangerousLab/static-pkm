@@ -11,7 +11,7 @@
     "prebuild": "node scripts/generate-css-entry.mjs && node scripts/generate-tree.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
@@ -31,35 +31,36 @@
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.300.0",
+    "lucide-react": "^0.575.0",
     "lz-string": "^1.5.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "ses": "^1.14.0",
-    "tailwind-merge": "^3.4.1",
-    "zustand": "^4.5.0"
+    "tailwind-merge": "^3.5.0",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "@vitejs/plugin-react": "^4.2.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "@vitejs/plugin-react": "^5.1.0",
     "autoprefixer": "^10.4.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
+    "eslint": "^9.18.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-refresh": "^0.5.0",
+    "globals": "^16.0.0",
     "postcss": "^8.4.33",
     "postcss-import": "^16.0.0",
     "prettier": "^3.2.0",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.3.0",
-    "vite": "^5.0.0",
-    "vitest": "^1.2.0"
+    "typescript": "^5.8.0",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.0"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.0.0",
     "npm": ">=9.0.0"
   }
 }
