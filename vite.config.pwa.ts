@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
 import { execSync } from 'child_process';
 
@@ -18,7 +19,7 @@ const generateBuildArtifacts = () => ({
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [generateBuildArtifacts(), react()],
+  plugins: [generateBuildArtifacts(), tailwindcss(), react()],
 
   // Relative paths for GitHub Pages deployment
   base: './',

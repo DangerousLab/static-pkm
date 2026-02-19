@@ -1,37 +1,28 @@
 /* Core layout styles - modular CSS architecture */
 @import './css/main.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind CSS v4 */
+@import "tailwindcss";
 
-/* Base layer customizations */
-@layer base {
-  /* Root container */
-  #root {
-    min-height: 100vh;
-  }
+/* Root container */
+#root {
+  min-height: 100vh;
 }
 
-/* Component layer for React-specific components */
-@layer components {
-  /* Sidebar overlay for narrow viewports */
-  .sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 25;
-    background: rgba(0, 0, 0, 0.5);
-  }
+/* Sidebar overlay for narrow viewports */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.5);
 }
 
-/* Utility layer for scrollbar hiding */
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+/* Scrollbar hiding utility */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 
-  .scrollbar-hide::-webkit-scrollbar {
+  &::-webkit-scrollbar {
     display: none;
   }
 }
