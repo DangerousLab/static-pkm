@@ -15,7 +15,7 @@ pub struct FileEntry {
 
 /// Navigation node types
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "type")]
 pub enum NavigationNode {
     #[serde(rename = "folder")]
     Folder(FolderNode),
@@ -30,6 +30,8 @@ pub enum NavigationNode {
 /// Folder node containing children
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FolderNode {
+    #[serde(rename = "type")]
+    pub node_type: String,
     pub name: String,
     pub path: String,
     pub children: Vec<NavigationNode>,

@@ -40,6 +40,72 @@
   border-bottom: 1px solid rgba(148, 148, 148, 0.3);
 }
 
+.sidebar-vault {
+  padding: 0.5rem 0.625rem;
+  border-bottom: 1px solid rgba(148, 148, 148, 0.3);
+}
+
+.vault-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 150ms var(--ease-out),
+              border-color 150ms var(--ease-out);
+}
+
+.vault-selector:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+}
+
+.vault-selector:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.vault-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.vault-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.vault-spinner {
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;

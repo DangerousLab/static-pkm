@@ -37,6 +37,13 @@ function buildSearchIndex(tree: FolderNode): SearchIndexItem[] {
   const items: SearchIndexItem[] = [];
 
   function traverse(node: NavigationNode): void {
+    console.log('[DEBUG] [buildSearchIndex] Traversing node:', {
+      type: node.type,
+      name: 'name' in node ? node.name : 'unknown',
+      isContent: isContentNode(node),
+      isFolder: isFolderNode(node),
+    });
+
     if (isContentNode(node)) {
       items.push({
         id: node.id,
@@ -47,13 +54,20 @@ function buildSearchIndex(tree: FolderNode): SearchIndexItem[] {
         node: node,
       });
     } else if (isFolderNode(node)) {
+      console.log('[DEBUG] [buildSearchIndex] Folder has', node.children?.length || 0, 'children');
       for (const child of node.children) {
         traverse(child);
       }
     }
   }
 
+  console.log('[DEBUG] [buildSearchIndex] Starting with tree:', {
+    type: tree.type,
+    name: tree.name,
+    childrenCount: tree.children?.length || 0,
+  });
   traverse(tree);
+  console.log('[DEBUG] [buildSearchIndex] Total items collected:', items.length);
   return items;
 }
 

@@ -79,12 +79,14 @@ pub async fn list_directory(path: String) -> Result<Vec<FileEntry>, String> {
 pub async fn get_navigation_tree(home_path: String) -> Result<FolderNode, String> {
     info!("[INFO] [fileops] Building navigation tree from: {}", home_path);
 
-    build_folder_node(&home_path, "Home")
+    let normalized_root = utils::normalize_path(&home_path);
+    build_folder_node(&home_path, "Home", &normalized_root)
         .map_err(|e| e.to_string())
 }
 
 /// Recursively build a folder node from filesystem
-fn build_folder_node(path: &str, name: &str) -> Result<FolderNode, AppError> {
+/// vault_root is used to compute relative paths
+fn build_folder_node(path: &str, name: &str, vault_root: &str) -> Result<FolderNode, AppError> {
     let entries = fs::read_dir(path)?;
     let mut children = Vec::new();
 
@@ -99,9 +101,16 @@ fn build_folder_node(path: &str, name: &str) -> Result<FolderNode, AppError> {
 
         let normalized_path = utils::normalize_path(&entry_path.to_string_lossy());
 
+        // Compute relative path from vault root
+        let relative_path = if normalized_path.starts_with(vault_root) {
+            normalized_path[vault_root.len()..].trim_start_matches('/').to_string()
+        } else {
+            normalized_path.clone()
+        };
+
         if entry_path.is_dir() {
             // Recurse into subdirectory
-            match build_folder_node(&entry_path.to_string_lossy(), &entry_name) {
+            match build_folder_node(&entry_path.to_string_lossy(), &entry_name, vault_root) {
                 Ok(folder) => children.push(NavigationNode::Folder(folder)),
                 Err(e) => tracing::warn!("[WARN] [fileops] Skipping directory {}: {}", entry_name, e),
             }
@@ -112,26 +121,26 @@ fn build_folder_node(path: &str, name: &str) -> Result<FolderNode, AppError> {
                 children.push(NavigationNode::Module(ModuleNode {
                     id: utils::path_to_id(&file_path_str),
                     name: entry_name.clone(),
-                    path: normalized_path.clone(),
+                    path: relative_path.clone(),
                     title: utils::path_to_title(&file_path_str),
-                    file: normalized_path,
+                    file: relative_path,
                     tags: Vec::new(),
                 }));
             } else if utils::is_page_file(&file_path_str) {
                 children.push(NavigationNode::Page(PageNode {
                     id: utils::path_to_id(&file_path_str),
                     name: entry_name.clone(),
-                    path: normalized_path.clone(),
+                    path: relative_path.clone(),
                     title: utils::path_to_title(&file_path_str),
-                    file: normalized_path,
+                    file: relative_path,
                 }));
             } else if utils::is_document_file(&file_path_str) {
                 children.push(NavigationNode::Document(DocumentNode {
                     id: utils::path_to_id(&file_path_str),
                     name: entry_name.clone(),
-                    path: normalized_path.clone(),
+                    path: relative_path.clone(),
                     title: utils::path_to_title(&file_path_str),
-                    file: normalized_path,
+                    file: relative_path,
                 }));
             }
         }
@@ -163,9 +172,18 @@ fn build_folder_node(path: &str, name: &str) -> Result<FolderNode, AppError> {
         }
     });
 
+    // Compute relative path for this folder
+    let normalized_path = utils::normalize_path(path);
+    let relative_path = if normalized_path.starts_with(vault_root) {
+        normalized_path[vault_root.len()..].trim_start_matches('/').to_string()
+    } else {
+        normalized_path.clone()
+    };
+
     Ok(FolderNode {
+        node_type: "folder".to_string(),
         name: name.to_string(),
-        path: utils::normalize_path(path),
+        path: if relative_path.is_empty() { "Home".to_string() } else { relative_path },
         children,
     })
 }

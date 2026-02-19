@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import AppShell from '@components/layout/AppShell';
 import { useNavigation } from '@hooks/useNavigation';
+import { useVault } from '@hooks/useVault';
 import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts';
 import { useThemeEffect } from '@modules/theme';
 import { useThemeImages } from '@modules/theme/useThemeImages';
 import { usePWA } from '@modules/pwa/usePWA';
 import { CacheProgressOverlay } from '@modules/pwa/CacheProgressOverlay';
 import { useFontAwesome } from '@/loaders';
+import { isTauriContext } from '@core/ipc/commands';
 
 /**
  * Root application component
@@ -14,6 +16,7 @@ import { useFontAwesome } from '@/loaders';
  */
 function App(): React.JSX.Element {
   const { loadNavigationTree, error } = useNavigation();
+  const { initializeFromPersistedVault } = useVault();
   const pwaState = usePWA();
 
   // Load FontAwesome icons (lazy - won't block render)
@@ -29,9 +32,17 @@ function App(): React.JSX.Element {
   useKeyboardShortcuts();
 
   // Load navigation tree on mount
+  // In Tauri mode: Initialize from persisted vault (if any)
+  // In PWA mode: Load static tree.json
   useEffect(() => {
-    loadNavigationTree();
-  }, [loadNavigationTree]);
+    if (isTauriContext()) {
+      // Tauri mode - try to restore persisted vault
+      initializeFromPersistedVault();
+    } else {
+      // PWA mode - load static tree.json
+      loadNavigationTree();
+    }
+  }, [initializeFromPersistedVault, loadNavigationTree]);
 
   // Conditionally inject manifest (prevent Opera GX bug)
   useEffect(() => {

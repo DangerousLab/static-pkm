@@ -6,6 +6,7 @@ import { getNodeId } from '@/types/navigation';
 import Breadcrumb from './Breadcrumb';
 import NavItem from './NavItem';
 import SearchBar from '@modules/search/SearchBar';
+import VaultSelector from './VaultSelector';
 
 /**
  * Sidebar navigation component
@@ -138,6 +139,9 @@ function Sidebar(): React.JSX.Element {
         <div className="sidebar-search">
           <SearchBar />
         </div>
+
+        {/* Vault Selector */}
+        <VaultSelector />
 
         {/* Breadcrumb Navigation */}
         <div className="sidebar-header">

@@ -5,6 +5,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 import type { FileEntry, SearchResult } from '@/types/ipc';
 import type { FolderNode } from '@/types/navigation';
 import { isTauriContext } from './platform';
@@ -112,6 +113,45 @@ export async function indexContent(path: string): Promise<void> {
 export async function rebuildIndex(homePath: string): Promise<number> {
   console.log('[INFO] [IPC] rebuildIndex:', homePath);
   return invoke<number>('rebuild_index', { homePath });
+}
+
+/**
+ * Open folder picker dialog and return selected folder path
+ * @returns Object with path and name (both null if cancelled or in PWA mode)
+ */
+export async function selectVaultFolder(): Promise<{ path: string | null; name: string | null }> {
+  console.log('[INFO] [IPC] selectVaultFolder');
+
+  // Only supported in Tauri mode
+  if (!isTauriContext()) {
+    console.warn('[WARN] [IPC] selectVaultFolder not supported in PWA mode');
+    return { path: null, name: null };
+  }
+
+  try {
+    // Open folder picker dialog
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: 'Select Vault Folder',
+    });
+
+    // User cancelled
+    if (!selected) {
+      console.log('[INFO] [IPC] Folder selection cancelled');
+      return { path: null, name: null };
+    }
+
+    // Extract folder name from path
+    const path = selected as string;
+    const name = path.split(/[/\\]/).pop() || 'Vault';
+
+    console.log('[INFO] [IPC] Folder selected:', { path, name });
+    return { path, name };
+  } catch (error) {
+    console.error('[ERROR] [IPC] selectVaultFolder failed:', error);
+    throw error;
+  }
 }
 
 // Re-export platform detection utilities

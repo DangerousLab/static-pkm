@@ -41,7 +41,8 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
 
   setNavigationTree: (tree: FolderNode) => {
     console.log('[INFO] [navigationStore] Navigation tree loaded:', tree.name);
-    set({ navigationTree: tree, error: null });
+    // Also set currentFolder to the root so sidebar displays content
+    set({ navigationTree: tree, currentFolder: tree, error: null });
   },
 
   setCurrentFolder: (folder: FolderNode) => {

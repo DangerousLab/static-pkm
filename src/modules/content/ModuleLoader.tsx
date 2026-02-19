@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useThemeStore, type Theme } from '@core/state/themeStore';
+import { useVaultStore } from '@core/state/vaultStore';
 import { useMathJax } from '@/loaders';
+import { isTauriContext, readFile } from '@core/ipc/commands';
 import type { ModuleNode } from '@/types/navigation';
 
 interface ModuleLoaderProps {
@@ -23,6 +25,7 @@ interface ModuleInstance {
  */
 function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
   const theme = useThemeStore((state) => state.theme);
+  const currentVault = useVaultStore((state) => state.currentVault);
   // Load MathJax (hook ensures it's loaded before modules use dynamicRender)
   useMathJax();
   const moduleInstanceRef = useRef<ModuleInstance | null>(null);
@@ -75,12 +78,21 @@ function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
           // Need to load the script
           console.log('[INFO] [ModuleLoader] Factory not found, loading script...');
 
-          // Build proper script URL (relative to root)
-          const scriptSrc = './' + node.file;
+          // Build proper script URL
+          let scriptSrc: string;
+          if (isTauriContext() && currentVault) {
+            // Tauri mode: construct absolute path from vault root + relative file path
+            const absolutePath = currentVault.path + '/' + node.file;
+            console.log('[DEBUG] [ModuleLoader] Tauri mode - Absolute path:', absolutePath);
+            scriptSrc = absolutePath;
+          } else {
+            // PWA mode: use relative path from public directory
+            scriptSrc = './' + node.file;
+          }
           console.log('[DEBUG] [ModuleLoader] Script URL:', scriptSrc);
 
           // Create a promise that resolves when script loads and executes
-          factory = await loadScript(scriptSrc, factoryName);
+          factory = await loadScript(scriptSrc, factoryName, isTauriContext());
           console.log('[DEBUG] [ModuleLoader] Script loaded, factory type:', typeof factory);
         }
 
@@ -226,54 +238,95 @@ function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
 /**
  * Load a script and wait for the factory function to be available
  * Uses async/await pattern without setTimeout
+ * In Tauri mode, reads file content via IPC and executes it
  */
-async function loadScript(src: string, factoryName: string): Promise<unknown> {
-  console.log('[DEBUG] [loadScript] Starting to load:', src);
+async function loadScript(src: string, factoryName: string, isTauri: boolean): Promise<unknown> {
+  console.log('[DEBUG] [loadScript] Starting to load:', src, 'isTauri:', isTauri);
 
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = src;
+  if (isTauri) {
+    // Tauri mode: read file content via IPC and execute as inline script
+    return new Promise((resolve, reject) => {
+      readFile(src)
+        .then((content) => {
+          console.log('[DEBUG] [loadScript] File content loaded, length:', content.length);
 
-    script.onload = () => {
-      console.log('[INFO] [ModuleLoader] Script loaded:', src);
-      // Script has executed synchronously, factory should be available
-      const factory = (window as unknown as Record<string, unknown>)[factoryName];
-      console.log('[DEBUG] [loadScript] After load, factory type:', typeof factory);
+          // Set up callback for when factory is registered
+          const originalReady = (window as unknown as Record<string, unknown>).__moduleReady;
+          (window as unknown as Record<string, unknown>).__moduleReady = (name: string) => {
+            console.log('[DEBUG] [loadScript] __moduleReady called with:', name);
+            if (name === factoryName) {
+              (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
+              const f = (window as unknown as Record<string, unknown>)[factoryName];
+              console.log('[DEBUG] [loadScript] Resolving with factory, type:', typeof f);
+              resolve(f);
+            }
+          };
 
-      if (typeof factory === 'function') {
-        resolve(factory);
-      } else {
-        console.log('[DEBUG] [loadScript] Factory not immediately available, waiting...');
-        // Check if module uses __moduleReady callback pattern
-        const originalReady = (window as unknown as Record<string, unknown>).__moduleReady;
-        (window as unknown as Record<string, unknown>).__moduleReady = (name: string) => {
-          console.log('[DEBUG] [loadScript] __moduleReady called with:', name);
-          if (name === factoryName) {
-            // Restore original
+          // Create inline script element with the file content
+          const script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.textContent = content;
+
+          // Execute the script
+          document.head.appendChild(script);
+          console.log('[INFO] [loadScript] Inline script executed');
+
+          // Check if factory is immediately available (synchronous registration)
+          const factory = (window as unknown as Record<string, unknown>)[factoryName];
+          if (typeof factory === 'function') {
+            console.log('[DEBUG] [loadScript] Factory immediately available, resolving');
             (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
-            const f = (window as unknown as Record<string, unknown>)[factoryName];
+            resolve(factory);
+          }
+        })
+        .catch((error) => {
+          console.error('[ERROR] [loadScript] Failed to read/execute file:', error);
+          reject(error);
+        });
+    });
+  } else {
+    // PWA mode: load script via URL
+    return new Promise((resolve, reject) => {
+      // PWA mode: load script via URL
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = src;
+
+      script.onload = () => {
+        console.log('[INFO] [ModuleLoader] Script loaded:', src);
+        const factory = (window as unknown as Record<string, unknown>)[factoryName];
+        console.log('[DEBUG] [loadScript] After load, factory type:', typeof factory);
+
+        if (typeof factory === 'function') {
+          resolve(factory);
+        } else {
+          console.log('[DEBUG] [loadScript] Factory not immediately available, waiting...');
+          const originalReady = (window as unknown as Record<string, unknown>).__moduleReady;
+          (window as unknown as Record<string, unknown>).__moduleReady = (name: string) => {
+            console.log('[DEBUG] [loadScript] __moduleReady called with:', name);
+            if (name === factoryName) {
+              (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
+              const f = (window as unknown as Record<string, unknown>)[factoryName];
+              resolve(f);
+            }
+          };
+          const f = (window as unknown as Record<string, unknown>)[factoryName];
+          if (typeof f === 'function') {
+            (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
             resolve(f);
           }
-        };
-        // Also resolve immediately if factory is available (race condition handling)
-        const f = (window as unknown as Record<string, unknown>)[factoryName];
-        if (typeof f === 'function') {
-          (window as unknown as Record<string, unknown>).__moduleReady = originalReady;
-          resolve(f);
         }
-      }
-    };
+      };
 
-    script.onerror = () => {
-      console.error('[ERROR] [loadScript] Failed to load:', src);
-      reject(new Error(`Failed to load module script: ${src}`));
-    };
+      script.onerror = () => {
+        console.error('[ERROR] [loadScript] Failed to load:', src);
+        reject(new Error(`Failed to load module script: ${src}`));
+      };
 
-    // Add script to document
-    console.log('[DEBUG] [loadScript] Appending script to document.head');
-    document.head.appendChild(script);
-  });
+      console.log('[DEBUG] [loadScript] Appending script to document.head');
+      document.head.appendChild(script);
+    });
+  }
 }
 
 /**

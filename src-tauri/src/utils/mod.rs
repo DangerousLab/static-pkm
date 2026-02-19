@@ -3,13 +3,13 @@
 use std::path::Path;
 
 /// Extract module ID from file path
-/// e.g., "Home/Tools/calcA.js" -> "calca"
+/// Preserves original casing, replaces spaces and hyphens with underscores
+/// e.g., "Home/Tools/calcA.js" -> "calcA"
 pub fn path_to_id(path: &str) -> String {
     Path::new(path)
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("unknown")
-        .to_lowercase()
         .replace([' ', '-'], "_")
 }
 
