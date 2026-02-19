@@ -80,7 +80,7 @@
 }
 
 .header-logo-wrap {
-  height: clamp(44px, 10vh, 72px);
+  height: 56px;
   width: auto;
   display: flex;
   align-items: center;
@@ -90,7 +90,7 @@
 
 .header-logo-img {
   max-height: 100%;
-  height: clamp(44px, 10vh, 72px);
+  height: 56px;
   width: auto;
   display: block;
   flex-shrink: 0;
@@ -103,12 +103,12 @@
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  height: clamp(44px, 10vh, 72px);
+  height: 56px;
   flex-shrink: 0;
 }
 
 .header-banner-img {
-  max-height: clamp(38px, 8vh, 56px);
+  max-height: 48px;
   height: auto;
   width: auto;
   display: block;
