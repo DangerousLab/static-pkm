@@ -3,6 +3,8 @@ import { useNavigationStore } from '@core/state/navigationStore';
 import { useMathJax } from '@/loaders';
 import ModuleLoader from './ModuleLoader';
 import type { ContentNode } from '@/types/navigation';
+import { isTauriContext, readFile } from '@core/ipc/commands';
+import { useVaultStore } from '@core/state/vaultStore';
 
 /**
  * Content loader component
@@ -84,6 +86,7 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
   const { isLoaded: mathJaxLoaded, typeset } = useMathJax();
+  const currentVault = useVaultStore((state) => state.currentVault);
 
   // Load page content
   useEffect(() => {
@@ -92,12 +95,24 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
     async function loadPage(): Promise<void> {
       try {
         setIsLoading(true);
-        const url = './' + node.file;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch page: ${response.statusText}`);
+
+        let html: string;
+        if (isTauriContext() && currentVault) {
+          // Tauri mode: construct absolute path from vault root + relative file path
+          const absolutePath = currentVault.path + '/' + node.file;
+          console.log('[DEBUG] [PageViewer] Tauri mode - Loading from:', absolutePath);
+          html = await readFile(absolutePath);
+        } else {
+          // PWA mode: use relative path from public directory
+          const url = './' + node.file;
+          console.log('[DEBUG] [PageViewer] PWA mode - Loading from:', url);
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch page: ${response.statusText}`);
+          }
+          html = await response.text();
         }
-        const html = await response.text();
+
         if (!cancelled) {
           setContent(html);
         }
@@ -117,7 +132,7 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [node.file, onError]);
+  }, [node.file, currentVault, onError]);
 
   // Typeset MathJax after content loads
   useEffect(() => {
@@ -145,6 +160,7 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
 function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const currentVault = useVaultStore((state) => state.currentVault);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,12 +168,24 @@ function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
     async function loadDocument(): Promise<void> {
       try {
         setIsLoading(true);
-        const url = './' + node.file;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch document: ${response.statusText}`);
+
+        let text: string;
+        if (isTauriContext() && currentVault) {
+          // Tauri mode: construct absolute path from vault root + relative file path
+          const absolutePath = currentVault.path + '/' + node.file;
+          console.log('[DEBUG] [DocumentViewer] Tauri mode - Loading from:', absolutePath);
+          text = await readFile(absolutePath);
+        } else {
+          // PWA mode: use relative path from public directory
+          const url = './' + node.file;
+          console.log('[DEBUG] [DocumentViewer] PWA mode - Loading from:', url);
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch document: ${response.statusText}`);
+          }
+          text = await response.text();
         }
-        const text = await response.text();
+
         if (!cancelled) {
           setContent(text);
         }
@@ -177,7 +205,7 @@ function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [node.file, onError]);
+  }, [node.file, currentVault, onError]);
 
   if (isLoading) {
     return <div className="text-text-muted">Loading document...</div>;
