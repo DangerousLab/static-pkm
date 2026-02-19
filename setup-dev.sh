@@ -82,6 +82,22 @@ preflight_checks() {
 
 
 ################################################################################
+# Vendor Libraries
+################################################################################
+
+download_vendor() {
+    [ "$SCRIPTS_ONLY" = true ] && return
+
+    print_header "Vendor Libraries"
+
+    if [ -f "scripts/download-vendor.sh" ]; then
+        bash scripts/download-vendor.sh || { print_error "Vendor download failed"; exit 1; }
+    else
+        print_warning "scripts/download-vendor.sh not found, skipping vendor download"
+    fi
+}
+
+################################################################################
 # HTTPS Certificate
 ################################################################################
 
@@ -804,6 +820,7 @@ main() {
     echo ""
 
     preflight_checks
+    download_vendor
     generate_cert
     create_cache_config
     create_tree_generator

@@ -24,6 +24,9 @@ src-tauri/Cargo.lock
 # Build documentation
 ROLLUP-GUIDE.md
 
+# Third-party vendor libraries (downloaded during setup)
+public/vendor/
+
 # Generated scripts and configs (created by setup-dev.sh)
 scripts/generate-css-entry.mjs
 scripts/generate-tree.mjs

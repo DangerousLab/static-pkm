@@ -56,6 +56,9 @@ jobs:
       - name: Generate build scripts
         run: bash setup-dev.sh --scripts-only
 
+      - name: Download vendor libraries
+        run: bash scripts/download-vendor.sh
+
       - name: Install dependencies
         run: npm ci
       
