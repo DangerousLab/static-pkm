@@ -17,7 +17,7 @@
 
 .header-bar {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--header-max-width);
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -31,16 +31,12 @@
   gap: var(--gap-xs);
   border: none;
   background: transparent;
-  color: #e5e5e5;
+  color: var(--accent);
   cursor: pointer;
   padding: 0.125rem 0.5rem;
   height: 2rem;
   position: relative;
   z-index: 50;
-}
-
-:root[data-theme="light"] .sidebar-toggle {
-  color: #111111;
 }
 
 .sidebar-toggle-label {
@@ -80,7 +76,7 @@
 }
 
 .header-logo-wrap {
-  height: 56px;
+  height: var(--header-logo-height);
   width: auto;
   display: flex;
   align-items: center;
@@ -90,7 +86,7 @@
 
 .header-logo-img {
   max-height: 100%;
-  height: 56px;
+  height: var(--header-logo-height);
   width: auto;
   display: block;
   flex-shrink: 0;
@@ -102,13 +98,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  height: 56px;
+  gap: var(--space-xs);
+  height: var(--header-logo-height);
   flex-shrink: 0;
 }
 
 .header-banner-img {
-  max-height: 48px;
+  max-height: var(--header-banner-height);
   height: auto;
   width: auto;
   display: block;
@@ -130,8 +126,8 @@
 
 .theme-toggle {
   justify-self: end;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--toggle-size);
+  height: var(--toggle-size);
   border-radius: 50%;
   border: 1px solid var(--border-subtle);
   display: flex;
@@ -215,10 +211,10 @@
 /* Compact header for small mobile */
 @media (max-width: 600px) {
   .header-logo-wrap {
-    height: 44px;
+    height: var(--header-logo-height-mobile);
   }
 
   .header-logo-img {
-    height: 44px;
+    height: var(--header-logo-height-mobile);
   }
 }

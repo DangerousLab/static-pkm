@@ -32,7 +32,7 @@
     left: 0;
     width: env(safe-area-inset-left, 0px);
     height: 100vh;
-    background: #1f1f1f;
+    background: var(--bg-deep);
     z-index: 30;
     pointer-events: none;
   }
@@ -45,10 +45,6 @@
 
   :root[data-notch-side="none"] body::before {
     display: none;
-  }
-
-  :root[data-theme="light"] body::before {
-    background: #f3f4f6;
   }
 
   .landscape-leftbar {
@@ -64,7 +60,7 @@
     justify-content: space-between;
     padding: 0.25rem 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: #1f1f1f;
+    background: var(--bg-deep);
     border-right: 1px solid var(--border-medium);
   }
 
@@ -73,14 +69,9 @@
     left: 0;
   }
 
-  :root[data-theme="light"] .landscape-leftbar {
-    background: #f3f4f6;
-    border-right-color: var(--border-medium);
-  }
-
   .landscape-leftbar-toggle {
-    width: 44px;
-    height: 44px;
+    width: var(--landscape-leftbar-width);
+    height: var(--landscape-leftbar-width);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -103,8 +94,8 @@
   }
 
   .landscape-leftbar-logo img {
-    max-width: 38px;
-    max-height: 38px;
+    max-width: var(--landscape-logo-size);
+    max-height: var(--landscape-logo-size);
     width: auto;
     height: auto;
     object-fit: contain;
@@ -120,10 +111,10 @@
   }
 
   .landscape-leftbar .theme-toggle {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
+    width: var(--toggle-size-sm);
+    height: var(--toggle-size-sm);
+    min-width: var(--toggle-size-sm);
+    min-height: var(--toggle-size-sm);
     flex-shrink: 0;
   }
 
@@ -141,7 +132,7 @@
     left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
     height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
     width: 80vw !important;
-    max-width: 360px !important;
+    max-width: var(--sidebar-max-width-mobile) !important;
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     padding-left: 0.625rem !important;
     padding-right: 0.625rem !important;

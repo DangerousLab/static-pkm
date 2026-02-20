@@ -9,60 +9,31 @@
 
     // ==================== VARIABLE DEFINITIONS ====================
     const VARIABLE_CATEGORIES = {
-      backgrounds: ['--bg', '--bg-card', '--bg-panel', '--bg-hover', '--bg-disabled', '--bg-highlight'],
+      backgrounds: ['--bg', '--bg-card', '--bg-panel', '--bg-deep', '--bg-panel-focus', '--bg-hover', '--bg-disabled', '--bg-highlight'],
       text: ['--text-main', '--text-muted'],
       accents: ['--accent', '--accent-soft', '--accent-gold', '--danger', '--success'],
-      borders: ['--border-subtle', '--border-medium', '--border-light', '--border-strong']
+      borders: ['--border-subtle', '--border-medium', '--border-light', '--border-strong', '--border-section', '--border-divider']
     };
 
     // Variables that support alpha transparency
     const ALPHA_VARIABLES = [
       '--bg-hover', '--bg-disabled', '--bg-highlight',
       '--accent-soft', '--border-subtle', '--border-medium',
-      '--border-light', '--border-strong'
+      '--border-light', '--border-strong', '--border-section', '--border-divider'
     ];
 
-    // Default values from variables.css
-    const DEFAULT_VALUES = {
-      dark: {
-        '--bg': '#3c3c3c',
-        '--bg-card': '#303030',
-        '--bg-panel': '#262626',
-        '--bg-hover': 'rgba(80, 80, 80, 0.35)',
-        '--bg-disabled': 'rgba(128, 128, 128, 0.2)',
-        '--bg-highlight': 'rgba(224, 160, 31, 0.25)',
-        '--text-main': '#f5f5f5',
-        '--text-muted': '#c4c4c4',
-        '--accent': '#e5e5e5',
-        '--accent-soft': 'rgba(229, 229, 229, 0.08)',
-        '--accent-gold': 'rgb(224, 160, 31)',
-        '--danger': '#ff4b4b',
-        '--success': '#4ade80',
-        '--border-subtle': 'rgba(120, 120, 120, 0.7)',
-        '--border-medium': 'rgba(148, 148, 148, 0.6)',
-        '--border-light': 'rgba(180, 180, 180, 0.5)',
-        '--border-strong': 'rgba(160, 160, 160, 0.55)'
-      },
-      light: {
-        '--bg': '#f3f4f6',
-        '--bg-card': '#ffffff',
-        '--bg-panel': '#f9fafb',
-        '--bg-hover': 'rgba(148, 163, 184, 0.25)',
-        '--bg-disabled': 'rgba(148, 163, 184, 0.15)',
-        '--bg-highlight': 'rgba(224, 160, 31, 0.2)',
-        '--text-main': '#111111',
-        '--text-muted': '#6b7280',
-        '--accent': '#111111',
-        '--accent-soft': 'rgba(17, 17, 17, 0.04)',
-        '--accent-gold': 'rgb(224, 160, 31)',
-        '--danger': '#dc2626',
-        '--success': '#16a34a',
-        '--border-subtle': 'rgba(148, 163, 184, 0.7)',
-        '--border-medium': 'rgba(148, 163, 184, 0.6)',
-        '--border-light': 'rgba(148, 163, 184, 0.5)',
-        '--border-strong': 'rgba(148, 163, 184, 0.7)'
-      }
-    };
+    // Default values captured at runtime from color-scheme.css (not hardcoded)
+    const DEFAULT_VALUES = { dark: null, light: null };
+
+    function captureCurrentDefaults() {
+      const computedStyle = getComputedStyle(document.documentElement);
+      const allVars = Object.values(VARIABLE_CATEGORIES).flat();
+      const defaults = {};
+      allVars.forEach(varName => {
+        defaults[varName] = computedStyle.getPropertyValue(varName).trim();
+      });
+      return defaults;
+    }
 
     // ==================== COMPREHENSIVE THEME PRESETS ====================
     const THEME_PRESETS = {
@@ -74,6 +45,8 @@
           '--bg': '#3c3c3c',
           '--bg-card': '#303030',
           '--bg-panel': '#262626',
+          '--bg-deep': '#1f1f1f',
+          '--bg-panel-focus': '#2c2c2c',
           '--bg-hover': 'rgba(80, 80, 80, 0.35)',
           '--bg-disabled': 'rgba(128, 128, 128, 0.2)',
           '--bg-highlight': 'rgba(224, 160, 31, 0.25)',
@@ -87,7 +60,9 @@
           '--border-subtle': 'rgba(120, 120, 120, 0.7)',
           '--border-medium': 'rgba(148, 148, 148, 0.6)',
           '--border-light': 'rgba(180, 180, 180, 0.5)',
-          '--border-strong': 'rgba(160, 160, 160, 0.55)'
+          '--border-strong': 'rgba(160, 160, 160, 0.55)',
+          '--border-section': 'rgba(148, 148, 148, 0.3)',
+          '--border-divider': 'rgba(148, 148, 148, 0.2)'
         }
       },
       'obsidian': {
@@ -97,6 +72,8 @@
           '--bg': '#1e1e1e',
           '--bg-card': '#252525',
           '--bg-panel': '#1a1a1a',
+          '--bg-deep': '#111111',
+          '--bg-panel-focus': '#202020',
           '--bg-hover': 'rgba(127, 109, 242, 0.15)',
           '--bg-disabled': 'rgba(100, 100, 100, 0.2)',
           '--bg-highlight': 'rgba(127, 109, 242, 0.25)',
@@ -110,7 +87,9 @@
           '--border-subtle': 'rgba(80, 80, 80, 0.7)',
           '--border-medium': 'rgba(100, 100, 100, 0.6)',
           '--border-light': 'rgba(120, 120, 120, 0.5)',
-          '--border-strong': 'rgba(140, 140, 140, 0.55)'
+          '--border-strong': 'rgba(140, 140, 140, 0.55)',
+          '--border-section': 'rgba(100, 100, 100, 0.3)',
+          '--border-divider': 'rgba(100, 100, 100, 0.2)'
         }
       },
       'nord-dark': {
@@ -120,6 +99,8 @@
           '--bg': '#2e3440',
           '--bg-card': '#3b4252',
           '--bg-panel': '#242933',
+          '--bg-deep': '#1c2028',
+          '--bg-panel-focus': '#2a303e',
           '--bg-hover': 'rgba(136, 192, 208, 0.15)',
           '--bg-disabled': 'rgba(76, 86, 106, 0.3)',
           '--bg-highlight': 'rgba(136, 192, 208, 0.25)',
@@ -133,7 +114,9 @@
           '--border-subtle': 'rgba(76, 86, 106, 0.7)',
           '--border-medium': 'rgba(76, 86, 106, 0.6)',
           '--border-light': 'rgba(76, 86, 106, 0.5)',
-          '--border-strong': 'rgba(76, 86, 106, 0.8)'
+          '--border-strong': 'rgba(76, 86, 106, 0.8)',
+          '--border-section': 'rgba(76, 86, 106, 0.3)',
+          '--border-divider': 'rgba(76, 86, 106, 0.2)'
         }
       },
       'dracula': {
@@ -143,6 +126,8 @@
           '--bg': '#282a36',
           '--bg-card': '#343746',
           '--bg-panel': '#21222c',
+          '--bg-deep': '#191a21',
+          '--bg-panel-focus': '#26272f',
           '--bg-hover': 'rgba(189, 147, 249, 0.15)',
           '--bg-disabled': 'rgba(68, 71, 90, 0.3)',
           '--bg-highlight': 'rgba(189, 147, 249, 0.25)',
@@ -156,7 +141,9 @@
           '--border-subtle': 'rgba(68, 71, 90, 0.7)',
           '--border-medium': 'rgba(68, 71, 90, 0.6)',
           '--border-light': 'rgba(68, 71, 90, 0.5)',
-          '--border-strong': 'rgba(68, 71, 90, 0.8)'
+          '--border-strong': 'rgba(68, 71, 90, 0.8)',
+          '--border-section': 'rgba(68, 71, 90, 0.3)',
+          '--border-divider': 'rgba(68, 71, 90, 0.2)'
         }
       },
       'monokai': {
@@ -166,6 +153,8 @@
           '--bg': '#272822',
           '--bg-card': '#3e3d32',
           '--bg-panel': '#1e1f1c',
+          '--bg-deep': '#161714',
+          '--bg-panel-focus': '#232420',
           '--bg-hover': 'rgba(230, 219, 116, 0.15)',
           '--bg-disabled': 'rgba(117, 113, 94, 0.3)',
           '--bg-highlight': 'rgba(230, 219, 116, 0.25)',
@@ -179,7 +168,9 @@
           '--border-subtle': 'rgba(117, 113, 94, 0.7)',
           '--border-medium': 'rgba(117, 113, 94, 0.6)',
           '--border-light': 'rgba(117, 113, 94, 0.5)',
-          '--border-strong': 'rgba(117, 113, 94, 0.8)'
+          '--border-strong': 'rgba(117, 113, 94, 0.8)',
+          '--border-section': 'rgba(117, 113, 94, 0.3)',
+          '--border-divider': 'rgba(117, 113, 94, 0.2)'
         }
       },
       'tokyo-night': {
@@ -189,6 +180,8 @@
           '--bg': '#1a1b26',
           '--bg-card': '#24283b',
           '--bg-panel': '#16161e',
+          '--bg-deep': '#0f0f17',
+          '--bg-panel-focus': '#1a1a24',
           '--bg-hover': 'rgba(122, 162, 247, 0.15)',
           '--bg-disabled': 'rgba(41, 46, 73, 0.3)',
           '--bg-highlight': 'rgba(122, 162, 247, 0.25)',
@@ -202,7 +195,9 @@
           '--border-subtle': 'rgba(41, 46, 73, 0.7)',
           '--border-medium': 'rgba(41, 46, 73, 0.6)',
           '--border-light': 'rgba(41, 46, 73, 0.5)',
-          '--border-strong': 'rgba(41, 46, 73, 0.8)'
+          '--border-strong': 'rgba(41, 46, 73, 0.8)',
+          '--border-section': 'rgba(41, 46, 73, 0.3)',
+          '--border-divider': 'rgba(41, 46, 73, 0.2)'
         }
       },
       'ayu-mirage': {
@@ -212,6 +207,8 @@
           '--bg': '#1f2430',
           '--bg-card': '#272d38',
           '--bg-panel': '#191e2a',
+          '--bg-deep': '#121720',
+          '--bg-panel-focus': '#1e2330',
           '--bg-hover': 'rgba(95, 191, 227, 0.15)',
           '--bg-disabled': 'rgba(52, 61, 75, 0.3)',
           '--bg-highlight': 'rgba(255, 204, 102, 0.25)',
@@ -225,7 +222,9 @@
           '--border-subtle': 'rgba(52, 61, 75, 0.7)',
           '--border-medium': 'rgba(52, 61, 75, 0.6)',
           '--border-light': 'rgba(52, 61, 75, 0.5)',
-          '--border-strong': 'rgba(52, 61, 75, 0.8)'
+          '--border-strong': 'rgba(52, 61, 75, 0.8)',
+          '--border-section': 'rgba(52, 61, 75, 0.3)',
+          '--border-divider': 'rgba(52, 61, 75, 0.2)'
         }
       },
       'one-dark': {
@@ -235,6 +234,8 @@
           '--bg': '#282c34',
           '--bg-card': '#2c313a',
           '--bg-panel': '#21252b',
+          '--bg-deep': '#181b21',
+          '--bg-panel-focus': '#262a31',
           '--bg-hover': 'rgba(97, 175, 239, 0.15)',
           '--bg-disabled': 'rgba(60, 66, 77, 0.3)',
           '--bg-highlight': 'rgba(209, 154, 102, 0.25)',
@@ -248,7 +249,9 @@
           '--border-subtle': 'rgba(60, 66, 77, 0.7)',
           '--border-medium': 'rgba(60, 66, 77, 0.6)',
           '--border-light': 'rgba(60, 66, 77, 0.5)',
-          '--border-strong': 'rgba(60, 66, 77, 0.8)'
+          '--border-strong': 'rgba(60, 66, 77, 0.8)',
+          '--border-section': 'rgba(60, 66, 77, 0.3)',
+          '--border-divider': 'rgba(60, 66, 77, 0.2)'
         }
       },
       'material-dark': {
@@ -258,6 +261,8 @@
           '--bg': '#263238',
           '--bg-card': '#2e3c43',
           '--bg-panel': '#1e272c',
+          '--bg-deep': '#161f23',
+          '--bg-panel-focus': '#232d32',
           '--bg-hover': 'rgba(128, 203, 196, 0.15)',
           '--bg-disabled': 'rgba(55, 71, 79, 0.3)',
           '--bg-highlight': 'rgba(255, 203, 107, 0.25)',
@@ -271,7 +276,9 @@
           '--border-subtle': 'rgba(55, 71, 79, 0.7)',
           '--border-medium': 'rgba(55, 71, 79, 0.6)',
           '--border-light': 'rgba(55, 71, 79, 0.5)',
-          '--border-strong': 'rgba(55, 71, 79, 0.8)'
+          '--border-strong': 'rgba(55, 71, 79, 0.8)',
+          '--border-section': 'rgba(55, 71, 79, 0.3)',
+          '--border-divider': 'rgba(55, 71, 79, 0.2)'
         }
       },
       'gruvbox-dark': {
@@ -281,6 +288,8 @@
           '--bg': '#282828',
           '--bg-card': '#3c3836',
           '--bg-panel': '#1d2021',
+          '--bg-deep': '#141617',
+          '--bg-panel-focus': '#212526',
           '--bg-hover': 'rgba(251, 184, 108, 0.15)',
           '--bg-disabled': 'rgba(80, 73, 69, 0.3)',
           '--bg-highlight': 'rgba(250, 189, 47, 0.25)',
@@ -294,7 +303,9 @@
           '--border-subtle': 'rgba(80, 73, 69, 0.7)',
           '--border-medium': 'rgba(80, 73, 69, 0.6)',
           '--border-light': 'rgba(80, 73, 69, 0.5)',
-          '--border-strong': 'rgba(80, 73, 69, 0.8)'
+          '--border-strong': 'rgba(80, 73, 69, 0.8)',
+          '--border-section': 'rgba(80, 73, 69, 0.3)',
+          '--border-divider': 'rgba(80, 73, 69, 0.2)'
         }
       },
       'palenight': {
@@ -304,6 +315,8 @@
           '--bg': '#292d3e',
           '--bg-card': '#34324a',
           '--bg-panel': '#1e2030',
+          '--bg-deep': '#161826',
+          '--bg-panel-focus': '#222436',
           '--bg-hover': 'rgba(130, 170, 255, 0.15)',
           '--bg-disabled': 'rgba(52, 50, 74, 0.3)',
           '--bg-highlight': 'rgba(255, 203, 107, 0.25)',
@@ -317,7 +330,9 @@
           '--border-subtle': 'rgba(52, 50, 74, 0.7)',
           '--border-medium': 'rgba(52, 50, 74, 0.6)',
           '--border-light': 'rgba(52, 50, 74, 0.5)',
-          '--border-strong': 'rgba(52, 50, 74, 0.8)'
+          '--border-strong': 'rgba(52, 50, 74, 0.8)',
+          '--border-section': 'rgba(52, 50, 74, 0.3)',
+          '--border-divider': 'rgba(52, 50, 74, 0.2)'
         }
       },
 
@@ -329,6 +344,8 @@
           '--bg': '#f3f4f6',
           '--bg-card': '#ffffff',
           '--bg-panel': '#f9fafb',
+          '--bg-deep': '#f3f4f6',
+          '--bg-panel-focus': '#f9fafb',
           '--bg-hover': 'rgba(148, 163, 184, 0.25)',
           '--bg-disabled': 'rgba(148, 163, 184, 0.15)',
           '--bg-highlight': 'rgba(224, 160, 31, 0.2)',
@@ -342,7 +359,9 @@
           '--border-subtle': 'rgba(148, 163, 184, 0.7)',
           '--border-medium': 'rgba(148, 163, 184, 0.6)',
           '--border-light': 'rgba(148, 163, 184, 0.5)',
-          '--border-strong': 'rgba(148, 163, 184, 0.7)'
+          '--border-strong': 'rgba(148, 163, 184, 0.7)',
+          '--border-section': 'rgba(148, 163, 184, 0.3)',
+          '--border-divider': 'rgba(148, 163, 184, 0.2)'
         }
       },
       'sepia': {
@@ -352,6 +371,8 @@
           '--bg': '#f4ecd8',
           '--bg-card': '#faf6ed',
           '--bg-panel': '#ebe3d2',
+          '--bg-deep': '#e4d9c2',
+          '--bg-panel-focus': '#efe8d9',
           '--bg-hover': 'rgba(139, 105, 20, 0.15)',
           '--bg-disabled': 'rgba(139, 105, 20, 0.1)',
           '--bg-highlight': 'rgba(139, 105, 20, 0.2)',
@@ -365,7 +386,9 @@
           '--border-subtle': 'rgba(139, 105, 20, 0.3)',
           '--border-medium': 'rgba(139, 105, 20, 0.25)',
           '--border-light': 'rgba(139, 105, 20, 0.2)',
-          '--border-strong': 'rgba(139, 105, 20, 0.4)'
+          '--border-strong': 'rgba(139, 105, 20, 0.4)',
+          '--border-section': 'rgba(139, 105, 20, 0.15)',
+          '--border-divider': 'rgba(139, 105, 20, 0.1)'
         }
       },
       'nord-light': {
@@ -375,6 +398,8 @@
           '--bg': '#eceff4',
           '--bg-card': '#ffffff',
           '--bg-panel': '#e5e9f0',
+          '--bg-deep': '#dde3ec',
+          '--bg-panel-focus': '#eaedf3',
           '--bg-hover': 'rgba(94, 129, 172, 0.15)',
           '--bg-disabled': 'rgba(94, 129, 172, 0.1)',
           '--bg-highlight': 'rgba(136, 192, 208, 0.25)',
@@ -388,7 +413,9 @@
           '--border-subtle': 'rgba(94, 129, 172, 0.3)',
           '--border-medium': 'rgba(94, 129, 172, 0.25)',
           '--border-light': 'rgba(94, 129, 172, 0.2)',
-          '--border-strong': 'rgba(94, 129, 172, 0.4)'
+          '--border-strong': 'rgba(94, 129, 172, 0.4)',
+          '--border-section': 'rgba(94, 129, 172, 0.15)',
+          '--border-divider': 'rgba(94, 129, 172, 0.1)'
         }
       },
       'solarized-light': {
@@ -398,6 +425,8 @@
           '--bg': '#fdf6e3',
           '--bg-card': '#eee8d5',
           '--bg-panel': '#f7f0dc',
+          '--bg-deep': '#ede7d1',
+          '--bg-panel-focus': '#faf4e3',
           '--bg-hover': 'rgba(38, 139, 210, 0.15)',
           '--bg-disabled': 'rgba(147, 161, 161, 0.15)',
           '--bg-highlight': 'rgba(181, 137, 0, 0.2)',
@@ -411,7 +440,9 @@
           '--border-subtle': 'rgba(147, 161, 161, 0.3)',
           '--border-medium': 'rgba(147, 161, 161, 0.25)',
           '--border-light': 'rgba(147, 161, 161, 0.2)',
-          '--border-strong': 'rgba(147, 161, 161, 0.4)'
+          '--border-strong': 'rgba(147, 161, 161, 0.4)',
+          '--border-section': 'rgba(147, 161, 161, 0.15)',
+          '--border-divider': 'rgba(147, 161, 161, 0.1)'
         }
       },
       'ayu-light': {
@@ -421,6 +452,8 @@
           '--bg': '#fafafa',
           '--bg-card': '#ffffff',
           '--bg-panel': '#f3f4f5',
+          '--bg-deep': '#eaebec',
+          '--bg-panel-focus': '#f7f8f9',
           '--bg-hover': 'rgba(85, 181, 219, 0.15)',
           '--bg-disabled': 'rgba(130, 146, 162, 0.15)',
           '--bg-highlight': 'rgba(255, 153, 0, 0.2)',
@@ -434,7 +467,9 @@
           '--border-subtle': 'rgba(130, 146, 162, 0.3)',
           '--border-medium': 'rgba(130, 146, 162, 0.25)',
           '--border-light': 'rgba(130, 146, 162, 0.2)',
-          '--border-strong': 'rgba(130, 146, 162, 0.4)'
+          '--border-strong': 'rgba(130, 146, 162, 0.4)',
+          '--border-section': 'rgba(130, 146, 162, 0.15)',
+          '--border-divider': 'rgba(130, 146, 162, 0.1)'
         }
       },
       'github-light': {
@@ -444,6 +479,8 @@
           '--bg': '#ffffff',
           '--bg-card': '#f6f8fa',
           '--bg-panel': '#ffffff',
+          '--bg-deep': '#f6f8fa',
+          '--bg-panel-focus': '#f9fafb',
           '--bg-hover': 'rgba(33, 136, 255, 0.15)',
           '--bg-disabled': 'rgba(208, 215, 222, 0.3)',
           '--bg-highlight': 'rgba(255, 184, 0, 0.2)',
@@ -457,7 +494,9 @@
           '--border-subtle': 'rgba(208, 215, 222, 0.4)',
           '--border-medium': 'rgba(208, 215, 222, 0.35)',
           '--border-light': 'rgba(208, 215, 222, 0.3)',
-          '--border-strong': 'rgba(208, 215, 222, 0.5)'
+          '--border-strong': 'rgba(208, 215, 222, 0.5)',
+          '--border-section': 'rgba(208, 215, 222, 0.2)',
+          '--border-divider': 'rgba(208, 215, 222, 0.15)'
         }
       },
       'one-light': {
@@ -467,6 +506,8 @@
           '--bg': '#fafafa',
           '--bg-card': '#ffffff',
           '--bg-panel': '#f0f0f0',
+          '--bg-deep': '#e8e8e8',
+          '--bg-panel-focus': '#f5f5f5',
           '--bg-hover': 'rgba(64, 120, 242, 0.15)',
           '--bg-disabled': 'rgba(160, 161, 167, 0.15)',
           '--bg-highlight': 'rgba(193, 132, 1, 0.2)',
@@ -480,7 +521,9 @@
           '--border-subtle': 'rgba(160, 161, 167, 0.3)',
           '--border-medium': 'rgba(160, 161, 167, 0.25)',
           '--border-light': 'rgba(160, 161, 167, 0.2)',
-          '--border-strong': 'rgba(160, 161, 167, 0.4)'
+          '--border-strong': 'rgba(160, 161, 167, 0.4)',
+          '--border-section': 'rgba(160, 161, 167, 0.15)',
+          '--border-divider': 'rgba(160, 161, 167, 0.1)'
         }
       },
       'material-light': {
@@ -490,6 +533,8 @@
           '--bg': '#fafafa',
           '--bg-card': '#ffffff',
           '--bg-panel': '#f5f5f5',
+          '--bg-deep': '#ebebeb',
+          '--bg-panel-focus': '#f9f9f9',
           '--bg-hover': 'rgba(57, 155, 206, 0.15)',
           '--bg-disabled': 'rgba(144, 164, 174, 0.15)',
           '--bg-highlight': 'rgba(255, 179, 0, 0.2)',
@@ -503,7 +548,9 @@
           '--border-subtle': 'rgba(144, 164, 174, 0.3)',
           '--border-medium': 'rgba(144, 164, 174, 0.25)',
           '--border-light': 'rgba(144, 164, 174, 0.2)',
-          '--border-strong': 'rgba(144, 164, 174, 0.4)'
+          '--border-strong': 'rgba(144, 164, 174, 0.4)',
+          '--border-section': 'rgba(144, 164, 174, 0.15)',
+          '--border-divider': 'rgba(144, 164, 174, 0.1)'
         }
       },
       'gruvbox-light': {
@@ -513,6 +560,8 @@
           '--bg': '#fbf1c7',
           '--bg-card': '#f9f5d7',
           '--bg-panel': '#f2e5bc',
+          '--bg-deep': '#e8d9ae',
+          '--bg-panel-focus': '#f6ecc7',
           '--bg-hover': 'rgba(175, 58, 3, 0.15)',
           '--bg-disabled': 'rgba(168, 153, 132, 0.15)',
           '--bg-highlight': 'rgba(215, 153, 33, 0.2)',
@@ -526,7 +575,9 @@
           '--border-subtle': 'rgba(168, 153, 132, 0.3)',
           '--border-medium': 'rgba(168, 153, 132, 0.25)',
           '--border-light': 'rgba(168, 153, 132, 0.2)',
-          '--border-strong': 'rgba(168, 153, 132, 0.4)'
+          '--border-strong': 'rgba(168, 153, 132, 0.4)',
+          '--border-section': 'rgba(168, 153, 132, 0.15)',
+          '--border-divider': 'rgba(168, 153, 132, 0.1)'
         }
       }
     };
@@ -1105,11 +1156,11 @@
       let css = `/* Custom Theme CSS - ${theme === 'dark' ? 'Dark' : 'Light'} Mode */\n`;
       css += `:root${theme === 'light' ? '[data-theme="light"]' : ''} {\n`;
 
-      // Export ALL 17 variables
-      const allVars = Object.keys(DEFAULT_VALUES[theme]);
+      // Export all variables from VARIABLE_CATEGORIES
+      const allVars = Object.values(VARIABLE_CATEGORIES).flat();
       allVars.forEach(varName => {
         const value = getCurrentValue(varName);
-        css += `  ${varName}: ${value};\n`;
+        if (value) css += `  ${varName}: ${value};\n`;
       });
 
       css += '}\n';
@@ -1144,9 +1195,13 @@
     }
 
     function resetAll() {
-      Object.keys(DEFAULT_VALUES[state.currentTheme]).forEach(varName => {
-        const defaultValue = DEFAULT_VALUES[state.currentTheme][varName];
-        document.documentElement.style.setProperty(varName, defaultValue);
+      const defaults = DEFAULT_VALUES[state.currentTheme];
+      Object.values(VARIABLE_CATEGORIES).flat().forEach(varName => {
+        if (defaults && defaults[varName]) {
+          document.documentElement.style.setProperty(varName, defaults[varName]);
+        } else {
+          document.documentElement.style.removeProperty(varName);
+        }
       });
 
       state.modifications = {};
@@ -1716,9 +1771,21 @@
       state.currentTheme = themeController.getCurrentTheme();
       updateThemeIndicator();
 
+      // Capture defaults for the current theme at init time
+      DEFAULT_VALUES[state.currentTheme] = captureCurrentDefaults();
+      console.log('[ThemeCustomizer] Captured defaults for theme:', state.currentTheme);
+
       state.themeUnsubscribe = themeController.subscribe((newTheme) => {
         console.log('[ThemeCustomizer] Theme changed to:', newTheme);
         state.currentTheme = newTheme;
+
+        // Capture defaults for the new theme after CSS variables update
+        requestAnimationFrame(() => {
+          if (!DEFAULT_VALUES[newTheme]) {
+            DEFAULT_VALUES[newTheme] = captureCurrentDefaults();
+            console.log('[ThemeCustomizer] Captured defaults for theme:', newTheme);
+          }
+        });
 
         // Reapply modifications for new theme
         Object.keys(state.modifications).forEach(varName => {
@@ -1738,6 +1805,9 @@
       const htmlEl = document.documentElement;
       state.currentTheme = htmlEl.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
       updateThemeIndicator();
+
+      // Capture defaults for the current theme
+      DEFAULT_VALUES[state.currentTheme] = captureCurrentDefaults();
     }
 
     // Initial render
@@ -1788,7 +1858,7 @@
         console.log('[ThemeCustomizer] Destroying');
 
         // Remove all CSS variable overrides
-        Object.keys(DEFAULT_VALUES.dark).forEach(varName => {
+        Object.values(VARIABLE_CATEGORIES).flat().forEach(varName => {
           document.documentElement.style.removeProperty(varName);
         });
 

@@ -17,7 +17,7 @@ export function useThemeEffect(): Theme {
     // Update meta theme-color for mobile status bar
     const metaThemeColor = document.getElementById('theme-color-meta');
     if (metaThemeColor) {
-      const color = theme === 'dark' ? '#1f1f1f' : '#f3f4f6';
+      const color = getComputedStyle(document.documentElement).getPropertyValue('--bg-deep').trim() || (theme === 'dark' ? '#1f1f1f' : '#f3f4f6');
       metaThemeColor.setAttribute('content', color);
     }
 

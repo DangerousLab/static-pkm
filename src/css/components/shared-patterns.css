@@ -66,7 +66,7 @@
   font-size: clamp(0.82rem, 2vw, 0.9rem); /* PHASE 2: Responsive */
   color: var(--text-muted);
   line-height: 1.45;
-  max-width: 660px; /* 45-60 characters per line for readability */
+  max-width: var(--text-max-width); /* 45-60 characters per line for readability */
 }
 
 .shared-module-subtitle span {
@@ -133,7 +133,7 @@
 }
 
 :root[data-theme="light"] .shared-field {
-  background: #ffffff;
+  background: var(--bg-card);
   border-color: var(--border-medium);
 }
 
@@ -144,17 +144,17 @@
 }
 
 :root[data-theme="light"] .shared-field:focus {
-  background: #f9fafb;
+  background: var(--bg-panel);
 }
 
 .shared-field[readonly] {
   background: var(--bg-disabled);
   cursor: default;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 :root[data-theme="light"] .shared-field[readonly] {
-  background: #f3f4f6;
+  background: var(--bg);
 }
 
 .shared-hint {

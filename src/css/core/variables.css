@@ -1,33 +1,53 @@
 /* ==================== CSS VARIABLES ==================== */
-:root {
-  /* Base Colors */
-  --bg: #3c3c3c;
-  --bg-card: #303030;
-  --bg-panel: #262626;
-  --border-subtle: rgba(120, 120, 120, 0.7);
-  --accent: #e5e5e5;
-  --accent-soft: rgba(229, 229, 229, 0.08);
-  --text-main: #f5f5f5;
-  --text-muted: #c4c4c4;
-  --danger: #ff4b4b;
-  --success: #4ade80;
+/*
+ * Non-color design tokens only. All color variables live in color-scheme.css.
+ *
+ * INTENTIONAL EXCEPTIONS (values that remain hardcoded in CSS files):
+ * - Hamburger icon geometry: 18px/2px/-5px (sidebar-toggle.css, header.css)
+ *   Intrinsic to the hamburger→X animation; variablizing adds no reuse value.
+ * - clamp() intermediate values (shared-patterns.css): viewport-relative vw
+ *   middle values cannot be CSS variables.
+ * - Media query fallback font sizes (shared-patterns.css): literal fallbacks
+ *   for browsers without clamp() support. Must match clamp() max values.
+ * - border-radius: 0 (navigation.css): intentional reset, not a design token.
+ * - border-radius: 50% (header.css): CSS circle technique, not a token.
+ * - border-radius: 2px (search.css): inline text highlight, too context-specific.
+ * - Spinner animation 1s (sidebar.css): single use, standard spinner duration.
+ * - Transform offsets translateY(8px/12px/-1px): animation geometry.
+ * - landscape.css / responsive.css code duplication: tracked as separate task.
+ */
 
-  /* Layout Variables */
+:root {
+  /* ==================== LAYOUT ==================== */
+
+  /* App structure */
   --sidebar-base: 240px;
+  --sidebar-min-width: 200px;
+  --sidebar-max-width-mobile: 360px;
   --header-height: 90px;
   --header-height-mobile: 60px;
+  --header-max-width: 1200px;
   --landscape-leftbar-width: 44px;
 
-  /* Color Variables (Phase 1) */
-  --border-medium: rgba(148, 148, 148, 0.6);
-  --border-light: rgba(180, 180, 180, 0.5);
-  --border-strong: rgba(160, 160, 160, 0.55);
-  --bg-hover: rgba(80, 80, 80, 0.35);
-  --bg-disabled: rgba(128, 128, 128, 0.2);
-  --bg-highlight: rgba(224, 160, 31, 0.25);
-  --accent-gold: rgb(224, 160, 31);
+  /* Header element dimensions */
+  --header-logo-height: 56px;
+  --header-logo-height-mobile: 44px;
+  --header-banner-height: 48px;
+  --toggle-size: 2.25rem;
+  --toggle-size-sm: 32px;
 
-  /* Animation Timing Variables (Phase 1) */
+  /* Content */
+  --content-max-width: 900px;
+  --text-max-width: 660px;          /* Optimal line length for readability */
+
+  /* Landscape mode */
+  --landscape-logo-size: 38px;
+
+  /* Components */
+  --search-results-max-height: 320px;
+
+  /* ==================== ANIMATION ==================== */
+
   --anim-fast: 0.15s;
   --anim-normal: 0.2s;
   --anim-slow: 0.4s;
@@ -36,46 +56,31 @@
   --ease-standard: ease;
   --ease-out: ease-out;
 
-  /* PHASE 2: Spacing Scale (rem-based) */
+  /* ==================== SPACING SCALE ==================== */
+
   --space-xs: 0.25rem;   /* 4px */
   --space-sm: 0.5rem;    /* 8px */
   --space-md: 1rem;      /* 16px */
   --space-lg: 1.5rem;    /* 24px */
   --space-xl: 2rem;      /* 32px */
 
-  /* PHASE 2: Gap Scale */
+  /* ==================== GAP SCALE ==================== */
+
   --gap-xs: 0.375rem;    /* 6px */
   --gap-sm: 0.5rem;      /* 8px */
   --gap-md: 0.625rem;    /* 10px */
   --gap-lg: 0.875rem;    /* 14px */
   --gap-xl: 1rem;        /* 16px */
 
-  /* PHASE 2: Border Radius Scale */
-  --radius-sm: 0.5rem;   /* 8px - inputs, small elements */
-  --radius-md: 0.875rem; /* 14px - panels */
-  --radius-lg: 1.125rem; /* 18px - cards */
-  --radius-full: 999px;  /* Pills/circles */
-}
+  /* ==================== BORDER RADIUS SCALE ==================== */
 
-/* Light Theme Variables */
-:root[data-theme="light"] {
-  --bg: #f3f4f6;
-  --bg-card: #ffffff;
-  --bg-panel: #f9fafb;
-  --border-subtle: rgba(148, 163, 184, 0.7);
-  --accent: #111111;
-  --accent-soft: rgba(17, 17, 17, 0.04);
-  --text-main: #111111;
-  --text-muted: #6b7280;
-  --danger: #dc2626;
-  --success: #16a34a;
+  --radius-sm: 0.5rem;   /* 8px  — inputs, small elements */
+  --radius-md: 0.875rem; /* 14px — panels */
+  --radius-lg: 1.125rem; /* 18px — cards */
+  --radius-full: 999px;  /* Pills / circles */
 
-  /* Light Theme Color Variables */
-  --border-medium: rgba(148, 163, 184, 0.6);
-  --border-light: rgba(148, 163, 184, 0.5);
-  --border-strong: rgba(148, 163, 184, 0.7);
-  --bg-hover: rgba(148, 163, 184, 0.25);
-  --bg-disabled: rgba(148, 163, 184, 0.15);
-  --bg-highlight: rgba(224, 160, 31, 0.2);
-  --accent-gold: rgb(224, 160, 31);
+  /* ==================== EFFECTS ==================== */
+
+  --blur-panel: 18px;    /* Sidebar backdrop blur */
+  --blur-card: 16px;     /* Card backdrop blur */
 }

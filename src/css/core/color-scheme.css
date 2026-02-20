@@ -1,0 +1,92 @@
+/* ==================== COLOR SCHEME ==================== */
+/*
+ * This file is the single source of truth for all color tokens.
+ * Non-color variables (spacing, layout, animation, radii, effects)
+ * live in variables.css.
+ *
+ * To add a custom theme: copy the :root block, scope it with a
+ * data-theme attribute (e.g. :root[data-theme="custom"]), and
+ * override only the variables you need.
+ */
+
+:root {
+  /* Base Backgrounds */
+  --bg: #3c3c3c;
+  --bg-card: #303030;
+  --bg-panel: #262626;
+  --bg-deep: #1f1f1f;                              /* Deeper surface: landscape bars, search results */
+  --bg-panel-focus: #2c2c2c;                        /* Panel focus/hover state */
+
+  /* Interactive Backgrounds */
+  --bg-hover: rgba(80, 80, 80, 0.35);
+  --bg-disabled: rgba(128, 128, 128, 0.2);
+  --bg-highlight: rgba(224, 160, 31, 0.25);
+  --bg-overlay: rgba(0, 0, 0, 0.5);                /* Sidebar overlay backdrop */
+
+  /* Text */
+  --text-main: #f5f5f5;
+  --text-muted: #c4c4c4;
+
+  /* Accent */
+  --accent: #e5e5e5;
+  --accent-soft: rgba(229, 229, 229, 0.08);
+  --accent-gold: rgb(224, 160, 31);
+
+  /* Semantic */
+  --danger: #ff4b4b;
+  --success: #4ade80;
+
+  /* Borders */
+  --border-subtle: rgba(120, 120, 120, 0.7);
+  --border-medium: rgba(148, 148, 148, 0.6);
+  --border-light: rgba(180, 180, 180, 0.5);
+  --border-strong: rgba(160, 160, 160, 0.55);
+  --border-section: rgba(148, 148, 148, 0.3);      /* Sidebar section dividers */
+  --border-divider: rgba(148, 148, 148, 0.2);      /* Search result item dividers */
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12),
+                 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+/* ==================== LIGHT THEME ==================== */
+
+:root[data-theme="light"] {
+  /* Base Backgrounds */
+  --bg: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-panel: #f9fafb;
+  --bg-deep: #f3f4f6;
+  --bg-panel-focus: #f9fafb;
+
+  /* Interactive Backgrounds */
+  --bg-hover: rgba(148, 163, 184, 0.25);
+  --bg-disabled: rgba(148, 163, 184, 0.15);
+  --bg-highlight: rgba(224, 160, 31, 0.2);
+  --bg-overlay: rgba(0, 0, 0, 0.3);
+
+  /* Text */
+  --text-main: #111111;
+  --text-muted: #6b7280;
+
+  /* Accent */
+  --accent: #111111;
+  --accent-soft: rgba(17, 17, 17, 0.04);
+  --accent-gold: rgb(224, 160, 31);
+
+  /* Semantic */
+  --danger: #dc2626;
+  --success: #16a34a;
+
+  /* Borders */
+  --border-subtle: rgba(148, 163, 184, 0.7);
+  --border-medium: rgba(148, 163, 184, 0.6);
+  --border-light: rgba(148, 163, 184, 0.5);
+  --border-strong: rgba(148, 163, 184, 0.7);
+  --border-section: rgba(148, 163, 184, 0.3);
+  --border-divider: rgba(148, 163, 184, 0.2);
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08),
+                 0 1px 2px rgba(0, 0, 0, 0.06);
+}
