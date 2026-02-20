@@ -119,6 +119,7 @@ function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
             subscribe: (callback: (theme: Theme) => void) => {
               return useThemeStore.subscribe((state) => callback(state.theme));
             },
+            toggleTheme: () => useThemeStore.getState().toggleTheme(),
           },
           /**
            * Re-render passive content after dynamic DOM updates

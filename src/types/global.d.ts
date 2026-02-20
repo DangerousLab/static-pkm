@@ -30,4 +30,5 @@ interface ModuleFactory {
 interface ThemeControllerInterface {
   getCurrentTheme(): 'dark' | 'light';
   subscribe(callback: (theme: 'dark' | 'light') => void): () => void;
+  toggleTheme(): void;
 }

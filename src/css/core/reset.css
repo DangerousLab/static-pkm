@@ -14,26 +14,24 @@ html, body {
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #1f1f1f;
-  background-image: var(--gradient-bg);
+  background-color: var(--bg);
   color: var(--text-main);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   transition: background var(--anim-normal) var(--ease-standard), color var(--anim-normal) var(--ease-standard);
 }
 
 :root[data-theme="light"] body {
-  background-color: #f3f4f6;
-  background-image: var(--gradient-bg);
+  background-color: var(--bg);
 }
 
 html {
-  background: #1f1f1f;
+  background: var(--bg);
   min-height: 100vh;
   min-height: -webkit-fill-available;
 }
 
 :root[data-theme="light"] html {
-  background: #f3f4f6;
+  background: var(--bg);
 }
 
 body {

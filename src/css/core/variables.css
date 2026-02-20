@@ -36,11 +36,6 @@
   --ease-standard: ease;
   --ease-out: ease-out;
 
-  /* Gradient Variables (Phase 1) */
-  --gradient-bg: radial-gradient(circle at top, #2f2f2f 0, #2a2a2a 55%, #1f1f1f 100%);
-  --gradient-sidebar: radial-gradient(circle at top left, rgba(31, 31, 31, 0.96), rgba(31, 31, 31, 0.9));
-  --gradient-card: radial-gradient(circle at top left, var(--bg-card), var(--bg-panel) 45%, #1a1a1a 100%);
-
   /* PHASE 2: Spacing Scale (rem-based) */
   --space-xs: 0.25rem;   /* 4px */
   --space-sm: 0.5rem;    /* 8px */
@@ -83,9 +78,4 @@
   --bg-disabled: rgba(148, 163, 184, 0.15);
   --bg-highlight: rgba(224, 160, 31, 0.2);
   --accent-gold: rgb(224, 160, 31);
-
-  /* Light Theme Gradients */
-  --gradient-bg: radial-gradient(circle at top, #e5e7eb 0, #e5e7eb 50%, #d1d5db 100%);
-  --gradient-sidebar: radial-gradient(circle at top left, #f9fafb, #e5e7eb);
-  --gradient-card: radial-gradient(circle at top left, var(--bg-card), var(--bg-panel) 40%, #e5e7eb 100%);
 }

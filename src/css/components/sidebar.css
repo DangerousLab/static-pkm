@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-medium);
-  background: var(--gradient-sidebar);
+  background: var(--bg-panel);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   transform: translateX(-100%);
@@ -21,7 +21,7 @@
 }
 
 :root[data-theme="light"] .sidebar {
-  background: var(--gradient-sidebar);
+  background: var(--bg-panel);
 }
 
 .sidebar-header {

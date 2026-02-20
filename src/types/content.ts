@@ -30,6 +30,7 @@ export interface ModuleProps {
 export interface ThemeController {
   getCurrentTheme(): 'dark' | 'light';
   subscribe(callback: (theme: 'dark' | 'light') => void): () => void;
+  toggleTheme(): void;
 }
 
 /** Module layer - determines security context */

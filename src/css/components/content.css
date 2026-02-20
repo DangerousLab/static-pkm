@@ -17,7 +17,7 @@
 
 .card {
   position: relative;
-  background: var(--gradient-card);
+  background: var(--bg-card);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12),
