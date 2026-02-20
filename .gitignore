@@ -18,6 +18,9 @@ dist-pwa/
 src-tauri/target/
 src-tauri/Cargo.lock
 
+# Icons
+src-tauri/icons/
+
 # HTTPS certificates (local testing only)
 .cert/
 
