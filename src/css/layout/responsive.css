@@ -19,6 +19,11 @@
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
+
+  /* Reduce markdown content padding to match card's mobile horizontal padding */
+  .markdown-content {
+    padding: 0.875rem;
+  }
 }
 
 /* ==================== MOBILE LANDSCAPE MODE ==================== */

@@ -1,0 +1,343 @@
+/**
+ * Markdown Content Styling
+ * Semantic CSS for rendered markdown elements.
+ *
+ * Uses CSS custom properties from the design system (color-scheme.css, variables.css).
+ * No Tailwind utilities — layout/feature components use semantic CSS per project rules.
+ */
+
+/* ========================================
+   Container
+   ======================================== */
+
+.markdown-content {
+  max-width: var(--text-max-width);
+  min-width: 0;           /* Prevents flex/grid child from overflowing its container */
+  overflow-x: hidden;     /* Clips overflow at this boundary; pre and table-wrapper handle their own scroll */
+  margin: 0 auto;
+  padding: 1.5rem;
+  line-height: 1.6;
+  font-size: 1rem;
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   Empty / Error States
+   ======================================== */
+
+.markdown-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.markdown-error {
+  color: var(--danger);
+}
+
+/* ========================================
+   Headings
+   ======================================== */
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-main);
+  margin-top: 0;
+}
+
+.markdown-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-medium);
+}
+
+.markdown-content h1:first-child {
+  margin-top: 0;
+}
+
+.markdown-content h2 {
+  font-size: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.markdown-content h3 {
+  font-size: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content h4 {
+  font-size: 1.125rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content h5,
+.markdown-content h6 {
+  font-size: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   Paragraphs & Text
+   ======================================== */
+
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content del,
+.markdown-content s {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* ========================================
+   Code
+   ======================================== */
+
+.markdown-content code {
+  font-family: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+  font-size: 0.9em;
+  background-color: var(--bg-deep);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  color: var(--text-main);
+}
+
+.markdown-content pre {
+  background-color: var(--bg-panel);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
+/* ========================================
+   Lists
+   ======================================== */
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content li > p {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ul ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+}
+
+.markdown-content ul ul ul {
+  list-style-type: square;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-content ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+}
+
+.markdown-content ol ol ol {
+  list-style-type: lower-roman;
+}
+
+/* ========================================
+   Links
+   ======================================== */
+
+.markdown-content a {
+  color: var(--accent-gold);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(224, 160, 31, 0.3);
+  transition: color var(--anim-fast) var(--ease-out),
+              border-color var(--anim-fast) var(--ease-out);
+}
+
+.markdown-content a:hover {
+  color: var(--accent-gold);
+  border-bottom-color: var(--accent-gold);
+  opacity: 0.85;
+}
+
+.markdown-content a[href^="http"]::after {
+  content: " ↗";
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+/* ========================================
+   Blockquotes
+   ======================================== */
+
+.markdown-content blockquote {
+  margin: 0 0 1rem 0;
+  padding: 0.5rem 0 0.5rem 1rem;
+  border-left: 4px solid var(--accent-gold);
+  color: var(--text-muted);
+  font-style: italic;
+  background-color: var(--bg-panel);
+  border-radius: 0 4px 4px 0;
+}
+
+.markdown-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content blockquote > blockquote {
+  margin-top: 0.5rem;
+}
+
+/* ========================================
+   Horizontal Rules
+   ======================================== */
+
+.markdown-content hr {
+  height: 0;
+  border: none;
+  border-top: 2px solid var(--border-medium);
+  margin: 2rem 0;
+}
+
+/* ========================================
+   Tables
+   ======================================== */
+
+/* Scrollable wrapper injected by markdownParser.ts table_open renderer rule */
+.markdown-content .markdown-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.markdown-content thead {
+  background-color: var(--bg-panel);
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.markdown-content th {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.markdown-content tr:last-child td {
+  border-bottom: none;
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+
+@media (max-width: 768px) {
+  .markdown-content {
+    padding: 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .markdown-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .markdown-content h2 {
+    font-size: 1.375rem;
+  }
+
+  .markdown-content h3 {
+    font-size: 1.125rem;
+  }
+
+  .markdown-content pre {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    padding-left: 1.5rem;
+  }
+}
+
+/* ========================================
+   Print
+   ======================================== */
+
+@media print {
+  .markdown-content {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .markdown-content a {
+    text-decoration: underline;
+    color: #000;
+    border-bottom: none;
+  }
+
+  .markdown-content a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+  }
+}

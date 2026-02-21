@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
 import { useMathJax } from '@/loaders';
 import ModuleLoader from './ModuleLoader';
+import { MarkdownRenderer } from '@components/markdown/MarkdownRenderer';
 import type { ContentNode } from '@/types/navigation';
 import { isTauriContext, readFile } from '@core/ipc/commands';
 import { useVaultStore } from '@core/state/vaultStore';
@@ -211,13 +212,7 @@ function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
     return <div className="text-text-muted">Loading document...</div>;
   }
 
-  // For now, render as preformatted text
-  // TODO: Add markdown rendering
-  return (
-    <pre className="whitespace-pre-wrap font-mono text-sm text-text-main bg-bg-panel p-4 rounded-sm overflow-auto">
-      {content}
-    </pre>
-  );
+  return <MarkdownRenderer content={content} />;
 }
 
 export default ContentLoader;
