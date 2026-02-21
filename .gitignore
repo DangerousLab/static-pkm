@@ -49,6 +49,8 @@ rollup.config.css.js
 
 # Backups
 backup-*/
+
+# Claude config
 /.claude
 .mcp.json
-CLAUDE.md
+#CLAUDE.md
