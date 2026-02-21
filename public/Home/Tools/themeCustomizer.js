@@ -3,7 +3,7 @@
   'use strict';
 
   function createThemeCustomizer(options) {
-    const { container, themeController } = options;
+    const { container, themeController, vaultPath } = options;
 
     console.log('[ThemeCustomizer] Initializing v1.0');
 
@@ -1197,13 +1197,55 @@
       return css;
     }
 
-    function downloadThemeCSS() {
+    function showExportFeedback(message, isError) {
+      const actionsEl = moduleContent.querySelector('.theme-actions');
+      if (!actionsEl) return;
+
+      const feedback = document.createElement('div');
+      feedback.style.cssText = [
+        'width: 100%',
+        'padding: 0.5rem 0.75rem',
+        'border-radius: var(--radius-sm)',
+        'font-size: 0.82rem',
+        'font-family: monospace',
+        'word-break: break-all',
+        isError
+          ? 'background: rgba(255,75,75,0.12); color: var(--danger); border: 1px solid var(--danger)'
+          : 'background: rgba(74,222,128,0.12); color: var(--success); border: 1px solid var(--success)'
+      ].join(';');
+      feedback.textContent = message;
+      actionsEl.appendChild(feedback);
+
+      setTimeout(() => {
+        if (feedback.parentNode) feedback.parentNode.removeChild(feedback);
+      }, 4000);
+    }
+
+    async function downloadThemeCSS() {
       const css = exportThemeCSS();
+      const filename = `theme-${state.currentTheme}-${Date.now()}.css`;
+
+      // Tauri mode: blob anchor clicks are silently blocked in the webview.
+      // Use the existing write_file IPC command instead.
+      if (window.__TAURI_INTERNALS__ && vaultPath) {
+        try {
+          const filePath = vaultPath + '/Home/Exports/' + filename;
+          await window.__TAURI_INTERNALS__.invoke('write_file', { path: filePath, content: css });
+          console.log('[ThemeCustomizer] Theme exported via IPC to:', filePath);
+          showExportFeedback('✓ Saved to: ' + filePath, false);
+        } catch (err) {
+          console.error('[ThemeCustomizer] IPC write_file failed:', err);
+          showExportFeedback('Export failed: ' + String(err), true);
+        }
+        return;
+      }
+
+      // Browser / PWA fallback: standard blob anchor download
       const blob = new Blob([css], { type: 'text/css' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `theme-${state.currentTheme}-${Date.now()}.css`;
+      a.download = filename;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -1211,7 +1253,7 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 100);
-      console.log('[ThemeCustomizer] Theme exported');
+      console.log('[ThemeCustomizer] Theme exported via blob download');
     }
 
     function resetVariable() {

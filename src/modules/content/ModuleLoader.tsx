@@ -114,6 +114,7 @@ function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
         // Create module instance with options
         const instance = factory({
           container: containerElement,
+          vaultPath: currentVault?.path ?? null,
           themeController: {
             getCurrentTheme: () => useThemeStore.getState().theme,
             subscribe: (callback: (theme: Theme) => void) => {
