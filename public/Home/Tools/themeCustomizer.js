@@ -1226,15 +1226,25 @@
       const filename = `theme-${state.currentTheme}-${Date.now()}.css`;
 
       // Tauri mode: blob anchor clicks are silently blocked in the webview.
-      // Use the existing write_file IPC command instead.
+      // Show a native OS save dialog so the user can choose the save location.
       if (window.__TAURI_INTERNALS__ && vaultPath) {
         try {
-          const filePath = vaultPath + '/Home/Exports/' + filename;
-          await window.__TAURI_INTERNALS__.invoke('write_file', { path: filePath, content: css });
-          console.log('[ThemeCustomizer] Theme exported via IPC to:', filePath);
-          showExportFeedback('✓ Saved to: ' + filePath, false);
+          // Show native save dialog
+          const savePath = await window.__TAURI_INTERNALS__.invoke('plugin:dialog|save', {
+            options: Object.freeze({
+              title: 'Export Theme CSS',
+              defaultPath: filename,
+              filters: [{ name: 'CSS Files', extensions: ['css'] }]
+            })
+          });
+
+          if (!savePath) return; // user cancelled — do nothing silently
+
+          await window.__TAURI_INTERNALS__.invoke('write_file', { path: savePath, content: css });
+          console.log('[ThemeCustomizer] Theme exported via IPC to:', savePath);
+          showExportFeedback('✓ Saved to: ' + savePath, false);
         } catch (err) {
-          console.error('[ThemeCustomizer] IPC write_file failed:', err);
+          console.error('[ThemeCustomizer] Export failed:', err);
           showExportFeedback('Export failed: ' + String(err), true);
         }
         return;
