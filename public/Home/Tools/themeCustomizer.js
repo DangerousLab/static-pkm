@@ -844,6 +844,7 @@
       .theme-variable-list {
         display: grid;
         grid-template-columns: 1fr 1fr;
+        align-content: start;
         gap: 0.25rem;
         height: 240px;
         overflow-y: auto;
