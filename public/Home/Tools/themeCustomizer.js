@@ -887,6 +887,9 @@
         font-size: 0.75rem;
         color: var(--text-main);
         align-self: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .theme-actions {
