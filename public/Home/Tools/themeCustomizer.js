@@ -9,7 +9,7 @@
 
     // ==================== VARIABLE DEFINITIONS ====================
     const VARIABLE_CATEGORIES = {
-      backgrounds: ['--bg', '--bg-card', '--bg-panel', '--bg-deep', '--bg-panel-focus', '--bg-hover', '--bg-disabled', '--bg-highlight'],
+      backgrounds: ['--bg', '--bg-card', '--bg-panel', '--bg-deep', '--bg-panel-focus', '--bg-hover', '--bg-disabled', '--bg-highlight', '--bg-overlay'],
       text: ['--text-main', '--text-muted'],
       accents: ['--accent', '--accent-soft', '--accent-gold', '--danger', '--success'],
       borders: ['--border-subtle', '--border-medium', '--border-light', '--border-strong', '--border-section', '--border-divider']
@@ -17,7 +17,7 @@
 
     // Variables that support alpha transparency
     const ALPHA_VARIABLES = [
-      '--bg-hover', '--bg-disabled', '--bg-highlight',
+      '--bg-hover', '--bg-disabled', '--bg-highlight', '--bg-overlay',
       '--accent-soft', '--border-subtle', '--border-medium',
       '--border-light', '--border-strong', '--border-section', '--border-divider'
     ];
@@ -50,6 +50,7 @@
           '--bg-hover': 'rgba(80, 80, 80, 0.35)',
           '--bg-disabled': 'rgba(128, 128, 128, 0.2)',
           '--bg-highlight': 'rgba(224, 160, 31, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#f5f5f5',
           '--text-muted': '#c4c4c4',
           '--accent': '#e5e5e5',
@@ -77,6 +78,7 @@
           '--bg-hover': 'rgba(127, 109, 242, 0.15)',
           '--bg-disabled': 'rgba(100, 100, 100, 0.2)',
           '--bg-highlight': 'rgba(127, 109, 242, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#dcddde',
           '--text-muted': '#999999',
           '--accent': '#7f6df2',
@@ -104,6 +106,7 @@
           '--bg-hover': 'rgba(136, 192, 208, 0.15)',
           '--bg-disabled': 'rgba(76, 86, 106, 0.3)',
           '--bg-highlight': 'rgba(136, 192, 208, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#eceff4',
           '--text-muted': '#81a1c1',
           '--accent': '#88c0d0',
@@ -131,6 +134,7 @@
           '--bg-hover': 'rgba(189, 147, 249, 0.15)',
           '--bg-disabled': 'rgba(68, 71, 90, 0.3)',
           '--bg-highlight': 'rgba(189, 147, 249, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#f8f8f2',
           '--text-muted': '#6272a4',
           '--accent': '#bd93f9',
@@ -158,6 +162,7 @@
           '--bg-hover': 'rgba(230, 219, 116, 0.15)',
           '--bg-disabled': 'rgba(117, 113, 94, 0.3)',
           '--bg-highlight': 'rgba(230, 219, 116, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#f8f8f2',
           '--text-muted': '#75715e',
           '--accent': '#e6db74',
@@ -185,6 +190,7 @@
           '--bg-hover': 'rgba(122, 162, 247, 0.15)',
           '--bg-disabled': 'rgba(41, 46, 73, 0.3)',
           '--bg-highlight': 'rgba(122, 162, 247, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#c0caf5',
           '--text-muted': '#565f89',
           '--accent': '#7aa2f7',
@@ -212,6 +218,7 @@
           '--bg-hover': 'rgba(95, 191, 227, 0.15)',
           '--bg-disabled': 'rgba(52, 61, 75, 0.3)',
           '--bg-highlight': 'rgba(255, 204, 102, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#cbccc6',
           '--text-muted': '#707a8c',
           '--accent': '#5fbfe3',
@@ -239,6 +246,7 @@
           '--bg-hover': 'rgba(97, 175, 239, 0.15)',
           '--bg-disabled': 'rgba(60, 66, 77, 0.3)',
           '--bg-highlight': 'rgba(209, 154, 102, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#abb2bf',
           '--text-muted': '#5c6370',
           '--accent': '#61afef',
@@ -266,6 +274,7 @@
           '--bg-hover': 'rgba(128, 203, 196, 0.15)',
           '--bg-disabled': 'rgba(55, 71, 79, 0.3)',
           '--bg-highlight': 'rgba(255, 203, 107, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#eeffff',
           '--text-muted': '#546e7a',
           '--accent': '#80cbc4',
@@ -293,6 +302,7 @@
           '--bg-hover': 'rgba(251, 184, 108, 0.15)',
           '--bg-disabled': 'rgba(80, 73, 69, 0.3)',
           '--bg-highlight': 'rgba(250, 189, 47, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#ebdbb2',
           '--text-muted': '#a89984',
           '--accent': '#fbb86c',
@@ -320,6 +330,7 @@
           '--bg-hover': 'rgba(130, 170, 255, 0.15)',
           '--bg-disabled': 'rgba(52, 50, 74, 0.3)',
           '--bg-highlight': 'rgba(255, 203, 107, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.5)',
           '--text-main': '#bfc7d5',
           '--text-muted': '#676e95',
           '--accent': '#82aaff',
@@ -349,6 +360,7 @@
           '--bg-hover': 'rgba(148, 163, 184, 0.25)',
           '--bg-disabled': 'rgba(148, 163, 184, 0.15)',
           '--bg-highlight': 'rgba(224, 160, 31, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#111111',
           '--text-muted': '#6b7280',
           '--accent': '#111111',
@@ -376,6 +388,7 @@
           '--bg-hover': 'rgba(139, 105, 20, 0.15)',
           '--bg-disabled': 'rgba(139, 105, 20, 0.1)',
           '--bg-highlight': 'rgba(139, 105, 20, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#3b3528',
           '--text-muted': '#6b5d48',
           '--accent': '#8b6914',
@@ -403,6 +416,7 @@
           '--bg-hover': 'rgba(94, 129, 172, 0.15)',
           '--bg-disabled': 'rgba(94, 129, 172, 0.1)',
           '--bg-highlight': 'rgba(136, 192, 208, 0.25)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#2e3440',
           '--text-muted': '#4c566a',
           '--accent': '#5e81ac',
@@ -430,6 +444,7 @@
           '--bg-hover': 'rgba(38, 139, 210, 0.15)',
           '--bg-disabled': 'rgba(147, 161, 161, 0.15)',
           '--bg-highlight': 'rgba(181, 137, 0, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#657b83',
           '--text-muted': '#93a1a1',
           '--accent': '#268bd2',
@@ -457,6 +472,7 @@
           '--bg-hover': 'rgba(85, 181, 219, 0.15)',
           '--bg-disabled': 'rgba(130, 146, 162, 0.15)',
           '--bg-highlight': 'rgba(255, 153, 0, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#5c6166',
           '--text-muted': '#828c99',
           '--accent': '#55b5db',
@@ -484,6 +500,7 @@
           '--bg-hover': 'rgba(33, 136, 255, 0.15)',
           '--bg-disabled': 'rgba(208, 215, 222, 0.3)',
           '--bg-highlight': 'rgba(255, 184, 0, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#24292f',
           '--text-muted': '#57606a',
           '--accent': '#0969da',
@@ -511,6 +528,7 @@
           '--bg-hover': 'rgba(64, 120, 242, 0.15)',
           '--bg-disabled': 'rgba(160, 161, 167, 0.15)',
           '--bg-highlight': 'rgba(193, 132, 1, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#383a42',
           '--text-muted': '#a0a1a7',
           '--accent': '#4078f2',
@@ -538,6 +556,7 @@
           '--bg-hover': 'rgba(57, 155, 206, 0.15)',
           '--bg-disabled': 'rgba(144, 164, 174, 0.15)',
           '--bg-highlight': 'rgba(255, 179, 0, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#263238',
           '--text-muted': '#90a4ae',
           '--accent': '#399bce',
@@ -565,6 +584,7 @@
           '--bg-hover': 'rgba(175, 58, 3, 0.15)',
           '--bg-disabled': 'rgba(168, 153, 132, 0.15)',
           '--bg-highlight': 'rgba(215, 153, 33, 0.2)',
+          '--bg-overlay': 'rgba(0, 0, 0, 0.3)',
           '--text-main': '#3c3836',
           '--text-muted': '#7c6f64',
           '--accent': '#af3a03',
@@ -822,11 +842,17 @@
 
       /* Variable list */
       .theme-variable-list {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 0.25rem;
         height: 240px;
         overflow-y: auto;
+      }
+
+      @media (max-width: 600px) {
+        .theme-variable-list {
+          grid-template-columns: 1fr;
+        }
       }
 
       .theme-variable-item {
@@ -1174,17 +1200,22 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = `theme-${state.currentTheme}-${Date.now()}.css`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
       console.log('[ThemeCustomizer] Theme exported');
     }
 
     function resetVariable() {
       const varName = state.selectedVariable;
       const theme = state.currentTheme;
-      const defaultValue = DEFAULT_VALUES[theme][varName];
 
-      document.documentElement.style.setProperty(varName, defaultValue);
+      // Remove inline override - let CSS cascade handle the default
+      document.documentElement.style.removeProperty(varName);
 
       if (state.modifications[varName]) {
         delete state.modifications[varName][theme];
@@ -1195,17 +1226,14 @@
     }
 
     function resetAll() {
-      const defaults = DEFAULT_VALUES[state.currentTheme];
+      // Remove all inline overrides - let CSS cascade handle defaults
       Object.values(VARIABLE_CATEGORIES).flat().forEach(varName => {
-        if (defaults && defaults[varName]) {
-          document.documentElement.style.setProperty(varName, defaults[varName]);
-        } else {
-          document.documentElement.style.removeProperty(varName);
-        }
+        document.documentElement.style.removeProperty(varName);
       });
 
       state.modifications = {};
       renderEditor();
+      renderVariableList();
       console.log('[ThemeCustomizer] Reset all variables');
     }
 
@@ -1474,7 +1502,7 @@
     }
 
     function applyPresetColors(preset) {
-      // Apply all 17 colors from the preset
+      // Apply all colors from the preset
       Object.entries(preset.colors).forEach(([varName, value]) => {
         applyLivePreview(varName, value);
       });
@@ -1775,19 +1803,37 @@
       DEFAULT_VALUES[state.currentTheme] = captureCurrentDefaults();
       console.log('[ThemeCustomizer] Captured defaults for theme:', state.currentTheme);
 
+      // Capture defaults for the OTHER theme by temporarily switching data-theme
+      // This ensures clean defaults are captured before any modifications are applied
+      const otherTheme = state.currentTheme === 'dark' ? 'light' : 'dark';
+      const htmlEl = document.documentElement;
+      if (otherTheme === 'light') {
+        htmlEl.setAttribute('data-theme', 'light');
+      } else {
+        htmlEl.removeAttribute('data-theme');
+      }
+      // Force style recalculation
+      getComputedStyle(htmlEl).getPropertyValue('--bg');
+      DEFAULT_VALUES[otherTheme] = captureCurrentDefaults();
+      console.log('[ThemeCustomizer] Captured defaults for theme:', otherTheme);
+      // Restore original theme
+      if (state.currentTheme === 'light') {
+        htmlEl.setAttribute('data-theme', 'light');
+      } else {
+        htmlEl.removeAttribute('data-theme');
+      }
+
       state.themeUnsubscribe = themeController.subscribe((newTheme) => {
         console.log('[ThemeCustomizer] Theme changed to:', newTheme);
         state.currentTheme = newTheme;
 
-        // Capture defaults for the new theme after CSS variables update
-        requestAnimationFrame(() => {
-          if (!DEFAULT_VALUES[newTheme]) {
-            DEFAULT_VALUES[newTheme] = captureCurrentDefaults();
-            console.log('[ThemeCustomizer] Captured defaults for theme:', newTheme);
-          }
+        // Step 1: Remove ALL inline style overrides so the CSS cascade takes effect cleanly
+        const allVars = Object.values(VARIABLE_CATEGORIES).flat();
+        allVars.forEach(varName => {
+          document.documentElement.style.removeProperty(varName);
         });
 
-        // Reapply modifications for new theme
+        // Step 2: Reapply ONLY the new theme's modifications
         Object.keys(state.modifications).forEach(varName => {
           const value = state.modifications[varName][newTheme];
           if (value) {
