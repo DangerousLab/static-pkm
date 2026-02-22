@@ -2,17 +2,27 @@
 
 @media (max-width: 600px) and (orientation: portrait) {
   .main-content {
-    padding: 0.5rem 0;
+    padding: 0.375rem;
+    /* Consume the safe-area-inset-bottom at the bottom of the content area so
+       .app-shell's global safe-area padding doesn't create extra visible gap.
+       On devices without a home bar env() resolves to 0px — no visual change. */
+    padding-bottom: calc(0.375rem + env(safe-area-inset-bottom, 0px));
   }
 
   .page-root {
-    padding: 0.5rem 0.25rem 1rem;
+    padding: 0.125rem 0 0.25rem;   /* symmetric: bottom aligned to top (was: 0.375rem) */
   }
 
   .card {
-    margin: 0.5rem 0.25rem;
+    margin: 0.25rem 0;  /* less vertical, no horizontal margin (was: 0.5rem 0.25rem) */
     padding: 1.125rem 0.875rem 1.25rem;
     border-radius: var(--radius-md);
+  }
+
+  /* Editor card on portrait mobile: subtract safe-area-inset-bottom in addition to
+     the fixed outer space (main-content now consumes it via padding-bottom). */
+  .editor-card {
+    height: calc(100svh - var(--header-height) - env(safe-area-inset-bottom, 0px) - 1.625rem) !important;
   }
 
   .sidebar {
@@ -186,8 +196,8 @@
     bottom: 0 !important;
     width: auto !important;
     margin: 0 !important;
-    padding: 0.25rem 0.5rem !important;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0.375rem 0.5rem !important;
+    padding-bottom: calc(0.375rem + env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto;
     overflow-x: hidden;
     background: transparent !important;
@@ -204,7 +214,7 @@
   }
 
   .main-content .page-root {
-    padding: 0.125rem 0.125rem 0.75rem !important;
+    padding: 0.125rem !important;    /* uniform: was 0.75rem bottom — aligned to top */
     max-width: 100%;
     background: transparent !important;
   }

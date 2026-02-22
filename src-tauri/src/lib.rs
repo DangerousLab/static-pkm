@@ -11,7 +11,7 @@ mod models;
 mod utils;
 
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Emitter, Manager, WindowEvent};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -127,6 +127,22 @@ pub fn run() {
             app.manage(DbState(database));
 
             info!("[INFO] [lib] Application setup complete");
+
+            // Intercept OS window close button to allow frontend to handle unsaved changes
+            let main_window = app.get_webview_window("main")
+                .expect("Failed to get main window");
+            let app_handle = app.handle().clone();
+            main_window.on_window_event(move |event| {
+                if let WindowEvent::CloseRequested { api, .. } = event {
+                    // Prevent default close so frontend can show unsaved-changes modal
+                    api.prevent_close();
+                    // Notify frontend to decide whether to show confirmation or close directly
+                    app_handle
+                        .get_webview_window("main")
+                        .map(|w| w.emit("close-requested", ()));
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -137,7 +153,15 @@ pub fn run() {
             commands::search::search_content,
             commands::search::index_content,
             commands::search::rebuild_index,
+            force_close_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Force-close the main window after the frontend has handled unsaved-changes logic.
+#[tauri::command]
+async fn force_close_window(window: tauri::WebviewWindow) -> Result<(), String> {
+    info!("[INFO] [lib] Force closing window");
+    window.destroy().map_err(|e| e.to_string())
 }

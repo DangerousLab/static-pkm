@@ -1,0 +1,240 @@
+/* ── Markdown Editor Layout ─────────────────────────────────────────────────── */
+/* Semantic CSS for the editor feature. Tailwind is used only in toolbar buttons
+   (UI widgets). This file controls layout and structural styling only. */
+
+/* ── Editor card modifier ─────────────────────────────────────────────────────
+   Applied to .card when wrapping the full markdown editor.
+
+   Architecture: fixed-height flex column
+   ┌─ .editor-card ─────────────────────────────────────────────┐
+   │  height = 100vh − header − card margins                    │
+   │  overflow: hidden  ← clips border-radius + contains scroll │
+   │  display: flex; flex-direction: column                     │
+   │                                                            │
+   │  ┌─ .editor-toolbar ──────────────────────────────────┐   │
+   │  │  flex-shrink: 0  ← never compresses                │   │
+   │  └────────────────────────────────────────────────────┘   │
+   │                                                            │
+   │  ┌─ .editor-[mode]-view ──────────────────────────────┐   │
+   │  │  flex: 1; min-height: 0; overflow-y: auto          │   │
+   │  │  ← scrolls here; toolbar above never moves         │   │
+   │  └────────────────────────────────────────────────────┘   │
+   └────────────────────────────────────────────────────────────┘
+
+   This layout is consistent across Read / Edit / Source modes.
+   The toolbar is pinned by flexbox — no position:sticky needed.
+   overflow:hidden restores border-radius clipping and prevents
+   tables/pre blocks from escaping the card boundary.            */
+
+.editor-card {
+  padding: 0 !important;
+  overflow: hidden !important;   /* clips corners + contains internal scroll    */
+  contain: style !important;     /* drop layout containment; keep style only    */
+  display: flex;
+  flex-direction: column;
+  /* Fixed height: 100svh minus header minus all outer vertical space.
+     Outer space breakdown (desktop, after content.css tightening):
+       main-content top+bottom: 0.5+0.5 = 1rem
+       page-root top+bottom:    0.125+0.5 = 0.625rem
+       card margin-top:         ~0.5rem
+       card border top+bottom:  ~0.125rem
+       Total:                   ~2.25rem → use 2.375rem for 2px breathing gap.
+     100svh = small viewport height (excludes mobile browser chrome) = 100vh on desktop. */
+  height: calc(100svh - var(--header-height) - 2.375rem);
+}
+
+/* ── Main editor container ────────────────────────────────────────────────────
+   Direct child of .editor-card. Fills the card and passes the flex column
+   down to toolbar + active view.                                                */
+
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;       /* required: allows flex children to shrink              */
+  overflow: hidden;
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+/* document-container (wraps MarkdownEditor inside ContentLoader) */
+.document-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  min-height: 12rem;
+  color: var(--text-muted);
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────────
+   Pinned at the top by flexbox (flex-shrink: 0).
+   No position:sticky needed — the card is height-constrained and only the
+   content view below scrolls, so the toolbar never moves.
+   Top border-radius matches the card's rounded corners.                         */
+
+.editor-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-panel);
+  /* Top corners match the card's border-radius so background doesn't overhang  */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.editor-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Second row (WYSIWYG formatting buttons) — Edit mode only */
+.editor-toolbar-row.editor-format-row {
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--border-medium);
+  gap: 0.125rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.editor-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.editor-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Format button */
+.editor-fmt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--anim-fast), color var(--anim-fast);
+  min-width: 1.6rem;
+  height: 1.6rem;
+  user-select: none;
+}
+
+.editor-fmt-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.editor-fmt-btn:active {
+  background: var(--bg-highlight);
+}
+
+.editor-fmt-divider {
+  width: 1px;
+  height: 1.2rem;
+  background: var(--border-medium);
+  margin: 0 0.25rem;
+  flex-shrink: 0;
+}
+
+/* ── Read view ────────────────────────────────────────────────────────────────
+   Fills the remaining card height after the toolbar. Content scrolls here.
+   overflow-x: hidden delegates horizontal scroll to .markdown-table-wrapper
+   and pre blocks (which have their own overflow-x: auto).                       */
+
+.editor-read-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-lg);
+}
+
+/* ── Edit view (CodeMirror 6) ────────────────────────────────────────────────
+   Fills the remaining card height. CM6 manages its own scroller internally
+   (overflow:auto on .cm-scroller). The CM editor root gets height:100% in
+   EditView.tsx so it expands to fill this container.                            */
+
+.editor-edit-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;   /* CM6 .cm-scroller handles internal scroll               */
+}
+
+/* ── Source view ─────────────────────────────────────────────────────────────
+   Flex column so the textarea fills the full remaining height.                  */
+
+.editor-source-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-source-textarea {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-lg);
+  resize: none;
+  border: none;
+  outline: none;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-family: var(--font-mono, 'Menlo', 'Monaco', 'Consolas', monospace);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  tab-size: 2;
+  box-sizing: border-box;
+  /* Wrap text — match read mode behaviour */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ── Close confirmation modal ─────────────────────────────────────────────────── */
+
+.editor-close-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 50;
+}
+
+.editor-close-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 51;
+  pointer-events: none;
+}
+
+.editor-close-modal > * {
+  pointer-events: auto;
+}

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
 import { useMathJax } from '@/loaders';
 import ModuleLoader from './ModuleLoader';
-import { MarkdownRenderer } from '@components/markdown/MarkdownRenderer';
+import { MarkdownEditor } from '@/modules/editor/MarkdownEditor';
 import type { ContentNode } from '@/types/navigation';
 import { isTauriContext, readFile } from '@core/ipc/commands';
 import { useVaultStore } from '@core/state/vaultStore';
@@ -13,6 +13,7 @@ import { useVaultStore } from '@core/state/vaultStore';
  */
 function ContentLoader(): React.JSX.Element {
   const activeNode = useNavigationStore((state) => state.activeNode);
+  const currentVault = useVaultStore((state) => state.currentVault);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -58,12 +59,23 @@ function ContentLoader(): React.JSX.Element {
         </div>
       );
 
-    case 'document':
+    case 'document': {
+      // Build absolute path for Tauri mode; fall back to relative for PWA
+      const absolutePath =
+        isTauriContext() && currentVault
+          ? `${currentVault.path}/${activeNode.file}`
+          : activeNode.file;
+
       return (
         <div className="document-container">
-          <DocumentViewer node={activeNode} onError={setError} />
+          <MarkdownEditor
+            key={activeNode.id}
+            node={activeNode}
+            absolutePath={absolutePath}
+          />
         </div>
       );
+    }
 
     default:
       return (
@@ -153,66 +165,6 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );
-}
-
-/**
- * Document viewer component for markdown/text content
- */
-function DocumentViewer({ node, onError }: ViewerProps): React.JSX.Element {
-  const [content, setContent] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const currentVault = useVaultStore((state) => state.currentVault);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadDocument(): Promise<void> {
-      try {
-        setIsLoading(true);
-
-        let text: string;
-        if (isTauriContext() && currentVault) {
-          // Tauri mode: construct absolute path from vault root + relative file path
-          const absolutePath = currentVault.path + '/' + node.file;
-          console.log('[DEBUG] [DocumentViewer] Tauri mode - Loading from:', absolutePath);
-          text = await readFile(absolutePath);
-        } else {
-          // PWA mode: use relative path from public directory
-          const url = './' + node.file;
-          console.log('[DEBUG] [DocumentViewer] PWA mode - Loading from:', url);
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch document: ${response.statusText}`);
-          }
-          text = await response.text();
-        }
-
-        if (!cancelled) {
-          setContent(text);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          onError(err instanceof Error ? err.message : 'Failed to load document');
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadDocument();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [node.file, currentVault, onError]);
-
-  if (isLoading) {
-    return <div className="text-text-muted">Loading document...</div>;
-  }
-
-  return <MarkdownRenderer content={content} />;
 }
 
 export default ContentLoader;

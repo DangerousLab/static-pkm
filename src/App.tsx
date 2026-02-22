@@ -7,8 +7,12 @@ import { useThemeEffect } from '@modules/theme';
 import { useThemeImages } from '@modules/theme/useThemeImages';
 import { usePWA } from '@modules/pwa/usePWA';
 import { CacheProgressOverlay } from '@modules/pwa/CacheProgressOverlay';
+import { CloseConfirmationModal } from '@components/CloseConfirmationModal';
 import { useFontAwesome } from '@/loaders';
 import { isTauriContext } from '@core/ipc/commands';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+import { useEditorStore } from '@core/state/editorStore';
 
 /**
  * Root application component
@@ -30,6 +34,30 @@ function App(): React.JSX.Element {
 
   // Enable global keyboard shortcuts
   useKeyboardShortcuts();
+
+  // Listen for OS window close button in Tauri mode
+  useEffect(() => {
+    if (!isTauriContext()) return;
+
+    const unlistenPromise = listen('close-requested', () => {
+      const { dirtyDocuments, autoSaveEnabled, setShowClosePrompt } =
+        useEditorStore.getState();
+
+      if (dirtyDocuments.size > 0 && !autoSaveEnabled) {
+        // Let the user decide what to do with unsaved changes
+        setShowClosePrompt(true);
+      } else {
+        // Nothing to save (or auto-save handles it) — close immediately
+        invoke('force_close_window').catch((err) =>
+          console.error('[ERROR] [App] force_close_window failed:', err)
+        );
+      }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, []);
 
   // Load navigation tree on mount
   // In Tauri mode: Initialize from persisted vault (if any)
@@ -95,6 +123,9 @@ function App(): React.JSX.Element {
 
       {/* Main app shell */}
       <AppShell />
+
+      {/* Close confirmation modal (only visible when there are unsaved changes on exit) */}
+      <CloseConfirmationModal />
     </>
   );
 }

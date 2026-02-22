@@ -176,7 +176,7 @@
   }
 
   .main-content .page-root {
-    padding: 0.125rem 0.125rem 0.75rem !important;
+    padding: 0.125rem !important;  /* uniform padding all sides */
     max-width: 100%;
     background: transparent !important;
   }
@@ -186,6 +186,13 @@
     padding: 0.625rem 1rem 1.125rem !important;
     border-radius: var(--radius-md) !important;
     max-width: 100%;
+  }
+
+  /* Editor card in landscape: no header (display:none), main-content is position:fixed
+     from safe-area-top to bottom:0. Fill that minus outer padding + card margin.
+     Outer space: main-content top 0.375 + page-root 0.125 top+bottom + card margin 0.25 + border 0.125 = ~1rem → use 1.125rem. */
+  .editor-card {
+    height: calc(100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.125rem) !important;
   }
 
   .card .content-header,

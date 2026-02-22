@@ -11,7 +11,7 @@ import DOMPurify from 'dompurify';
 const md = new MarkdownIt({
   html: false,       // Disable raw HTML in source (security)
   xhtmlOut: false,   // Use HTML5 output
-  breaks: false,     // Don't convert \n to <br>
+  breaks: true,      // Convert \n to <br> (matches Obsidian/CM6 soft-break behaviour)
   linkify: true,     // Auto-convert URLs to links
   typographer: true, // Enable smart quotes and typographic replacements
 });

@@ -1,0 +1,51 @@
+/* ==================== THEMED SCROLLBARS ==================== */
+/*
+ * Applies a thin, theme-matched scrollbar globally.
+ * Uses CSS custom properties — automatically adapts to dark/light theme switches.
+ *
+ * Webkit (Chrome, Safari, Tauri WebView): ::-webkit-scrollbar pseudo-elements
+ * Firefox / W3C standard:                 scrollbar-width + scrollbar-color
+ *
+ * Design: 6px wide, transparent track, rounded thumb using --border-medium,
+ *         slightly brighter on hover using --border-strong.
+ */
+
+/* ── Firefox / W3C standard ─────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  /* scrollbar-color is Firefox-only; Tauri/WebKit uses ::-webkit-scrollbar-thumb below */
+}
+
+/* ── Webkit (Chrome, Safari, Edge, Tauri) ────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;  /* horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Mobile: even thinner ────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}

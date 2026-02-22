@@ -43,7 +43,11 @@ function MainContent(): React.JSX.Element {
       <div className="page-root">
         <section
           id="contentCard"
-          className={`card ${isLoading || isAnimating ? 'preload' : 'loaded'}`}
+          className={[
+            'card',
+            isLoading || isAnimating ? 'preload' : 'loaded',
+            activeNode?.type === 'document' ? 'editor-card' : '',
+          ].filter(Boolean).join(' ')}
         >
           {!navigationTree ? (
             <div className="loading-message">
