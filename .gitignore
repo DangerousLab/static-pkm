@@ -54,3 +54,4 @@ backup-*/
 /.claude
 .mcp.json
 #CLAUDE.md
+/public/Home/test

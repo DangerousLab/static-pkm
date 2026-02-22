@@ -11,7 +11,6 @@
 .page-root {
   max-width: var(--content-max-width);
   width: 100%;
-  padding: 0.125rem 0.125rem 0.5rem;   /* symmetric: bottom aligned with top (was: 0.75rem) */
 }
 
 /* ==================== CARD COMPONENT ==================== */
@@ -27,8 +26,7 @@
   contain: layout style;
   isolation: isolate;
   overflow: hidden;   /* Clips inner content; pre/table-wrapper manage their own scroll */
-  padding: clamp(1.125rem, 3vw, 1.75rem) clamp(0.875rem, 2.5vw, 2rem) clamp(1.25rem, 3vw, 1.875rem);
-  margin-top: clamp(0.25rem, 1vw, 0.5rem);  /* tighter (was: clamp(0.5rem, 2vw, 1rem)) */
+  padding: clamp(1rem, 3vw, 1.75rem) clamp(0.875rem, 2.5vw, 2rem) clamp(1rem, 3vw, 1.75rem);
 }
 
 
