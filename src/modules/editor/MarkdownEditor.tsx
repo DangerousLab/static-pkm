@@ -13,6 +13,7 @@ import { useEditorStore } from '@core/state/editorStore';
 import type { EditorMode } from '@core/state/editorStore';
 import { useSave } from '@/hooks/useSave';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { OverlayScrollbarsComponent, getScrollbarOptions, needsCustomScrollbar } from '@/hooks/useCustomScrollbar';
 import type { DocumentNode } from '@/types/navigation';
 import { EditorToolbar } from './EditorToolbar';
 import { ReadView } from './ReadView';
@@ -57,6 +58,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   const readScrollRef = useRef<HTMLDivElement | null>(null);
   const sourceScrollRef = useRef<HTMLTextAreaElement | null>(null);
+
   /** Fractional scroll position [0–1] captured before the last mode switch. */
   const scrollFractionRef = useRef<number>(0);
   /** Tracks previous mode so useEffect can detect the transition. */
@@ -66,12 +68,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
    * Capture the current fractional scroll position before changing mode.
    * Called by EditorToolbar via onBeforeModeChange — synchronously, before
    * the Zustand setMode() call.
+   *
+   * On macOS with OverlayScrollbars, the OS viewport element is the actual
+   * scroller. We read scrollTop from the OS viewport if available, otherwise
+   * fall back to the direct ref element.
    */
   const captureScroll = useCallback(() => {
-    if (mode === 'read' && readScrollRef.current) {
-      const el = readScrollRef.current;
-      const max = el.scrollHeight - el.clientHeight;
-      scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
+    const getScrollEl = (el: HTMLElement | null): HTMLElement | null => {
+      if (!el) return null;
+      // When OS is active the viewport div inside is the real scroller
+      const osViewport = el.querySelector('.os-viewport') as HTMLElement | null;
+      return osViewport ?? el;
+    };
+
+    if (mode === 'read') {
+      const el = getScrollEl(readScrollRef.current);
+      if (el) {
+        const max = el.scrollHeight - el.clientHeight;
+        scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
+      }
     } else if (mode === 'edit') {
       const view = getViewRef.current?.();
       if (view) {
@@ -79,10 +94,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         const max = el.scrollHeight - el.clientHeight;
         scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
       }
-    } else if (mode === 'source' && sourceScrollRef.current) {
+    } else if (mode === 'source') {
       const el = sourceScrollRef.current;
-      const max = el.scrollHeight - el.clientHeight;
-      scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
+      if (el) {
+        const max = el.scrollHeight - el.clientHeight;
+        scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
+      }
     }
   }, [mode]);
 
@@ -92,10 +109,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
    */
   const restoreScroll = useCallback((newMode: EditorMode) => {
     const fraction = scrollFractionRef.current;
+    const getScrollEl = (el: HTMLElement | null): HTMLElement | null => {
+      if (!el) return null;
+      const osViewport = el.querySelector('.os-viewport') as HTMLElement | null;
+      return osViewport ?? el;
+    };
+
     requestAnimationFrame(() => {
-      if (newMode === 'read' && readScrollRef.current) {
-        const el = readScrollRef.current;
-        el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
+      if (newMode === 'read') {
+        const el = getScrollEl(readScrollRef.current);
+        if (el) el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
       } else if (newMode === 'edit') {
         // CM6 needs an extra frame to finish internal layout
         requestAnimationFrame(() => {
@@ -105,9 +128,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
           }
         });
-      } else if (newMode === 'source' && sourceScrollRef.current) {
+      } else if (newMode === 'source') {
         const el = sourceScrollRef.current;
-        el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
+        if (el) el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
       }
     });
   }, []);
@@ -162,6 +185,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     [isDirty, setIsDirty]
   );
 
+  const osOptions = getScrollbarOptions();
+  const useMacOSScrollbars = needsCustomScrollbar();
+
   // ── Render ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -192,7 +218,28 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         onBeforeModeChange={captureScroll}
       />
 
-      {mode === 'read' && <ReadView content={content} scrollRef={readScrollRef} />}
+      {mode === 'read' && (
+        useMacOSScrollbars ? (
+          <OverlayScrollbarsComponent
+            element="div"
+            className="editor-read-view"
+            options={osOptions}
+            defer
+            ref={(osRef) => {
+              // Point readScrollRef at the OS wrapper div for scroll tracking
+              if (osRef) {
+                const el = osRef.getElement();
+                (readScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el as HTMLDivElement;
+              }
+            }}
+          >
+            <ReadView content={content} />
+          </OverlayScrollbarsComponent>
+        ) : (
+          <ReadView content={content} scrollRef={readScrollRef} />
+        )
+      )}
+
       {mode === 'edit' && (
         <EditView
           content={content}
@@ -200,8 +247,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           onViewReady={handleViewReady}
         />
       )}
+
       {mode === 'source' && (
-        <SourceView content={content} onChange={handleChange} scrollRef={sourceScrollRef} />
+        useMacOSScrollbars ? (
+          <OverlayScrollbarsComponent
+            element="div"
+            className="editor-source-view"
+            options={osOptions}
+            defer
+          >
+            <SourceView content={content} onChange={handleChange} scrollRef={sourceScrollRef} />
+          </OverlayScrollbarsComponent>
+        ) : (
+          <SourceView content={content} onChange={handleChange} scrollRef={sourceScrollRef} />
+        )
       )}
     </div>
   );

@@ -17,6 +17,8 @@ import { markdown } from '@codemirror/lang-markdown';
 import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
 import { livePreviewPlugin, livePreviewTheme } from './livePreviewPlugin';
 import { useEditorStore } from '@core/state/editorStore';
+import { OverlayScrollbars } from 'overlayscrollbars';
+import { needsCustomScrollbar } from '@core/utils/platform';
 
 interface EditViewProps {
   /** Current document content (controlled) */
@@ -128,7 +130,20 @@ export const EditView: React.FC<EditViewProps> = ({ content, onChange, onViewRea
 
     console.log('[INFO] [EditView] CodeMirror editor mounted');
 
+    // Apply OverlayScrollbars to CM6's internal scroller (macOS only)
+    let osInstance: ReturnType<typeof OverlayScrollbars> | null = null;
+    if (needsCustomScrollbar()) {
+      const scroller = containerRef.current.querySelector('.cm-scroller') as HTMLElement | null;
+      if (scroller) {
+        osInstance = OverlayScrollbars(scroller, {
+          scrollbars: { theme: 'os-theme-unstablon', autoHide: 'leave', autoHideDelay: 800, autoHideSuspend: false },
+          overflow: { x: 'hidden', y: 'scroll' },
+        });
+      }
+    }
+
     return () => {
+      osInstance?.destroy();
       view.destroy();
       viewRef.current = null;
       console.log('[INFO] [EditView] CodeMirror editor destroyed');

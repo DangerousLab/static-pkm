@@ -2,6 +2,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useSidebarStore } from '@core/state/sidebarStore';
 import { useNavigationStore, selectBreadcrumbPath } from '@core/state/navigationStore';
 import { useIsMobile, useShouldAutoCloseSidebar } from '@hooks/useWindowSize';
+import { OverlayScrollbarsComponent, getScrollbarOptions } from '@hooks/useCustomScrollbar';
 import { getNodeId } from '@/types/navigation';
 import Breadcrumb from './Breadcrumb';
 import NavItem from './NavItem';
@@ -30,6 +31,7 @@ function Sidebar(): React.JSX.Element {
   const shouldAutoClose = useShouldAutoCloseSidebar();
   const [isHovering, setIsHovering] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
+  // navRef is kept on the <nav> for DOM measurement (width calculation)
   const navRef = useRef<HTMLElement>(null);
 
   // Get breadcrumb path
@@ -148,18 +150,26 @@ function Sidebar(): React.JSX.Element {
           <Breadcrumb path={breadcrumbPath} onNavigate={setCurrentFolder} onBack={handleBack} />
         </div>
 
-        {/* Navigation Menu */}
-        <nav ref={navRef} id="sidebarNav" className="sidebar-nav">
-          {children.length > 0 ? (
-            children.map((node) => (
-              <NavItem key={getNodeId(node)} node={node} />
-            ))
-          ) : (
-            <p className="empty-folder-message">
-              No items in this folder
-            </p>
-          )}
-        </nav>
+        {/* Navigation Menu — OverlayScrollbarsComponent owns the scroll container.
+            navRef stays on the inner <nav> for DOM width measurement only. */}
+        <OverlayScrollbarsComponent
+          element="div"
+          className="sidebar-nav-scroll"
+          options={getScrollbarOptions()}
+          defer
+        >
+          <nav ref={navRef} id="sidebarNav" className="sidebar-nav">
+            {children.length > 0 ? (
+              children.map((node) => (
+                <NavItem key={getNodeId(node)} node={node} />
+              ))
+            ) : (
+              <p className="empty-folder-message">
+                No items in this folder
+              </p>
+            )}
+          </nav>
+        </OverlayScrollbarsComponent>
 
         {/* Sidebar Footer */}
         <div className="sidebar-footer">

@@ -9,11 +9,12 @@ interface SourceViewProps {
   content: string;
   onChange: (content: string) => void;
   scrollRef?: React.RefObject<HTMLTextAreaElement | null>;
+  wrapperRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, scrollRef }) => {
+export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, scrollRef, wrapperRef }) => {
   return (
-    <div className="editor-source-view">
+    <div ref={wrapperRef} className="editor-source-view">
       <textarea
         ref={scrollRef}
         className="editor-source-textarea"

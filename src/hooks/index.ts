@@ -9,3 +9,4 @@ export { useWindowSize, useIsMobile, useIsTablet, useIsLandscape } from './useWi
 export { useDebounce } from './useDebounce';
 export { useSave } from './useSave';
 export { useAutoSave } from './useAutoSave';
+export { getScrollbarOptions, OverlayScrollbarsComponent, needsCustomScrollbar } from './useCustomScrollbar';

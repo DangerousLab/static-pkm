@@ -1,0 +1,40 @@
+/* ==================== OVERLAYSCROLLBARS CUSTOM THEME ====================
+ * Custom theme for OverlayScrollbars (macOS only).
+ * Uses --scrollbar-thumb / --scrollbar-thumb-hover from color-scheme.css.
+ * The OverlayScrollbars base CSS is imported in useCustomScrollbar.ts.
+ * ======================================================================== */
+
+.os-theme-unstablon.os-scrollbar {
+  --os-size: 6px;
+  --os-padding-perpendicular: 1px;
+  --os-padding-axis: 2px;
+  --os-handle-border-radius: var(--radius-full, 9999px);
+  --os-handle-min-size: 30px;
+  --os-handle-max-size: none;
+  --os-handle-interactive-area-offset: 0;
+}
+
+.os-theme-unstablon.os-scrollbar > .os-scrollbar-track {
+  background: transparent;
+}
+
+.os-theme-unstablon.os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--os-handle-border-radius);
+  transition: background 0.2s ease;
+}
+
+.os-theme-unstablon.os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle:hover,
+.os-theme-unstablon.os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle:active {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.os-theme-unstablon.os-scrollbar-corner {
+  background: transparent;
+}
+
+@media (max-width: 600px) {
+  .os-theme-unstablon.os-scrollbar {
+    --os-size: 4px;
+  }
+}
