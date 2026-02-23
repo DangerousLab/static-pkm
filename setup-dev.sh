@@ -845,7 +845,7 @@ main() {
     create_cache_generator
     create_pwa_copy_script
     install_deps
-    gemerate_icons
+    generate_icons
     initial_build
     print_summary
 }
