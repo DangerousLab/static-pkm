@@ -5,12 +5,21 @@
   padding: 0.5rem;    /* tighter outer padding (was: 1rem) */
   display: flex;
   justify-content: center;
+  overflow-y: auto;   /* make this the scroll container */
   overflow-x: clip;   /* Prevents wide content from causing body-level horizontal scroll without creating a scroll container */
+  height: 100%;       /* explicit height for scroll calculation */
+}
+
+/* OverlayScrollbars content wrapper — preserve flex centering */
+.main-content .os-content {
+  display: flex;
+  justify-content: center;
 }
 
 .page-root {
   max-width: var(--content-max-width);
   width: 100%;
+  margin: 0 auto;  /* self-center within container */
 }
 
 /* ==================== CARD COMPONENT ==================== */

@@ -24,5 +24,5 @@ export function isMacOS(): boolean {
  * must be used there. CSS scrollbars work fine on Windows/Linux.
  */
 export function needsCustomScrollbar(): boolean {
-  return isTauriContext() && isMacOS();
+  return isTauriContext();
 }

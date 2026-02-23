@@ -13,8 +13,6 @@ import { needsCustomScrollbar } from '@core/utils/platform';
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react';
 import 'overlayscrollbars/styles/overlayscrollbars.css';
 
-export type { OverlayScrollbarsComponent };
-
 /** Default options shared by all scroll areas in the app */
 const DEFAULT_OS_OPTIONS = {
   scrollbars: {

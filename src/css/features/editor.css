@@ -28,7 +28,7 @@
 
 .editor-card {
   padding: 0 !important;
-  overflow: hidden !important;   /* clips corners + contains internal scroll    */
+  overflow: clip !important;     /* clips corners without scroll context         */
   contain: style !important;     /* drop layout containment; keep style only    */
   display: flex;
   flex-direction: column;
@@ -48,7 +48,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;       /* required: allows flex children to shrink              */
-  overflow: hidden;
+  overflow: visible;   /* Let OverlayScrollbars track show (was: hidden)        */
   background: var(--bg-card);
   color: var(--text-main);
 }
@@ -175,39 +175,20 @@
 .editor-edit-view {
   flex: 1;
   min-height: 0;
-  overflow: hidden;   /* CM6 .cm-scroller handles internal scroll               */
+  overflow-y: auto;    /* Fallback when not using OverlayScrollbars             */
+  overflow-x: hidden;
 }
 
-/* ── Source view ─────────────────────────────────────────────────────────────
-   Flex column so the textarea fills the full remaining height.                  */
+/* ── Source view (CodeMirror 6) ──────────────────────────────────────────────
+   Fills the remaining card height. CM6 manages its own scroller internally
+   (same pattern as Edit view). The CM editor root gets height:100% in
+   SourceView.tsx so it expands to fill this container.                          */
 
 .editor-source-view {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.editor-source-textarea {
-  flex: 1;
-  min-height: 0;
-  padding: var(--space-lg);
-  resize: none;
-  border: none;
-  outline: none;
-  background: var(--bg-card);
-  color: var(--text-main);
-  font-family: var(--font-mono, 'Menlo', 'Monaco', 'Consolas', monospace);
-  font-size: 0.9rem;
-  line-height: 1.7;
-  tab-size: 2;
-  box-sizing: border-box;
-  /* Wrap text — match read mode behaviour */
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
+  overflow-y: auto;    /* Fallback when not using OverlayScrollbars             */
   overflow-x: hidden;
-  overflow-y: auto;
 }
 
 /* ── Close confirmation modal ─────────────────────────────────────────────────── */

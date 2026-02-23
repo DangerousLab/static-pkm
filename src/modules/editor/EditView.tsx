@@ -17,8 +17,6 @@ import { markdown } from '@codemirror/lang-markdown';
 import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
 import { livePreviewPlugin, livePreviewTheme } from './livePreviewPlugin';
 import { useEditorStore } from '@core/state/editorStore';
-import { OverlayScrollbars } from 'overlayscrollbars';
-import { needsCustomScrollbar } from '@core/utils/platform';
 
 interface EditViewProps {
   /** Current document content (controlled) */
@@ -80,9 +78,8 @@ export const EditView: React.FC<EditViewProps> = ({ content, onChange, onViewRea
             background: 'var(--bg-card)',
           },
           '.cm-scroller': {
-            // overflow:auto — CM6 manages its own internal scroll, matching
-            // the textarea behaviour in Source mode
-            overflow: 'auto',
+            // overflow:visible — parent OverlayScrollbarsComponent handles scroll
+            overflow: 'visible',
             overflowX: 'hidden',  // no horizontal scroll — text wraps
             padding: '1.5rem',
             lineHeight: '1.75',
@@ -130,20 +127,7 @@ export const EditView: React.FC<EditViewProps> = ({ content, onChange, onViewRea
 
     console.log('[INFO] [EditView] CodeMirror editor mounted');
 
-    // Apply OverlayScrollbars to CM6's internal scroller (macOS only)
-    let osInstance: ReturnType<typeof OverlayScrollbars> | null = null;
-    if (needsCustomScrollbar()) {
-      const scroller = containerRef.current.querySelector('.cm-scroller') as HTMLElement | null;
-      if (scroller) {
-        osInstance = OverlayScrollbars(scroller, {
-          scrollbars: { theme: 'os-theme-unstablon', autoHide: 'leave', autoHideDelay: 800, autoHideSuspend: false },
-          overflow: { x: 'hidden', y: 'scroll' },
-        });
-      }
-    }
-
     return () => {
-      osInstance?.destroy();
       view.destroy();
       viewRef.current = null;
       console.log('[INFO] [EditView] CodeMirror editor destroyed');
@@ -169,8 +153,14 @@ export const EditView: React.FC<EditViewProps> = ({ content, onChange, onViewRea
   // ── Focus when switching into Edit mode ───────────────────────────────────
   useEffect(() => {
     if (mode === 'edit') {
-      const id = setTimeout(() => viewRef.current?.focus(), 50);
-      return () => clearTimeout(id);
+      let frameId: number;
+      const outer = requestAnimationFrame(() => {
+        frameId = requestAnimationFrame(() => viewRef.current?.focus());
+      });
+      return () => {
+        cancelAnimationFrame(outer);
+        cancelAnimationFrame(frameId);
+      };
     }
   }, [mode]);
 

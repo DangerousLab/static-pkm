@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useSidebarStore } from '@core/state/sidebarStore';
 import { useNavigationStore, selectBreadcrumbPath } from '@core/state/navigationStore';
 import { useIsMobile, useShouldAutoCloseSidebar } from '@hooks/useWindowSize';
-import { OverlayScrollbarsComponent, getScrollbarOptions } from '@hooks/useCustomScrollbar';
+import { OverlayScrollbarsComponent, getScrollbarOptions } from '@core/utils/scrollbar';
 import { getNodeId } from '@/types/navigation';
 import Breadcrumb from './Breadcrumb';
 import NavItem from './NavItem';

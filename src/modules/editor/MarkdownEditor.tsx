@@ -13,7 +13,8 @@ import { useEditorStore } from '@core/state/editorStore';
 import type { EditorMode } from '@core/state/editorStore';
 import { useSave } from '@/hooks/useSave';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { OverlayScrollbarsComponent, getScrollbarOptions, needsCustomScrollbar } from '@/hooks/useCustomScrollbar';
+import { OverlayScrollbarsComponent, getScrollbarOptions } from '@core/utils/scrollbar';
+import { needsCustomScrollbar } from '@core/utils/platform';
 import type { DocumentNode } from '@/types/navigation';
 import { EditorToolbar } from './EditorToolbar';
 import { ReadView } from './ReadView';
@@ -57,12 +58,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // ── Scroll position preservation ──────────────────────────────────────────
 
   const readScrollRef = useRef<HTMLDivElement | null>(null);
-  const sourceScrollRef = useRef<HTMLTextAreaElement | null>(null);
 
   /** Fractional scroll position [0–1] captured before the last mode switch. */
   const scrollFractionRef = useRef<number>(0);
   /** Tracks previous mode so useEffect can detect the transition. */
   const prevModeRef = useRef<EditorMode>(mode);
+
+  /**
+   * Helper to get the actual scroll element (OS viewport if present, else the element itself).
+   */
+  const getScrollEl = (el: HTMLElement | null): HTMLElement | null => {
+    if (!el) return null;
+    return (el.querySelector('.os-viewport') as HTMLElement | null) ?? el;
+  };
 
   /**
    * Capture the current fractional scroll position before changing mode.
@@ -74,29 +82,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
    * fall back to the direct ref element.
    */
   const captureScroll = useCallback(() => {
-    const getScrollEl = (el: HTMLElement | null): HTMLElement | null => {
-      if (!el) return null;
-      // When OS is active the viewport div inside is the real scroller
-      const osViewport = el.querySelector('.os-viewport') as HTMLElement | null;
-      return osViewport ?? el;
-    };
-
     if (mode === 'read') {
       const el = getScrollEl(readScrollRef.current);
       if (el) {
         const max = el.scrollHeight - el.clientHeight;
         scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
       }
-    } else if (mode === 'edit') {
+    } else if (mode === 'edit' || mode === 'source') {
       const view = getViewRef.current?.();
       if (view) {
         const el = view.scrollDOM;
-        const max = el.scrollHeight - el.clientHeight;
-        scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
-      }
-    } else if (mode === 'source') {
-      const el = sourceScrollRef.current;
-      if (el) {
         const max = el.scrollHeight - el.clientHeight;
         scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
       }
@@ -109,17 +104,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
    */
   const restoreScroll = useCallback((newMode: EditorMode) => {
     const fraction = scrollFractionRef.current;
-    const getScrollEl = (el: HTMLElement | null): HTMLElement | null => {
-      if (!el) return null;
-      const osViewport = el.querySelector('.os-viewport') as HTMLElement | null;
-      return osViewport ?? el;
-    };
 
     requestAnimationFrame(() => {
       if (newMode === 'read') {
         const el = getScrollEl(readScrollRef.current);
         if (el) el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
-      } else if (newMode === 'edit') {
+      } else if (newMode === 'edit' || newMode === 'source') {
         // CM6 needs an extra frame to finish internal layout
         requestAnimationFrame(() => {
           const view = getViewRef.current?.();
@@ -128,9 +118,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
           }
         });
-      } else if (newMode === 'source') {
-        const el = sourceScrollRef.current;
-        if (el) el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
       }
     });
   }, []);
@@ -241,11 +228,26 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       )}
 
       {mode === 'edit' && (
-        <EditView
-          content={content}
-          onChange={handleChange}
-          onViewReady={handleViewReady}
-        />
+        useMacOSScrollbars ? (
+          <OverlayScrollbarsComponent
+            element="div"
+            className="editor-edit-view"
+            options={osOptions}
+            defer
+          >
+            <EditView
+              content={content}
+              onChange={handleChange}
+              onViewReady={handleViewReady}
+            />
+          </OverlayScrollbarsComponent>
+        ) : (
+          <EditView
+            content={content}
+            onChange={handleChange}
+            onViewReady={handleViewReady}
+          />
+        )
       )}
 
       {mode === 'source' && (
@@ -256,10 +258,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             options={osOptions}
             defer
           >
-            <SourceView content={content} onChange={handleChange} scrollRef={sourceScrollRef} />
+            <SourceView
+              content={content}
+              onChange={handleChange}
+              onViewReady={handleViewReady}
+            />
           </OverlayScrollbarsComponent>
         ) : (
-          <SourceView content={content} onChange={handleChange} scrollRef={sourceScrollRef} />
+          <SourceView
+            content={content}
+            onChange={handleChange}
+            onViewReady={handleViewReady}
+          />
         )
       )}
     </div>
