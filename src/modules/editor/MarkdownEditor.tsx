@@ -1,6 +1,6 @@
 /**
  * MarkdownEditor
- * Full-featured markdown editor with two modes: Edit (Milkdown WYSIWYG) and Source (CodeMirror).
+ * Full-featured markdown editor with two modes: Edit (Tiptap WYSIWYG) and Source (CodeMirror).
  * Handles file loading, saving, and auto-save.
  *
  * @module MarkdownEditor
@@ -15,7 +15,7 @@ import { OverlayScrollbarsComponent, getScrollbarOptions } from '@core/utils/scr
 import { needsCustomScrollbar } from '@core/utils/platform';
 import type { DocumentNode } from '@/types/navigation';
 import { EditorToolbar } from './EditorToolbar';
-import { LivePreviewEditor } from './LivePreviewEditor';
+import { TiptapEditor } from './TiptapEditor';
 import { SourceView } from './SourceView';
 
 interface MarkdownEditorProps {
@@ -127,14 +127,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             options={osOptions}
             defer
           >
-            <LivePreviewEditor
+            <TiptapEditor
               content={content}
               onChange={handleChange}
             />
           </OverlayScrollbarsComponent>
         ) : (
           <div className="editor-live-preview">
-            <LivePreviewEditor
+            <TiptapEditor
               content={content}
               onChange={handleChange}
             />
