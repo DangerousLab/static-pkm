@@ -40,6 +40,15 @@ function extractTitleFromContent(content: string): string {
   return match?.[1]?.trim() ?? '';
 }
 
+/**
+ * Extract node ID (filename) from absolute path
+ */
+function extractNodeIdFromPath(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  const parts = normalized.split('/');
+  return parts[parts.length - 1];
+}
+
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   node,
   absolutePath,
@@ -50,6 +59,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [tiptapEditor, setTiptapEditor] = useState<Editor | null>(null);
   const [isDeleted, setIsDeleted] = useState(false);
   const [showDeletedModal, setShowDeletedModal] = useState(false);
+  // Internal path state for rename handling (updated on file:renamed without remount)
+  const [currentPath, setCurrentPath] = useState(absolutePath);
 
   const mode = useEditorStore((s) => s.mode);
 
@@ -58,41 +69,51 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   contentRef.current = content;
   const getContent = useCallback(() => contentRef.current, []);
 
+  // Stable ref for current path (avoids stale closure in save)
+  const currentPathRef = useRef(currentPath);
+  currentPathRef.current = currentPath;
+
   // Track path for unmount save - ONLY update after content is loaded
   const unmountPathRef = useRef<string | null>(null);
   const unmountContentRef = useRef<string>('');
   const hasLoadedRef = useRef(false);
 
-  const { save: originalSave, isSaving, lastSaved } = useSave(absolutePath, getContent);
+  const { save: originalSave, isSaving, lastSaved } = useSave(currentPath, getContent);
 
   // Track save-in-progress for file:modified handler
   const isSavingRef = useRef(false);
 
   // Wrap save to track isSaving state and update tree title
   const save = useCallback(async (): Promise<boolean> => {
+    const pathAtSave = currentPathRef.current;
+    const titleAtSave = prevNodeTitleRef.current;
+
     isSavingRef.current = true;
     const success = await originalSave();
     isSavingRef.current = false;  // Clear immediately after write completes
 
     if (success) {
-      // After successful save, extract title and update tree
-      // Use contentRef.current to avoid stale closure
+      // Derive nodeId from the path that was saved (avoids stale node.id)
+      const nodeId = extractNodeIdFromPath(pathAtSave);
       const newTitle = extractTitleFromContent(contentRef.current);
-      if (newTitle && newTitle !== node.title) {
-        useNavigationStore.getState().updateNodeTitle(node.id, newTitle);
+      if (newTitle && newTitle !== titleAtSave) {
+        useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
       }
     }
 
     return success;
-  }, [originalSave, node.id, node.title]);
+  }, [originalSave]);
 
   const { flushPendingSave, markClean, isDirty, isSavingRef: autoSaveIsSavingRef } = useAutoSave(content, save);
   useFocusSave(save, content, isDirty);
 
   // Track previous node ID to detect document changes
   const prevNodeIdRef = useRef<string | null>(null);
+  // Track previous node title for document switch title update
+  const prevNodeTitleRef = useRef<string>(node.title);
   // Track rename to skip save on rename-triggered document switch
   const isRenamingRef = useRef(false);
+
 
   // Listen for file:renamed events
   useEffect(() => {
@@ -100,24 +121,26 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
     const unlistenPromise = listen<{ old_path: string; new_path: string }>('file:renamed', (event) => {
       const oldNorm = event.payload.old_path.replace(/\\/g, '/').toLowerCase();
-      const currentNorm = absolutePath.replace(/\\/g, '/').toLowerCase();
+      const currentNorm = currentPath.replace(/\\/g, '/').toLowerCase();
 
       if (oldNorm === currentNorm) {
-        console.log('[INFO] [MarkdownEditor] File rename detected for current document');
+        console.log('[INFO] [MarkdownEditor] File renamed - updating path silently');
         isRenamingRef.current = true;
 
-        // Clear path ref to prevent saving to old path
-        // This prevents document switch effect from recreating the old file
-        unmountPathRef.current = null;
+        // Update path without triggering reload
+        const normalizedNewPath = event.payload.new_path.replace(/\\/g, '/');
+        setCurrentPath(normalizedNewPath);
+        unmountPathRef.current = normalizedNewPath;
 
-        console.log('[DEBUG] [MarkdownEditor] Cleared unmount path ref on rename');
+        // Content is unchanged - no need to reload
+        console.log('[DEBUG] [MarkdownEditor] Updated path on rename:', oldNorm, '->', normalizedNewPath);
       }
     });
 
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
     };
-  }, [absolutePath]);
+  }, [currentPath]);
 
   // CRITICAL: Save and reset refs when document changes
   useEffect(() => {
@@ -141,8 +164,22 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         // Save previous document if we have valid refs
         if (hasLoadedRef.current && unmountContentRef.current && unmountPathRef.current) {
           console.log('[DEBUG] [MarkdownEditor] Saving previous document on switch');
-          writeFile(unmountPathRef.current, unmountContentRef.current)
-            .then(() => console.log('[INFO] [MarkdownEditor] Saved previous document on switch'))
+          const prevPath = unmountPathRef.current;
+          const prevContent = unmountContentRef.current;
+          const prevTitle = prevNodeTitleRef.current;
+
+          writeFile(prevPath, prevContent)
+            .then(() => {
+              console.log('[INFO] [MarkdownEditor] Saved previous document on switch');
+
+              // Derive nodeId from the path we just saved (avoids stale prevNodeIdRef)
+              const nodeId = extractNodeIdFromPath(prevPath);
+              const newTitle = extractTitleFromContent(prevContent);
+              if (newTitle && newTitle !== prevTitle) {
+                useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
+                console.log('[INFO] [MarkdownEditor] Updated title on switch:', prevTitle, '->', newTitle);
+              }
+            })
             .catch((err) => console.error('[ERROR] [MarkdownEditor] Failed to save previous document:', err));
         }
 
@@ -153,8 +190,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       }
     }
 
-    // Update previous node ID
+    // Update previous node ID and title
     prevNodeIdRef.current = node.id;
+    prevNodeTitleRef.current = node.title;
   }, [node.id, flushPendingSave]);
 
   // Keep content ref synced for unmount save (only after THIS document loads)
@@ -168,11 +206,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Update path ref AFTER content loads, not on mount
   useEffect(() => {
     if (!isLoading && content) {
-      unmountPathRef.current = absolutePath;
+      unmountPathRef.current = currentPath;
       hasLoadedRef.current = true;
-      console.log('[DEBUG] [MarkdownEditor] Refs updated:', { path: absolutePath, contentLen: content.length });
+      console.log('[DEBUG] [MarkdownEditor] Refs updated:', { path: currentPath, contentLen: content.length });
     }
-  }, [isLoading, content, absolutePath]);
+  }, [isLoading, content, currentPath]);
 
   // Save on unmount only
   useEffect(() => {
@@ -192,6 +230,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   // ── Load file on mount / note switch ───────────────────────────────────────
   useEffect(() => {
+    // If renaming, don't reload - content is already in editor
+    if (isRenamingRef.current) {
+      isRenamingRef.current = false;
+      console.log('[INFO] [MarkdownEditor] Skipping reload on rename');
+      return;
+    }
+
     let cancelled = false;
 
     async function load(): Promise<void> {
@@ -206,10 +251,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const text = await readFile(absolutePath);
+          const text = await readFile(absolutePath);  // Use prop, not state
 
           if (!cancelled) {
             setContent(text);
+            setCurrentPath(absolutePath);  // Sync state after successful load
             setIsLoading(false);
             markClean(text); // Mark as clean - prevents auto-save
             console.log('[INFO] [MarkdownEditor] Loaded:', node.id);
@@ -240,7 +286,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [node.id, absolutePath]);
+  }, [node.id, absolutePath, markClean]);  // Depend on absolutePath
 
   // Restore cursor/scroll position after editor mounts or document switches (optional UX)
   useEffect(() => {
@@ -317,8 +363,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Reload content from disk - Obsidian behavior: always auto-reload
   const reloadContent = useCallback(async () => {
     try {
-      console.log('[INFO] [MarkdownEditor] Auto-reloading from disk:', absolutePath);
-      const text = await readFile(absolutePath);
+      console.log('[INFO] [MarkdownEditor] Auto-reloading from disk:', currentPath);
+      const text = await readFile(currentPath);
 
       // Preserve cursor position in Tiptap
       let cursorPos: number | null = null;
@@ -345,7 +391,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     } catch (err) {
       console.error('[ERROR] [MarkdownEditor] Auto-reload failed:', err);
     }
-  }, [absolutePath, tiptapEditor, markClean]);
+  }, [currentPath, tiptapEditor, markClean]);
 
   // Listen for external file modifications - ALWAYS auto-reload (Obsidian behavior)
   useEffect(() => {
@@ -353,9 +399,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
     const unlistenPromise = listen<{ path: string; mtime: number }>('file:modified', async (event) => {
       const normalizedEventPath = event.payload.path.replace(/\\/g, '/').toLowerCase();
-      const normalizedAbsolutePath = absolutePath.replace(/\\/g, '/').toLowerCase();
+      const normalizedCurrentPath = currentPath.replace(/\\/g, '/').toLowerCase();
 
-      if (normalizedEventPath === normalizedAbsolutePath) {
+      if (normalizedEventPath === normalizedCurrentPath) {
         // Skip if we just saved (prevents reading our own write)
         if (isSavingRef.current || autoSaveIsSavingRef.current) {
           console.log('[INFO] [MarkdownEditor] Ignoring file:modified during save');
@@ -364,7 +410,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
         // Read file and compare with our content
         try {
-          const diskContent = await readFile(absolutePath);
+          const diskContent = await readFile(currentPath);
 
           // If disk content matches our current content, this is our own save
           if (diskContent === contentRef.current) {
@@ -396,7 +442,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
     };
-  }, [absolutePath, markClean, tiptapEditor]);
+  }, [currentPath, markClean, tiptapEditor]);
 
   // Listen for file deletion events - show immediate restore prompt
   useEffect(() => {

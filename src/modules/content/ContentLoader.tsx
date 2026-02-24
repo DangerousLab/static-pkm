@@ -69,7 +69,7 @@ function ContentLoader(): React.JSX.Element {
       return (
         <div className="document-container">
           <MarkdownEditor
-            key={activeNode.id}
+            key="editor-document"
             node={activeNode}
             absolutePath={absolutePath}
           />
