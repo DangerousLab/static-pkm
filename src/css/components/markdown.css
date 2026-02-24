@@ -341,3 +341,37 @@
     font-size: 0.8em;
   }
 }
+
+/* ========================================
+   Syntax Highlighting (Read Mode)
+   highlight.js class → CSS variable mapping
+   ======================================== */
+
+.markdown-content .hljs-keyword    { color: var(--code-keyword); }
+.markdown-content .hljs-string     { color: var(--code-string); }
+.markdown-content .hljs-number     { color: var(--code-number); }
+.markdown-content .hljs-comment    { color: var(--code-comment); font-style: italic; }
+.markdown-content .hljs-title      { color: var(--code-function); }
+.markdown-content .hljs-type       { color: var(--code-type); }
+.markdown-content .hljs-built_in   { color: var(--code-builtin); }
+.markdown-content .hljs-variable   { color: var(--code-variable); }
+.markdown-content .hljs-attr       { color: var(--code-attr); }
+.markdown-content .hljs-tag        { color: var(--code-tag); }
+.markdown-content .hljs-operator   { color: var(--code-operator); }
+.markdown-content .hljs-punctuation{ color: var(--code-punctuation); }
+.markdown-content .hljs-literal    { color: var(--code-number); }
+.markdown-content .hljs-meta       { color: var(--code-comment); }
+.markdown-content .hljs-subst      { color: var(--code-variable); }
+.markdown-content .hljs-section    { color: var(--code-function); font-weight: bold; }
+.markdown-content .hljs-symbol     { color: var(--code-string); }
+.markdown-content .hljs-name       { color: var(--code-tag); }
+.markdown-content .hljs-addition   { color: var(--code-string); }
+.markdown-content .hljs-deletion   { color: var(--code-attr); }
+.markdown-content .hljs-function   { color: var(--code-function); }
+.markdown-content .hljs-class      { color: var(--code-type); }
+.markdown-content .hljs-selector-tag     { color: var(--code-tag); }
+.markdown-content .hljs-selector-id      { color: var(--code-function); }
+.markdown-content .hljs-selector-class   { color: var(--code-type); }
+.markdown-content .hljs-params     { color: var(--code-variable); }
+.markdown-content .hljs-regexp     { color: var(--code-string); }
+

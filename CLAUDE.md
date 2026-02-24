@@ -33,6 +33,12 @@ class Editor extends React.Component { }
 function load(path) { }
 ```
 
+```bash
+# NEVER run npm run tauri dev - it blocks the port
+# User will test the app themselves
+npm run tauri dev  # ❌ PROHIBITED
+```
+
 ### ✅ REQUIRED
 ```typescript
 // Functional components + hooks

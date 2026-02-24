@@ -1,24 +1,21 @@
 /**
  * MarkdownEditor
- * Full-featured markdown editor with three modes: Read, Edit (live preview),
- * Source. Handles file loading, saving, and auto-save.
+ * Full-featured markdown editor with two modes: Edit (Milkdown WYSIWYG) and Source (CodeMirror).
+ * Handles file loading, saving, and auto-save.
  *
  * @module MarkdownEditor
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { EditorView } from '@codemirror/view';
 import { readFile } from '@core/ipc/commands';
 import { useEditorStore } from '@core/state/editorStore';
-import type { EditorMode } from '@core/state/editorStore';
 import { useSave } from '@/hooks/useSave';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { OverlayScrollbarsComponent, getScrollbarOptions } from '@core/utils/scrollbar';
 import { needsCustomScrollbar } from '@core/utils/platform';
 import type { DocumentNode } from '@/types/navigation';
 import { EditorToolbar } from './EditorToolbar';
-import { ReadView } from './ReadView';
-import { EditView } from './EditView';
+import { LivePreviewEditor } from './LivePreviewEditor';
 import { SourceView } from './SourceView';
 
 interface MarkdownEditorProps {
@@ -41,12 +38,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   contentRef.current = content;
   const getContent = useCallback(() => contentRef.current, []);
 
-  // Stable getter for the CodeMirror EditorView (updated by EditView on mount)
-  const getViewRef = useRef<(() => EditorView | null) | null>(null);
-  const handleViewReady = useCallback((getter: () => EditorView | null) => {
-    getViewRef.current = getter;
-  }, []);
-
   const { save, isSaving, lastSaved, setLastSaved, isDirty, setIsDirty } = useSave(
     node.id,
     absolutePath,
@@ -54,81 +45,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   );
 
   useAutoSave(node.id, absolutePath, getContent, isDirty, setIsDirty, setLastSaved);
-
-  // ── Scroll position preservation ──────────────────────────────────────────
-
-  const readScrollRef = useRef<HTMLDivElement | null>(null);
-
-  /** Fractional scroll position [0–1] captured before the last mode switch. */
-  const scrollFractionRef = useRef<number>(0);
-  /** Tracks previous mode so useEffect can detect the transition. */
-  const prevModeRef = useRef<EditorMode>(mode);
-
-  /**
-   * Helper to get the actual scroll element (OS viewport if present, else the element itself).
-   */
-  const getScrollEl = (el: HTMLElement | null): HTMLElement | null => {
-    if (!el) return null;
-    return (el.querySelector('.os-viewport') as HTMLElement | null) ?? el;
-  };
-
-  /**
-   * Capture the current fractional scroll position before changing mode.
-   * Called by EditorToolbar via onBeforeModeChange — synchronously, before
-   * the Zustand setMode() call.
-   *
-   * On macOS with OverlayScrollbars, the OS viewport element is the actual
-   * scroller. We read scrollTop from the OS viewport if available, otherwise
-   * fall back to the direct ref element.
-   */
-  const captureScroll = useCallback(() => {
-    if (mode === 'read') {
-      const el = getScrollEl(readScrollRef.current);
-      if (el) {
-        const max = el.scrollHeight - el.clientHeight;
-        scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
-      }
-    } else if (mode === 'edit' || mode === 'source') {
-      const view = getViewRef.current?.();
-      if (view) {
-        const el = view.scrollDOM;
-        const max = el.scrollHeight - el.clientHeight;
-        scrollFractionRef.current = max > 0 ? el.scrollTop / max : 0;
-      }
-    }
-  }, [mode]);
-
-  /**
-   * Restore scroll to the captured fractional position after the new view mounts.
-   * Uses requestAnimationFrame to wait for layout; CM6 needs a double rAF.
-   */
-  const restoreScroll = useCallback((newMode: EditorMode) => {
-    const fraction = scrollFractionRef.current;
-
-    requestAnimationFrame(() => {
-      if (newMode === 'read') {
-        const el = getScrollEl(readScrollRef.current);
-        if (el) el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
-      } else if (newMode === 'edit' || newMode === 'source') {
-        // CM6 needs an extra frame to finish internal layout
-        requestAnimationFrame(() => {
-          const view = getViewRef.current?.();
-          if (view) {
-            const el = view.scrollDOM;
-            el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
-          }
-        });
-      }
-    });
-  }, []);
-
-  // Detect mode changes and restore scroll position
-  useEffect(() => {
-    if (prevModeRef.current !== mode) {
-      restoreScroll(mode);
-      prevModeRef.current = mode;
-    }
-  }, [mode, restoreScroll]);
 
   // ── Load file on mount / note switch ───────────────────────────────────────
   useEffect(() => {
@@ -201,52 +117,28 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         lastSaved={lastSaved}
         isDirty={isDirty}
         onSave={save}
-        getView={() => getViewRef.current?.() ?? null}
-        onBeforeModeChange={captureScroll}
       />
-
-      {mode === 'read' && (
-        useMacOSScrollbars ? (
-          <OverlayScrollbarsComponent
-            element="div"
-            className="editor-read-view"
-            options={osOptions}
-            defer
-            ref={(osRef) => {
-              // Point readScrollRef at the OS wrapper div for scroll tracking
-              if (osRef) {
-                const el = osRef.getElement();
-                (readScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el as HTMLDivElement;
-              }
-            }}
-          >
-            <ReadView content={content} />
-          </OverlayScrollbarsComponent>
-        ) : (
-          <ReadView content={content} scrollRef={readScrollRef} />
-        )
-      )}
 
       {mode === 'edit' && (
         useMacOSScrollbars ? (
           <OverlayScrollbarsComponent
             element="div"
-            className="editor-edit-view"
+            className="editor-live-preview"
             options={osOptions}
             defer
           >
-            <EditView
+            <LivePreviewEditor
               content={content}
               onChange={handleChange}
-              onViewReady={handleViewReady}
             />
           </OverlayScrollbarsComponent>
         ) : (
-          <EditView
-            content={content}
-            onChange={handleChange}
-            onViewReady={handleViewReady}
-          />
+          <div className="editor-live-preview">
+            <LivePreviewEditor
+              content={content}
+              onChange={handleChange}
+            />
+          </div>
         )
       )}
 
@@ -261,15 +153,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             <SourceView
               content={content}
               onChange={handleChange}
-              onViewReady={handleViewReady}
             />
           </OverlayScrollbarsComponent>
         ) : (
-          <SourceView
-            content={content}
-            onChange={handleChange}
-            onViewReady={handleViewReady}
-          />
+          <div className="editor-source-view">
+            <SourceView
+              content={content}
+              onChange={handleChange}
+            />
+          </div>
         )
       )}
     </div>

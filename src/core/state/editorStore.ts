@@ -8,7 +8,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type EditorMode = 'read' | 'edit' | 'source';
+export type EditorMode = 'edit' | 'source';
 
 interface EditorStore {
   // ── Mode ─────────────────────────────────────────────────────────────────
@@ -18,6 +18,10 @@ interface EditorStore {
   // ── Auto-save ────────────────────────────────────────────────────────────
   autoSaveEnabled: boolean;
   setAutoSave: (enabled: boolean) => void;
+
+  // ── Line numbers ─────────────────────────────────────────────────────────
+  lineNumbersEnabled: boolean;
+  setLineNumbers: (enabled: boolean) => void;
 
   // ── Close confirmation modal ──────────────────────────────────────────────
   showClosePrompt: boolean;
@@ -41,7 +45,7 @@ export const useEditorStore = create<EditorStore>()(
   persist(
     (set, get) => ({
       // ── Mode ───────────────────────────────────────────────────────────────
-      mode: 'read',
+      mode: 'edit',
 
       setMode: (mode) => {
         console.log('[INFO] [editorStore] Mode set:', mode);
@@ -54,6 +58,14 @@ export const useEditorStore = create<EditorStore>()(
       setAutoSave: (enabled) => {
         console.log('[INFO] [editorStore] Auto-save:', enabled);
         set({ autoSaveEnabled: enabled });
+      },
+
+      // ── Line numbers ───────────────────────────────────────────────────────
+      lineNumbersEnabled: false,
+
+      setLineNumbers: (enabled) => {
+        console.log('[INFO] [editorStore] Line numbers:', enabled);
+        set({ lineNumbersEnabled: enabled });
       },
 
       // ── Close prompt ───────────────────────────────────────────────────────
@@ -102,6 +114,7 @@ export const useEditorStore = create<EditorStore>()(
       partialize: (state) => ({
         mode: state.mode,
         autoSaveEnabled: state.autoSaveEnabled,
+        lineNumbersEnabled: state.lineNumbersEnabled,
       }),
     }
   )

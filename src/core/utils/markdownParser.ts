@@ -7,6 +7,7 @@
 
 import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
+import { highlightCodeBlocks } from '@/lib/syntax/highlightTheme';
 
 const md = new MarkdownIt({
   html: false,       // Disable raw HTML in source (security)
@@ -16,13 +17,29 @@ const md = new MarkdownIt({
   typographer: true, // Enable smart quotes and typographic replacements
 });
 
-// ── Heading anchor IDs ────────────────────────────────────────────────────────
-// Adds id="slug" to every heading so that [Title](#slug) anchor links work.
+// ── Helper: emit data-source-line on block open tokens ───────────────────────
+// markdown-it tokens have a .map property: [startLine, endLine] (0-indexed)
+function addLineAttr(token: any, self: any): string {
+  if (token.map) {
+    token.attrSet('data-source-line', String(token.map[0] + 1)); // 1-indexed
+  }
+  return self.renderToken([token], 0, {});
+}
+
+// ── Heading anchor IDs + source line ──────────────────────────────────────────
+// Adds id="slug" and data-source-line to every heading.
 // markdown-it token stream: heading_open → inline → heading_close (always in order).
 md.renderer.rules['heading_open'] = (tokens, idx, options, _env, self) => {
   const token = tokens[idx];
   const inlineToken = tokens[idx + 1];
   if (!token) return self.renderToken(tokens, idx, options);
+
+  // Add source line number
+  if (token.map) {
+    token.attrSet('data-source-line', String(token.map[0] + 1));
+  }
+
+  // Add anchor ID
   if (inlineToken?.type === 'inline' && inlineToken.children) {
     const text = inlineToken.children
       .filter(t => t.type === 'text' || t.type === 'code_inline')
@@ -36,6 +53,22 @@ md.renderer.rules['heading_open'] = (tokens, idx, options, _env, self) => {
     if (slug) token.attrSet('id', slug);
   }
   return self.renderToken(tokens, idx, options);
+};
+
+// ── Source line attributes for block elements ────────────────────────────────
+md.renderer.rules['paragraph_open'] = (tokens, idx, _options, _env, self) => addLineAttr(tokens[idx]!, self);
+md.renderer.rules['bullet_list_open'] = (tokens, idx, _options, _env, self) => addLineAttr(tokens[idx]!, self);
+md.renderer.rules['ordered_list_open'] = (tokens, idx, _options, _env, self) => addLineAttr(tokens[idx]!, self);
+md.renderer.rules['blockquote_open'] = (tokens, idx, _options, _env, self) => addLineAttr(tokens[idx]!, self);
+
+// Fence (code blocks) - custom renderer to add data-source-line and syntax highlighting
+md.renderer.rules['fence'] = (tokens, idx) => {
+  const token = tokens[idx]!;
+  const lang = token.info.trim().split(/\s+/)[0] ?? '';
+  const lineAttr = token.map ? ` data-source-line="${token.map[0]! + 1}"` : '';
+  const langClass = lang ? ` class="language-${lang}"` : '';
+  // Note: highlight.js will process this in highlightCodeBlocks()
+  return `<pre${lineAttr}><code${langClass}>${md.utils.escapeHtml(token.content)}</code></pre>\n`;
 };
 
 // ── Scrollable table wrapper ───────────────────────────────────────────────────
@@ -63,7 +96,10 @@ export function parseBasicMarkdown(content: string): string {
   try {
     const rawHtml = md.render(content);
 
-    const sanitized = DOMPurify.sanitize(rawHtml, {
+    // Apply syntax highlighting to code blocks
+    const highlighted = highlightCodeBlocks(rawHtml);
+
+    const sanitized = DOMPurify.sanitize(highlighted, {
       ALLOWED_TAGS: [
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'p', 'br', 'strong', 'em', 'del', 's',
@@ -74,9 +110,11 @@ export function parseBasicMarkdown(content: string): string {
         // div is required for the markdown-table-wrapper
         'div',
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        // span is required for highlight.js token wrapping
+        'span',
       ],
-      ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel'],
-      ALLOW_DATA_ATTR: false,
+      ALLOWED_ATTR: ['href', 'class', 'id', 'target', 'rel', 'data-source-line'],
+      ALLOW_DATA_ATTR: true,
       FORCE_BODY: true,
     });
 

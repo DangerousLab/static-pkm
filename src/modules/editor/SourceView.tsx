@@ -1,32 +1,34 @@
 /**
  * SourceView
  * Raw markdown source editor using CodeMirror 6.
- * Unlike EditView, this shows plain source with no live preview.
+ * Simplified version with syntax highlighting only - no block widgets.
  *
  * @module SourceView
  */
 
 import { useEffect, useRef } from 'react';
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
+import { languages } from '@codemirror/language-data';
 import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
+import { foldGutter, foldKeymap } from '@codemirror/language';
 import { useEditorStore } from '@core/state/editorStore';
+import { unstablonSyntaxHighlighting } from '@/lib/syntax/cmHighlight';
 
 interface SourceViewProps {
   content: string;
   onChange: (content: string) => void;
-  onViewReady?: (getView: () => EditorView | null) => void;
 }
 
-export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, onViewReady }) => {
+export const SourceView: React.FC<SourceViewProps> = ({ content, onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const isExternalUpdateRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const mode = useEditorStore((s) => s.mode);
+  const lineNumbersEnabled = useEditorStore((s) => s.lineNumbersEnabled);
 
   // ── Initialize editor on mount ────────────────────────────────────────────
   useEffect(() => {
@@ -35,15 +37,18 @@ export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, onVie
     const state = EditorState.create({
       doc: content,
       extensions: [
-        markdown(),
+        markdown({ codeLanguages: languages }),
+        unstablonSyntaxHighlighting,
+        lineNumbers(),
+        foldGutter(),  // Code folding gutter
         history(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap]),  // Add fold keymap
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !isExternalUpdateRef.current) {
             onChangeRef.current(update.state.doc.toString());
           }
         }),
-        // Plain source theme — monospace, no live preview
+        // Plain source theme — monospace, syntax highlighting only
         EditorView.theme({
           '&': {
             height: '100%',
@@ -65,6 +70,19 @@ export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, onVie
             fontFamily: 'var(--font-mono, monospace)',
           },
           '&.cm-focused': { outline: 'none' },
+          // Line number gutter styling
+          '.cm-gutters': {
+            background: 'var(--bg-panel)',
+            borderRight: '1px solid var(--border-subtle)',
+            minWidth: '3em',
+          },
+          '.cm-lineNumbers .cm-gutterElement': {
+            minWidth: '2.5em',
+            textAlign: 'right',
+            paddingRight: '0.5em',
+            color: 'var(--text-muted)',
+            fontSize: '0.8em',
+          },
         }),
       ],
     });
@@ -72,12 +90,7 @@ export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, onVie
     const view = new EditorView({ state, parent: containerRef.current });
     viewRef.current = view;
 
-    // Expose the view getter to the parent for scroll tracking
-    if (onViewReady) {
-      onViewReady(() => viewRef.current);
-    }
-
-    console.log('[INFO] [SourceView] CodeMirror source editor mounted');
+    console.log('[INFO] [SourceView] CodeMirror source editor mounted (simplified, no block widgets)');
 
     return () => {
       view.destroy();
@@ -99,19 +112,21 @@ export const SourceView: React.FC<SourceViewProps> = ({ content, onChange, onVie
     isExternalUpdateRef.current = false;
   }, [content]);
 
-  // ── Focus when switching into Source mode ─────────────────────────────────
+  // ── Focus on mount ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === 'source') {
-      let frameId: number;
-      const outer = requestAnimationFrame(() => {
-        frameId = requestAnimationFrame(() => viewRef.current?.focus());
-      });
-      return () => {
-        cancelAnimationFrame(outer);
-        cancelAnimationFrame(frameId);
-      };
-    }
-  }, [mode]);
+    const frameId = requestAnimationFrame(() => viewRef.current?.focus());
+    return () => cancelAnimationFrame(frameId);
+  }, []);
 
-  return <div ref={containerRef} className="editor-source-view" aria-label="Raw markdown source" />;
+  // ── Toggle line numbers visibility via CSS class ──────────────────────────
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view) {
+      view.dom.classList.toggle('hide-line-numbers', !lineNumbersEnabled);
+    }
+  }, [lineNumbersEnabled]);
+
+  return (
+    <div ref={containerRef} className="editor-source-view" aria-label="Raw markdown source" />
+  );
 };

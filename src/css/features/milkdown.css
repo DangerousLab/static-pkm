@@ -1,0 +1,41 @@
+/**
+ * Milkdown Editor Layout
+ * Crepe handles its own styling via imported CSS.
+ * This file only provides layout integration with our container system.
+ */
+
+/* ── Editor container ───────────────────────────────────────────────────── */
+
+.milkdown-editor {
+  height: 100%;               /* Fill parent .editor-live-preview container       */
+  min-height: 0;              /* Allow flex shrinking                             */
+  display: flex;              /* Establish flex context for Milkdown              */
+  flex-direction: column;     /* Stack vertically                                 */
+  overflow: visible;          /* Let parent (.editor-live-preview) handle scroll  */
+}
+
+/* Override Crepe's max-width for our layout */
+.milkdown-editor .milkdown {
+  max-width: 760px;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Override colors with our CSS variables */
+.milkdown-editor .milkdown {
+  --crepe-color-background: var(--bg-card);
+  --crepe-color-on-background: var(--text-main);
+  --crepe-color-surface: var(--bg-subtle);
+  --crepe-color-on-surface: var(--text-main);
+  --crepe-color-primary: var(--accent);
+  --crepe-color-border: var(--border-subtle);
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .milkdown-editor .milkdown {
+    --crepe-color-background: var(--bg-card);
+    --crepe-color-on-background: var(--text-main);
+  }
+}

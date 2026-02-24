@@ -167,16 +167,30 @@
   padding: var(--space-lg);
 }
 
-/* ── Edit view (CodeMirror 6) ────────────────────────────────────────────────
-   Fills the remaining card height. CM6 manages its own scroller internally
-   (overflow:auto on .cm-scroller). The CM editor root gets height:100% in
-   EditView.tsx so it expands to fill this container.                            */
+/* ── Line numbers (CM6 native gutter, toggle via CSS) ─────────────────────────
+   Line numbers are always included in CM6 extensions (gutter always reserves
+   space, no content shift on toggle). Visibility is toggled via CSS class.     */
 
-.editor-edit-view {
+/* Hide line number content when disabled, but keep gutter space */
+.cm-editor.hide-line-numbers .cm-lineNumbers .cm-gutterElement {
+  visibility: hidden;
+}
+
+/* Optional: hide the gutter border when numbers are hidden */
+.cm-editor.hide-line-numbers .cm-gutters {
+  border-right-color: transparent;
+}
+
+/* ── Live Preview view (Milkdown) ─────────────────────────────────────────────
+   Fills the remaining card height. Milkdown (ProseMirror) manages content
+   internally. Must have explicit height for ProseMirror to render correctly.    */
+
+.editor-live-preview {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;    /* Fallback when not using OverlayScrollbars             */
+  overflow-y: auto;    /* Parent container scroll for OverlayScrollbars         */
   overflow-x: hidden;
+  height: 100%;        /* Critical: ProseMirror needs explicit height           */
 }
 
 /* ── Source view (CodeMirror 6) ──────────────────────────────────────────────
@@ -189,6 +203,24 @@
   min-height: 0;
   overflow-y: auto;    /* Fallback when not using OverlayScrollbars             */
   overflow-x: hidden;
+}
+
+/* ── Block widgets (markdown-it rendering via CM6 decorations) ───────────────── */
+
+/* Block widget containers */
+.cm-block-widget {
+  display: block;
+  width: 100%;
+}
+
+/* Ensure markdown-content styles apply inside widgets */
+.cm-block-widget .markdown-content {
+  /* markdown.css styles already apply */
+}
+
+/* Hide CM6's cursor line highlight when inside a widget */
+.cm-block-widget .cm-activeLine {
+  background: transparent;
 }
 
 /* ── Close confirmation modal ─────────────────────────────────────────────────── */
