@@ -82,7 +82,15 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       // Deep clone tree and update node title
       const updatedTree = updateNodeTitleInTree(state.navigationTree, nodeId, newTitle);
 
-      // Also update activeNode if it's the same node
+      // Update currentFolder reference to get fresh children (for sidebar display)
+      // Find the folder with same path in the updated tree
+      let updatedCurrentFolder = state.currentFolder;
+      if (state.currentFolder) {
+        updatedCurrentFolder = findFolderByPath(updatedTree, state.currentFolder.path);
+      }
+
+      // Also update activeNode title if it's the same node
+      // This is safe now because Sidebar tracks ID changes, not reference changes
       let updatedActiveNode = state.activeNode;
       if (state.activeNode?.id === nodeId) {
         updatedActiveNode = { ...state.activeNode, title: newTitle };
@@ -92,6 +100,7 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
 
       return {
         navigationTree: updatedTree,
+        currentFolder: updatedCurrentFolder ?? state.currentFolder,
         activeNode: updatedActiveNode,
       };
     });
@@ -123,6 +132,20 @@ function updateNodeTitleInTree(
       return child;
     }),
   };
+}
+
+/**
+ * Helper: Find a folder by path in the tree
+ */
+function findFolderByPath(tree: FolderNode, targetPath: string): FolderNode | null {
+  if (tree.path === targetPath) return tree;
+  for (const child of tree.children) {
+    if (child.type === 'folder') {
+      const found = findFolderByPath(child, targetPath);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 /**

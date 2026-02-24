@@ -10,9 +10,7 @@ import { useEditorStore, EditorMode } from '@core/state/editorStore';
 
 interface EditorToolbarProps {
   isSaving: boolean;
-  lastSaved: Date | null;
   isDeleted: boolean;
-  onSave: () => void;
 }
 
 const MODES: { value: EditorMode; label: string }[] = [
@@ -22,16 +20,12 @@ const MODES: { value: EditorMode; label: string }[] = [
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   isSaving,
-  lastSaved,
   isDeleted,
-  onSave,
 }) => {
   const mode = useEditorStore((s) => s.mode);
   const setMode = useEditorStore((s) => s.setMode);
   const lineNumbersEnabled = useEditorStore((s) => s.lineNumbersEnabled);
   const setLineNumbers = useEditorStore((s) => s.setLineNumbers);
-
-  const savedLabel = lastSaved ? `Saved ${formatRelative(lastSaved)}` : null;
 
   return (
     <div className="editor-toolbar">
@@ -78,7 +72,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           </button>
         </div>
 
-        {/* Right: Status + Save button */}
+        {/* Right: Status (no save button with auto-save) */}
         <div className="editor-toolbar-right">
           {isDeleted && (
             <span className="deleted-indicator">
@@ -86,42 +80,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </span>
           )}
 
-          {isSaving && (
+          {isSaving && !isDeleted && (
             <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
               Saving…
             </span>
           )}
-
-          {savedLabel && !isSaving && !isDeleted && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              {savedLabel}
-            </span>
-          )}
-
-          <button
-            onClick={onSave}
-            disabled={isSaving}
-            className="px-3 py-1 rounded-md text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white"
-            aria-label="Save document"
-            title="Cmd+S"
-          >
-            Save
-          </button>
         </div>
       </div>
 
     </div>
   );
 };
-
-// ── Helper ─────────────────────────────────────────────────────────────────────
-
-function formatRelative(date: Date): string {
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (secs < 5) return 'just now';
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  return `${hrs}h ago`;
-}

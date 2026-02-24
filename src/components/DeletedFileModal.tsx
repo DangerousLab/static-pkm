@@ -46,7 +46,6 @@ export const DeletedFileModal: React.FC<DeletedFileModalProps> = ({
       {/* Backdrop */}
       <div
         className="editor-close-backdrop"
-        onClick={onDiscard}
         aria-hidden="true"
       />
 

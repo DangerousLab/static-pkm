@@ -65,10 +65,15 @@ function App(): React.JSX.Element {
       if (activeNode?.id === old_note_id) {
         console.log('[INFO] [App] Active file renamed:', old_note_id, '->', new_note_id);
         // Content is already saved (auto-save), just update references
+        // Normalize path separators to forward slashes
+        const normalizedPath = new_path.replace(/\\/g, '/');
+        const homeIndex = normalizedPath.indexOf('/Home/');
+        const relativePath = homeIndex >= 0 ? normalizedPath.substring(homeIndex + '/Home/'.length) : new_path;
+
         setActiveNode({
           ...activeNode,
           id: new_note_id,
-          file: new_path.replace(/^.*[/\\]Home[/\\]/, 'Home/'),
+          file: relativePath,
         });
       }
     });

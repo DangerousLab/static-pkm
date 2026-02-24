@@ -47,13 +47,25 @@ function Sidebar(): React.JSX.Element {
     }
   }, [breadcrumbPath, setCurrentFolder]);
 
-  // Auto-close sidebar when content changes (if viewport requires it)
-  // This handles nav item clicks that select a module/page/document
+  // Track previous activeNode ID to detect actual navigation vs title update
+  const prevActiveNodeIdRef = useRef<string | null>(null);
+
+  // Auto-close sidebar only on ACTUAL navigation (ID change), not title updates
   useEffect(() => {
-    if (isOpen && shouldAutoClose && activeNode) {
+    const currentId = activeNode?.id ?? null;
+    const prevId = prevActiveNodeIdRef.current;
+
+    // Only close if:
+    // 1. Sidebar is open
+    // 2. Should auto-close (narrow viewport)
+    // 3. We have a new activeNode
+    // 4. The ID actually changed (not just title update)
+    if (isOpen && shouldAutoClose && activeNode && currentId !== prevId) {
       close();
     }
-  }, [activeNode]); // Only depend on activeNode to avoid loops
+
+    prevActiveNodeIdRef.current = currentId;
+  }, [activeNode, isOpen, shouldAutoClose, close]);
 
   // Handle click outside to close (overlay for narrow viewports)
   // Note: This is defined but not currently used - preserved for future use
