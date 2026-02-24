@@ -1,8 +1,7 @@
 /**
  * EditorToolbar
- * Two-row toolbar for the markdown editor:
- * - Row 1: mode toggle, auto-save toggle, save status, save button
- * - Row 2 (Edit mode only): WYSIWYG formatting buttons (removed - Milkdown handles this)
+ * Simplified toolbar for Obsidian-style auto-save:
+ * - Mode toggle, line numbers toggle, save status, optional manual save button
  *
  * @module EditorToolbar
  */
@@ -12,7 +11,7 @@ import { useEditorStore, EditorMode } from '@core/state/editorStore';
 interface EditorToolbarProps {
   isSaving: boolean;
   lastSaved: Date | null;
-  isDirty: boolean;
+  isDeleted: boolean;
   onSave: () => void;
 }
 
@@ -24,13 +23,11 @@ const MODES: { value: EditorMode; label: string }[] = [
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   isSaving,
   lastSaved,
-  isDirty,
+  isDeleted,
   onSave,
 }) => {
   const mode = useEditorStore((s) => s.mode);
   const setMode = useEditorStore((s) => s.setMode);
-  const autoSaveEnabled = useEditorStore((s) => s.autoSaveEnabled);
-  const setAutoSave = useEditorStore((s) => s.setAutoSave);
   const lineNumbersEnabled = useEditorStore((s) => s.lineNumbersEnabled);
   const setLineNumbers = useEditorStore((s) => s.setLineNumbers);
 
@@ -65,22 +62,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             ))}
           </div>
 
-          {/* Auto-save toggle */}
-          <button
-            onClick={() => setAutoSave(!autoSaveEnabled)}
-            className={[
-              'ml-2 px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5',
-              autoSaveEnabled
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
-            ].join(' ')}
-            aria-label={autoSaveEnabled ? 'Auto-save is on, click to disable' : 'Auto-save is off, click to enable'}
-            title={autoSaveEnabled ? 'Auto-save: ON' : 'Auto-save: OFF'}
-          >
-            <span className="text-xs">{autoSaveEnabled ? '●' : '○'}</span>
-            Auto-save
-          </button>
-
           {/* Line numbers toggle */}
           <button
             onClick={() => setLineNumbers(!lineNumbersEnabled)}
@@ -99,13 +80,19 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
         {/* Right: Status + Save button */}
         <div className="editor-toolbar-right">
-          {isDirty && (
-            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-              Unsaved changes
+          {isDeleted && (
+            <span className="deleted-indicator">
+              <span className="deleted-dot" /> File deleted
             </span>
           )}
 
-          {savedLabel && !isDirty && (
+          {isSaving && (
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+              Saving…
+            </span>
+          )}
+
+          {savedLabel && !isSaving && !isDeleted && (
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {savedLabel}
             </span>
@@ -113,11 +100,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
           <button
             onClick={onSave}
-            disabled={isSaving || !isDirty}
+            disabled={isSaving}
             className="px-3 py-1 rounded-md text-sm font-medium transition-colors bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white"
             aria-label="Save document"
+            title="Cmd+S"
           >
-            {isSaving ? 'Saving…' : 'Save'}
+            Save
           </button>
         </div>
       </div>

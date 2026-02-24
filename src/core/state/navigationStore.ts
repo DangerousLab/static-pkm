@@ -9,8 +9,10 @@ interface NavigationState {
   currentFolder: FolderNode | null;
   /** Currently active content node (module/page/document) */
   activeNode: ContentNode | null;
-  /** Loading state */
+  /** Loading state (initial load, shows loading UI) */
   isLoading: boolean;
+  /** Refreshing state (background update, silent) */
+  isRefreshing: boolean;
   /** Error message */
   error: string | null;
 
@@ -19,7 +21,9 @@ interface NavigationState {
   setCurrentFolder: (folder: FolderNode) => void;
   setActiveNode: (node: ContentNode | null) => void;
   setLoading: (loading: boolean) => void;
+  setRefreshing: (refreshing: boolean) => void;
   setError: (error: string | null) => void;
+  updateNodeTitle: (nodeId: string, newTitle: string) => void;
   reset: () => void;
 }
 
@@ -29,6 +33,7 @@ const initialState = {
   currentFolder: null,
   activeNode: null,
   isLoading: false,
+  isRefreshing: false,
   error: null,
 };
 
@@ -61,11 +66,35 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
 
   setLoading: (isLoading: boolean) => set({ isLoading }),
 
+  setRefreshing: (isRefreshing: boolean) => set({ isRefreshing }),
+
   setError: (error: string | null) => {
     if (error) {
       console.error('[ERROR] [navigationStore]', error);
     }
-    set({ error, isLoading: false });
+    set({ error, isLoading: false, isRefreshing: false });
+  },
+
+  updateNodeTitle: (nodeId: string, newTitle: string) => {
+    set((state) => {
+      if (!state.navigationTree) return state;
+
+      // Deep clone tree and update node title
+      const updatedTree = updateNodeTitleInTree(state.navigationTree, nodeId, newTitle);
+
+      // Also update activeNode if it's the same node
+      let updatedActiveNode = state.activeNode;
+      if (state.activeNode?.id === nodeId) {
+        updatedActiveNode = { ...state.activeNode, title: newTitle };
+      }
+
+      console.log('[INFO] [navigationStore] Updated node title:', nodeId, '->', newTitle);
+
+      return {
+        navigationTree: updatedTree,
+        activeNode: updatedActiveNode,
+      };
+    });
   },
 
   reset: () => {
@@ -73,6 +102,28 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
     set(initialState);
   },
 }));
+
+/**
+ * Helper: Update title of a node in the tree (immutable)
+ */
+function updateNodeTitleInTree(
+  node: FolderNode,
+  targetId: string,
+  newTitle: string
+): FolderNode {
+  return {
+    ...node,
+    children: node.children.map((child) => {
+      if (child.type !== 'folder' && child.id === targetId) {
+        return { ...child, title: newTitle };
+      }
+      if (child.type === 'folder') {
+        return updateNodeTitleInTree(child, targetId, newTitle);
+      }
+      return child;
+    }),
+  };
+}
 
 /**
  * Selector: Get breadcrumb path from root to current folder

@@ -31,7 +31,8 @@ serde_yaml = "0.9"
 rusqlite = { version = "0.31", features = ["bundled", "modern_sqlite"] }
 
 # File watching
-notify = { version = "6", default-features = false, features = ["macos_kqueue"] }
+notify = "6"
+tokio-util = "0.7"
 
 # Markdown parsing
 pulldown-cmark = "0.9"

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useThemeStore, type Theme } from '@core/state/themeStore';
 import { useVaultStore } from '@core/state/vaultStore';
-import { useMathJax } from '@/loaders';
 import { isTauriContext, readFile } from '@core/ipc/commands';
+import { useMathJax } from '@/loaders';
 import type { ModuleNode } from '@/types/navigation';
 
 interface ModuleLoaderProps {
@@ -26,10 +26,11 @@ interface ModuleInstance {
 function ModuleLoader({ node, onError }: ModuleLoaderProps): React.JSX.Element {
   const theme = useThemeStore((state) => state.theme);
   const currentVault = useVaultStore((state) => state.currentVault);
-  // Load MathJax (hook ensures it's loaded before modules use dynamicRender)
-  useMathJax();
   const moduleInstanceRef = useRef<ModuleInstance | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Preload MathJax before modules call dynamicRender()
+  useMathJax();
 
   console.log('[DEBUG] [ModuleLoader] Component rendering for:', node.id);
 
@@ -333,10 +334,12 @@ async function loadScript(src: string, factoryName: string, isTauri: boolean): P
 
 /**
  * Convert module ID to factory function name
- * e.g., "calcA" -> "createCalcA"
+ * e.g., "calcA.js" -> "createCalcA"
  */
 function getFactoryName(moduleId: string): string {
-  const capitalizedId = moduleId.charAt(0).toUpperCase() + moduleId.slice(1);
+  // Strip file extension if present
+  const baseName = moduleId.replace(/\.[^/.]+$/, '');
+  const capitalizedId = baseName.charAt(0).toUpperCase() + baseName.slice(1);
   return `create${capitalizedId}`;
 }
 

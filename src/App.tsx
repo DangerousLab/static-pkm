@@ -7,12 +7,11 @@ import { useThemeEffect } from '@modules/theme';
 import { useThemeImages } from '@modules/theme/useThemeImages';
 import { usePWA } from '@modules/pwa/usePWA';
 import { CacheProgressOverlay } from '@modules/pwa/CacheProgressOverlay';
-import { CloseConfirmationModal } from '@components/CloseConfirmationModal';
 import { useFontAwesome } from '@/loaders';
 import { isTauriContext } from '@core/ipc/commands';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { useEditorStore } from '@core/state/editorStore';
+import { useNavigationStore } from '@core/state/navigationStore';
 
 /**
  * Root application component
@@ -36,21 +35,41 @@ function App(): React.JSX.Element {
   useKeyboardShortcuts();
 
   // Listen for OS window close button in Tauri mode
+  // With always-auto-save, we just close immediately (content is already saved)
   useEffect(() => {
     if (!isTauriContext()) return;
 
-    const unlistenPromise = listen('close-requested', () => {
-      const { dirtyDocuments, autoSaveEnabled, setShowClosePrompt } =
-        useEditorStore.getState();
+    const unlistenPromise = listen('close-requested', async () => {
+      // Always allow close - auto-save handles persistence
+      await invoke('force_close_window');
+    });
 
-      if (dirtyDocuments.size > 0 && !autoSaveEnabled) {
-        // Let the user decide what to do with unsaved changes
-        setShowClosePrompt(true);
-      } else {
-        // Nothing to save (or auto-save handles it) — close immediately
-        invoke('force_close_window').catch((err) =>
-          console.error('[ERROR] [App] force_close_window failed:', err)
-        );
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, []);
+
+  // Listen for file renames and update activeNode BEFORE tree refresh
+  useEffect(() => {
+    if (!isTauriContext()) return;
+
+    const unlistenPromise = listen<{
+      old_path: string;
+      new_path: string;
+      old_note_id: string;
+      new_note_id: string;
+    }>('file:renamed', (event) => {
+      const { old_note_id, new_note_id, new_path } = event.payload;
+      const { activeNode, setActiveNode } = useNavigationStore.getState();
+
+      if (activeNode?.id === old_note_id) {
+        console.log('[INFO] [App] Active file renamed:', old_note_id, '->', new_note_id);
+        // Content is already saved (auto-save), just update references
+        setActiveNode({
+          ...activeNode,
+          id: new_note_id,
+          file: new_path.replace(/^.*[/\\]Home[/\\]/, 'Home/'),
+        });
       }
     });
 
@@ -58,6 +77,20 @@ function App(): React.JSX.Element {
       unlistenPromise.then((unlisten) => unlisten());
     };
   }, []);
+
+  // Listen for vault file changes and auto-refresh navigation tree
+  useEffect(() => {
+    if (!isTauriContext()) return;
+
+    const unlistenPromise = listen('vault:changed', () => {
+      console.log('[INFO] [App] Vault changed, refreshing navigation...');
+      loadNavigationTree();
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [loadNavigationTree]);
 
   // Load navigation tree on mount
   // In Tauri mode: Initialize from persisted vault (if any)
@@ -123,9 +156,6 @@ function App(): React.JSX.Element {
 
       {/* Main app shell */}
       <AppShell />
-
-      {/* Close confirmation modal (only visible when there are unsaved changes on exit) */}
-      <CloseConfirmationModal />
     </>
   );
 }

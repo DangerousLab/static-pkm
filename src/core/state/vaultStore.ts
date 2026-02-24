@@ -37,7 +37,9 @@ export const useVaultStore = create<VaultState>()(
       },
 
       setError: (error: string | null) => {
-        console.log('[ERROR] [vaultStore] Error:', error);
+        if (error) {
+          console.log('[ERROR] [vaultStore] Error:', error);
+        }
         set({ error });
       },
 

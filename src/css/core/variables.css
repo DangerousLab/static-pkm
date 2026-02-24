@@ -83,4 +83,19 @@
 
   --blur-panel: 18px;    /* Sidebar backdrop blur */
   --blur-card: 16px;     /* Card backdrop blur */
+
+  /* ==================== TYPOGRAPHY ==================== */
+
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", Consolas, monospace;
+  --font-size-base: 1rem;
+  --line-height-relaxed: 1.75;
+
+  /* ==================== CODE BACKGROUNDS ==================== */
+
+  --bg-code: rgba(0, 0, 0, 0.2);        /* Dark mode code block background */
+  --bg-code-inline: rgba(0, 0, 0, 0.15); /* Dark mode inline code */
+  --bg-subtle: rgba(80, 80, 80, 0.2);   /* Subtle background elements */
+  --selection-bg: rgba(224, 160, 31, 0.3); /* Text selection highlight */
 }

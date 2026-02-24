@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigationStore } from '@core/state/navigationStore';
 import { useSidebarStore } from '@core/state/sidebarStore';
 import { useShouldAutoCloseSidebar } from '@hooks/useWindowSize';
@@ -20,11 +20,13 @@ function MainContent(): React.JSX.Element {
 
   // Track content switching animation
   const [isAnimating, setIsAnimating] = useState(false);
+  const previousNodeIdRef = useRef<string | null>(null);
 
-  // Trigger animation on activeNode change
+  // Trigger animation only when node ID actually changes
   useEffect(() => {
-    if (activeNode) {
+    if (activeNode && activeNode.id !== previousNodeIdRef.current) {
       setIsAnimating(true);
+      previousNodeIdRef.current = activeNode.id;
       // Brief delay before switching to loaded to trigger animation
       const timer = requestAnimationFrame(() => {
         setIsAnimating(false);
@@ -55,7 +57,7 @@ function MainContent(): React.JSX.Element {
           id="contentCard"
           className={[
             'card',
-            isLoading || isAnimating ? 'preload' : 'loaded',
+            (isLoading && !navigationTree) || isAnimating ? 'preload' : 'loaded',
             activeNode?.type === 'document' ? 'editor-card' : '',
           ].filter(Boolean).join(' ')}
         >
@@ -78,7 +80,7 @@ function MainContent(): React.JSX.Element {
           id="contentCard"
           className={[
             'card',
-            isLoading || isAnimating ? 'preload' : 'loaded',
+            (isLoading && !navigationTree) || isAnimating ? 'preload' : 'loaded',
             activeNode?.type === 'document' ? 'editor-card' : '',
           ].filter(Boolean).join(' ')}
         >

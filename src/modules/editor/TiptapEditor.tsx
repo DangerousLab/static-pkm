@@ -7,7 +7,7 @@
  */
 
 import { useRef, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -15,11 +15,19 @@ import Link from '@tiptap/extension-link';
 import Typography from '@tiptap/extension-typography';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Highlight from '@tiptap/extension-highlight';
+import Color from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
 import { common, createLowlight } from 'lowlight';
 
 interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
+  onEditorReady?: (editor: Editor) => void;
 }
 
 const lowlight = createLowlight(common);
@@ -27,9 +35,13 @@ const lowlight = createLowlight(common);
 export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   content,
   onChange,
+  onEditorReady,
 }) => {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const onEditorReadyRef = useRef(onEditorReady);
+  onEditorReadyRef.current = onEditorReady;
 
   const editor = useEditor({
     extensions: [
@@ -41,7 +53,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         tightLists: true,
         bulletListMarker: '-',
         linkify: true,
-        breaks: false,
+        breaks: true, // Changed from false - preserves single newlines as <br>
         transformPastedText: true,
         transformCopiedText: true,
       }),
@@ -62,6 +74,19 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       TableRow,
       TableCell,
       TableHeader,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Underline,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Highlight.configure({
+        multicolor: true,
+      }),
+      TextStyle,
+      Color,
     ],
     content,
     immediatelyRender: false, // SSR safety
@@ -95,10 +120,47 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   useEffect(() => {
     console.log('[INFO] [TiptapEditor] Editor mounted');
+    if (editor && onEditorReadyRef.current) {
+      onEditorReadyRef.current(editor);
+    }
     return () => {
       console.log('[INFO] [TiptapEditor] Editor destroyed');
     };
-  }, []);
+  }, [editor]);
+
+  // Debug logging for investigating line break rendering
+  useEffect(() => {
+    if (editor && content) {
+      console.log('[DEBUG] [TiptapEditor] Editor JSON:', JSON.stringify(editor.getJSON(), null, 2));
+      console.log('[DEBUG] [TiptapEditor] Editor HTML:', editor.getHTML());
+    }
+  }, [editor, content]);
+
+  // Sync content prop to editor when it changes externally (e.g., cache restore)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+
+    // Get current editor markdown content
+    const currentContent = editor.storage.markdown?.getMarkdown?.() ?? '';
+
+    // Only update if content actually differs (avoid cursor jump)
+    if (content && content !== currentContent) {
+      // Preserve cursor position
+      const { from, to } = editor.state.selection;
+      editor.commands.setContent(content);
+
+      // Restore cursor (clamped to new content length)
+      requestAnimationFrame(() => {
+        if (!editor.isDestroyed) {
+          const maxPos = editor.state.doc.content.size;
+          editor.commands.setTextSelection({
+            from: Math.min(from, maxPos),
+            to: Math.min(to, maxPos),
+          });
+        }
+      });
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return <div className="tiptap-loading">Loading editor...</div>;

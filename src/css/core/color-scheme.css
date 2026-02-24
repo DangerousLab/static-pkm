@@ -97,4 +97,10 @@
   /* Scrollbar */
   --scrollbar-thumb: rgba(160, 163, 184, 0.55);        /* light mode: medium gray */
   --scrollbar-thumb-hover: rgba(148, 163, 184, 0.75);  /* darker on hover */
+
+  /* Code Backgrounds (Light mode overrides) */
+  --bg-code: rgba(148, 163, 184, 0.15);        /* Light mode code block background */
+  --bg-code-inline: rgba(148, 163, 184, 0.1);  /* Light mode inline code */
+  --bg-subtle: rgba(148, 163, 184, 0.15);       /* Light mode subtle backgrounds */
+  --selection-bg: rgba(224, 160, 31, 0.25);     /* Light mode text selection */
 }

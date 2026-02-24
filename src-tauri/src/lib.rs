@@ -9,6 +9,7 @@ mod error;
 mod indexer;
 mod models;
 mod utils;
+mod watcher;
 
 use std::sync::Arc;
 use tauri::{Emitter, Manager, WindowEvent};
@@ -150,6 +151,8 @@ pub fn run() {
             commands::fileops::write_file,
             commands::fileops::list_directory,
             commands::fileops::get_navigation_tree,
+            commands::fileops::get_file_mtime,
+            commands::fileops::start_watching_vault,
             commands::search::search_content,
             commands::search::index_content,
             commands::search::rebuild_index,

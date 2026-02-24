@@ -48,6 +48,23 @@ export async function writeFile(path: string, content: string): Promise<void> {
 }
 
 /**
+ * Get file modification time
+ * @param path - Absolute path to file
+ * @returns Modification time in milliseconds since UNIX epoch (0 if not in Tauri mode)
+ */
+export async function getFileMtime(path: string): Promise<number> {
+  console.log('[INFO] [IPC] getFileMtime:', path);
+
+  // Only supported in Tauri mode
+  if (isTauriContext()) {
+    return invoke<number>('get_file_mtime', { path });
+  }
+
+  // PWA mode - not supported
+  return 0;
+}
+
+/**
  * List directory contents
  * @param path - Directory path
  * @returns Array of file entries
@@ -84,6 +101,22 @@ export async function getNavigationTree(homePath: string): Promise<FolderNode> {
     throw new Error('Failed to load navigation tree');
   }
   return response.json();
+}
+
+/**
+ * Start watching the vault directory for file changes
+ * Emits 'vault:changed' event when files are created/deleted/renamed
+ * @param vaultPath - Absolute path to vault directory
+ */
+export function startWatchingVault(vaultPath: string): void {
+  console.log('[INFO] [IPC] startWatchingVault:', vaultPath);
+
+  // Only supported in Tauri mode
+  if (isTauriContext()) {
+    invoke<void>('start_watching_vault', { vaultPath });
+  } else {
+    console.warn('[WARN] [IPC] startWatchingVault not supported in PWA mode');
+  }
 }
 
 /**

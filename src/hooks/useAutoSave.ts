@@ -1,87 +1,53 @@
 /**
  * useAutoSave hook
- * Debounced auto-save: after 10 seconds of inactivity when the document is
- * dirty and auto-save is enabled, writes the file to disk.
- *
- * After a successful auto-save, calls `setIsDirty(false)` and `setLastSaved(Date)`
- * so the toolbar status ("Unsaved changes" / "Saved just now") updates correctly.
+ * Obsidian-style auto-save: debounced save after 2 seconds of inactivity.
+ * Always enabled - no dirty tracking, no external mtime checks.
  *
  * @module useAutoSave
  */
 
 import { useEffect, useRef } from 'react';
-import { writeFile } from '@core/ipc/commands';
-import { useEditorStore } from '@core/state/editorStore';
 
-const AUTO_SAVE_DELAY_MS = 10_000;
+const AUTO_SAVE_DELAY_MS = 2000;
 
 /**
  * useAutoSave
  *
- * @param noteId       - Document identifier for dirty-state tracking
- * @param absolutePath - Full filesystem path for write_file IPC
- * @param getContent   - Callback ref returning current content (avoids stale closures)
- * @param isDirty      - Whether the document has unsaved changes
- * @param setIsDirty   - Setter from useSave; called with `false` after auto-save succeeds
- * @param setLastSaved - Setter from useSave; called with current Date after auto-save succeeds
+ * @param content - Current content string (triggers save when changed)
+ * @param save    - Save function from useSave hook
  */
 export function useAutoSave(
-  noteId: string,
-  absolutePath: string,
-  getContent: () => string,
-  isDirty: boolean,
-  setIsDirty: (dirty: boolean) => void,
-  setLastSaved: (date: Date) => void,
+  content: string,
+  save: () => Promise<boolean>
 ): void {
-  const autoSaveEnabled = useEditorStore((s) => s.autoSaveEnabled);
-  const removeDirtyDocument = useEditorStore((s) => s.removeDirtyDocument);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const lastContentRef = useRef<string>('');
+  const saveRef = useRef<() => Promise<boolean>>(save);
+  saveRef.current = save;
 
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const getContentRef = useRef(getContent);
-  getContentRef.current = getContent;
-
-  // Keep stable refs so the timer callback always has the latest setters
-  const setIsDirtyRef = useRef(setIsDirty);
-  setIsDirtyRef.current = setIsDirty;
-  const setLastSavedRef = useRef(setLastSaved);
-  setLastSavedRef.current = setLastSaved;
-
+  // Debounced save on content change
   useEffect(() => {
-    if (!autoSaveEnabled || !isDirty) {
-      // Clear any pending timer when auto-save is toggled off or doc becomes clean
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
+    // Skip empty content (initial state or between doc switches)
+    if (!content) return;
+
+    // Skip if content hasn't changed
+    if (content === lastContentRef.current) return;
+    lastContentRef.current = content;
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
 
-    // Reset debounce timer on every content change
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = setTimeout(async () => {
-      try {
-        const content = getContentRef.current();
-        await writeFile(absolutePath, content);
-        removeDirtyDocument(noteId);
-        // Sync React state so toolbar reflects "Saved just now" instead of "Unsaved changes"
-        setIsDirtyRef.current(false);
-        setLastSavedRef.current(new Date());
-        console.log('[INFO] [useAutoSave] Auto-saved:', noteId);
-      } catch (error) {
-        console.error('[ERROR] [useAutoSave] Auto-save failed:', error);
-      } finally {
-        timerRef.current = null;
-      }
+    // Schedule save in 2 seconds
+    saveTimeoutRef.current = setTimeout(() => {
+      saveRef.current();
     }, AUTO_SAVE_DELAY_MS);
 
     return () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [isDirty, autoSaveEnabled, absolutePath, noteId, removeDirtyDocument]);
+  }, [content]); // Only depend on content
 }

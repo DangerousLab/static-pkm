@@ -3,9 +3,11 @@
 use crate::error::AppError;
 use crate::models::{FileEntry, FolderNode, ModuleNode, NavigationNode, PageNode, DocumentNode};
 use crate::utils;
+use crate::watcher;
 use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
+use tauri::AppHandle;
 use tracing::info;
 
 /// Read file contents
@@ -207,4 +209,29 @@ fn build_folder_node(path: &str, name: &str, vault_root: &str) -> Result<FolderN
         path: if relative_path.is_empty() { "Home".to_string() } else { relative_path },
         children,
     })
+}
+
+/// Get file modification time in milliseconds since UNIX epoch
+#[tauri::command]
+pub async fn get_file_mtime(path: String) -> Result<u64, String> {
+    let metadata = fs::metadata(&path)
+        .map_err(|e| AppError::Io(e).to_string())?;
+
+    let modified = metadata
+        .modified()
+        .map_err(|e| AppError::Io(e).to_string())?;
+
+    let duration = modified
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default();
+
+    Ok(duration.as_millis() as u64)
+}
+
+/// Start watching the vault directory for file changes
+/// Emits 'vault:changed' event when files are created/deleted/renamed
+#[tauri::command]
+pub fn start_watching_vault(app: AppHandle, vault_path: String) {
+    info!("[INFO] [fileops] Starting vault watcher for: {}", vault_path);
+    watcher::start_vault_watcher(app, vault_path);
 }

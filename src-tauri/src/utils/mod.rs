@@ -3,14 +3,14 @@
 use std::path::Path;
 
 /// Extract module ID from file path
-/// Preserves original casing, replaces spaces and hyphens with underscores
-/// e.g., "Home/Tools/calcA.js" -> "calcA"
+/// Returns full filename WITH extension (matches OS behavior, eliminates collisions)
+/// e.g., "Home/Tools/calcA.js" -> "calcA.js"
 pub fn path_to_id(path: &str) -> String {
     Path::new(path)
-        .file_stem()
+        .file_name()  // Full filename WITH extension
         .and_then(|s| s.to_str())
         .unwrap_or("unknown")
-        .replace([' ', '-'], "_")
+        .to_string()  // No character replacement
 }
 
 /// Extract title from file name
@@ -108,13 +108,16 @@ mod tests {
 
     #[test]
     fn test_path_to_id() {
-        assert_eq!(path_to_id("Home/Tools/calcA.js"), "calca");
-        assert_eq!(path_to_id("test-module.js"), "test_module");
+        assert_eq!(path_to_id("Home/Tools/calcA.js"), "calcA.js");
+        assert_eq!(path_to_id("test-module.js"), "test-module.js");
+        assert_eq!(path_to_id("test-markdown.md"), "test-markdown.md");
+        assert_eq!(path_to_id("test_markdown.md"), "test_markdown.md");
     }
 
     #[test]
     fn test_path_to_title() {
         assert_eq!(path_to_title("Home/Tools/calcA.js"), "calcA");
+        assert_eq!(path_to_title("test-markdown.md"), "test-markdown");
     }
 
     #[test]

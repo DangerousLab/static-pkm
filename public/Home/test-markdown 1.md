@@ -1,4 +1,4 @@
-# Markdown Rendering Test
+# Markdown Rendering Test 1
 
 This document tests all basic markdown features.
 
@@ -10,7 +10,7 @@ Text formatting includes **bold text**, *italic text*, and ***bold italic***.
 
 ### Heading Level 3
 
-You can also use __bold with underscores__ and _italic with underscores_.
+You can also use **bold with underscores** and *italic with underscores*.
 
 #### Heading Level 4
 
@@ -36,10 +36,12 @@ console.log(greet("World"));
 
 Indented code block:
 
-    def factorial(n):
-        if n <= 1:
-            return 1
-        return n * factorial(n - 1)
+```
+def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+```
 
 ---
 
@@ -75,7 +77,7 @@ Indented code block:
 
 [External link to GitHub](https://github.com)
 
-Automatic link: https://www.example.com
+Automatic link: <https://www.example.com>
 
 ---
 
@@ -83,12 +85,14 @@ Automatic link: https://www.example.com
 
 > This is a single-line blockquote.
 
-> This is a multi-line blockquote.
-> It continues on the next line.
+> This is a multi-line blockquote.\
+> It continues on the next line.\
 > And even more lines.
 
 > Nested blockquotes:
+>
 > > This is nested
+> >
 > > > And this is double-nested
 
 ---
@@ -99,9 +103,9 @@ Three different syntaxes:
 
 ---
 
-***
+---
 
-___
+---
 
 ## Paragraphs
 
@@ -115,7 +119,7 @@ This is the third paragraph with some **bold**, *italic*, and `inline code` mixe
 
 ## Combinations
 
-You can combine **bold and `code`** or *italic and **bold italic*** in interesting ways.
+You can combine **bold and** `code` or *italic and **bold italic*** in interesting ways.
 
 > Blockquote with **bold text**, *italic text*, and `inline code`.
 
@@ -133,7 +137,7 @@ You can combine **bold and `code`** or *italic and **bold italic*** in interesti
 This table has many columns and should scroll horizontally within its own box without affecting the card width:
 
 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 | Col 8 | Col 9 | Col 10 |
-|-------|-------|-------|-------|-------|-------|-------|-------|-------|--------|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Alpha | Beta | Gamma | Delta | Epsilon | Zeta | Eta | Theta | Iota | Kappa |
 | One | Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten |
 | Lorem | Ipsum | Dolor | Sit | Amet | Consectetur | Adipiscing | Elit | Sed | Do |
@@ -144,11 +148,11 @@ This table has many columns and should scroll horizontally within its own box wi
 
 The following should NOT execute (script tags removed by DOMPurify):
 
-<script>alert('XSS Attack');</script>
+&lt;script&gt;alert('XSS Attack');&lt;/script&gt;
 
-<img src="x" onerror="alert('XSS')">
+&lt;img src="x" onerror="alert('XSS')"&gt;
 
-[Click me](javascript:alert('XSS'))
+\[Click me\](javascript:alert('XSS'))
 
 ---
 

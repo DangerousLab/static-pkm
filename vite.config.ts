@@ -34,8 +34,8 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     watch: {
-      // tell vite to ignore watching `src-tauri`
-      ignored: ['**/src-tauri/**'],
+      // tell vite to ignore watching `src-tauri` and user content directory
+      ignored: ['**/src-tauri/**', '**/public/Home/**'],
     },
   },
 

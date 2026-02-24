@@ -6,8 +6,11 @@
 import { useCallback } from 'react';
 import { useVaultStore } from '@core/state/vaultStore';
 import { useNavigationStore } from '@core/state/navigationStore';
-import { selectVaultFolder, getNavigationTree, isTauriContext } from '@core/ipc/commands';
+import { selectVaultFolder, getNavigationTree, isTauriContext, startWatchingVault } from '@core/ipc/commands';
 import type { VaultConfig } from '@/types/vault';
+
+// Module-level flag to track current watched vault
+let currentWatcherVault: string | null = null;
 
 export interface UseVaultReturn {
   /** Current vault configuration (null if no vault selected) */
@@ -86,6 +89,18 @@ export function useVault(): UseVaultReturn {
 
         // Update navigation tree
         setNavigationTree(tree);
+
+        // Start file watcher in Tauri mode (prevent duplicates)
+        if (isTauriContext()) {
+          // Only start watcher if not already watching this vault
+          if (currentWatcherVault !== path) {
+            startWatchingVault(path);
+            currentWatcherVault = path;
+            console.log('[INFO] [useVault] Started vault file watcher');
+          } else {
+            console.log('[INFO] [useVault] Watcher already active for this vault');
+          }
+        }
 
         // Debug: log tree structure
         console.log('[DEBUG] [useVault] Navigation tree:', {
