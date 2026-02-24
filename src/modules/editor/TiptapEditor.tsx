@@ -128,14 +128,6 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     };
   }, [editor]);
 
-  // Debug logging for investigating line break rendering
-  useEffect(() => {
-    if (editor && content) {
-      console.log('[DEBUG] [TiptapEditor] Editor JSON:', JSON.stringify(editor.getJSON(), null, 2));
-      console.log('[DEBUG] [TiptapEditor] Editor HTML:', editor.getHTML());
-    }
-  }, [editor, content]);
-
   // Sync content prop to editor when it changes externally (e.g., cache restore)
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;

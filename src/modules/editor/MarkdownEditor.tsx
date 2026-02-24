@@ -64,6 +64,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   const mode = useEditorStore((s) => s.mode);
 
+  // Ref to editor container for click-outside detection
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
   // Stable getter for current content (avoids stale closures in hooks)
   const contentRef = useRef(content);
   contentRef.current = content;
@@ -98,7 +101,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const { save, isSaving, lastSaved } = useSave(currentPath, getContent, handleSaveComplete);
 
   const { flushPendingSave, markClean, isDirty } = useAutoSave(content, save);
-  useFocusSave(save, content, isDirty);
+  useFocusSave(flushPendingSave, isDirty, editorContainerRef);
 
   // Track previous node ID to detect document changes
   const prevNodeIdRef = useRef<string | null>(null);
@@ -474,7 +477,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   return (
     <>
-      <div className="editor-container">
+      <div className="editor-container" ref={editorContainerRef}>
         <EditorToolbar
           isSaving={isSaving}
           isDeleted={isDeleted}

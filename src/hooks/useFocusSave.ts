@@ -1,44 +1,44 @@
 /**
  * useFocusSave hook
- * Saves immediately when user switches away from the app.
+ * Saves immediately when user switches away from the app or clicks outside the editor.
  * Implements Obsidian-style instant external visibility on focus loss.
  *
  * @module useFocusSave
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, RefObject } from 'react';
 
 /**
  * useFocusSave
- * Triggers save when app loses focus or becomes hidden
+ * Triggers save when:
+ * 1. App loses focus or becomes hidden (window blur, visibility change)
+ * 2. User clicks outside the editor container (sidebar, toolbar, background, etc.)
  *
- * @param save - Save function from useSave hook
- * @param content - Current content for empty content check
+ * @param flushPendingSave - Flush function from useAutoSave hook
  * @param isDirtyFn - Function to check if content is dirty (prevents duplicate saves)
+ * @param containerRef - Optional ref to editor container for click-outside detection
  */
 export function useFocusSave(
-  save: () => Promise<boolean>,
-  content: string,
-  isDirtyFn: () => boolean
+  flushPendingSave: () => void,
+  isDirtyFn: () => boolean,
+  containerRef?: RefObject<HTMLDivElement>
 ): void {
-  const saveRef = useRef(save);
-  const contentRef = useRef(content);
+  const flushPendingSaveRef = useRef(flushPendingSave);
   const isDirtyFnRef = useRef(isDirtyFn);
   const isSavingRef = useRef(false);  // Prevent duplicate triggers
 
-  saveRef.current = save;
-  contentRef.current = content;
+  flushPendingSaveRef.current = flushPendingSave;
   isDirtyFnRef.current = isDirtyFn;
 
   useEffect(() => {
-    const handleFocusLoss = async () => {
-      // Skip if already saving, no content, or not dirty
-      if (isSavingRef.current || !contentRef.current || !isDirtyFnRef.current()) {
+    const handleFocusLoss = () => {
+      // Skip if already saving or not dirty
+      if (isSavingRef.current || !isDirtyFnRef.current()) {
         return;
       }
 
       isSavingRef.current = true;
-      await saveRef.current();
+      flushPendingSaveRef.current();
       // Reset after short delay to allow for rapid focus changes
       setTimeout(() => { isSavingRef.current = false; }, 100);
     };
@@ -53,12 +53,30 @@ export function useFocusSave(
       handleFocusLoss();
     };
 
+    // Handle clicks outside the editor container
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!containerRef?.current) return;
+
+      // Check if click target is outside the editor container
+      if (!containerRef.current.contains(event.target as Node)) {
+        handleFocusLoss();
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleBlur);
+
+    // Add click-outside listener if containerRef is provided
+    if (containerRef) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
+      if (containerRef) {
+        document.removeEventListener('mousedown', handleClickOutside);
+      }
     };
-  }, []); // Empty deps - handlers use ref
+  }, [containerRef]); // Re-attach listener if containerRef changes
 }
