@@ -21,10 +21,12 @@ interface UseSaveReturn {
  *
  * @param absolutePath - Full filesystem path used by write_file IPC command
  * @param getContent   - Callback ref returning current content (avoids stale closures)
+ * @param onSaveComplete - Optional callback invoked after successful save (for title update, etc.)
  */
 export function useSave(
   absolutePath: string,
-  getContent: () => string
+  getContent: () => string,
+  onSaveComplete?: (path: string, content: string) => Promise<void>
 ): UseSaveReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -48,6 +50,12 @@ export function useSave(
 
       setLastSaved(new Date());
       console.log('[INFO] [useSave] Saved:', absolutePath);
+
+      // Call optional post-save hook (for title update, etc.)
+      if (onSaveComplete) {
+        await onSaveComplete(absolutePath, content);
+      }
+
       return true;
     } catch (error) {
       console.error('[ERROR] [useSave] Save failed:', error);
@@ -55,7 +63,7 @@ export function useSave(
     } finally {
       setIsSaving(false);
     }
-  }, [absolutePath]);
+  }, [absolutePath, onSaveComplete]);
 
   // Keyboard shortcut: Ctrl+S / Cmd+S
   useEffect(() => {

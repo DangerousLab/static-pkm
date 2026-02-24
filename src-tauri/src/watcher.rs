@@ -351,8 +351,16 @@ fn emit_batch(batch: &EventBatch, app: &AppHandle) {
     }
 
     for (path, mtime) in &batch.modifications {
+        let path_str = path.to_string_lossy().to_string();
+
+        // Skip if this file was recently written by our app
+        if crate::write_tracker::was_recently_written(&path_str) {
+            println!("[DEBUG] [Watcher] Skipping self-triggered file:modified: {}", path_str);
+            continue;
+        }
+
         let payload = FileModifiedPayload {
-            path: path.to_string_lossy().to_string(),
+            path: path_str,
             mtime: *mtime,
         };
         println!("[INFO] [Watcher] Emitting file:modified: {}", payload.path);

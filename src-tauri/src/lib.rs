@@ -10,6 +10,7 @@ mod indexer;
 mod models;
 mod utils;
 mod watcher;
+mod write_tracker;
 
 use std::sync::Arc;
 use tauri::{Emitter, Manager, WindowEvent};

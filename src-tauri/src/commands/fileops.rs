@@ -24,6 +24,9 @@ pub async fn read_file(path: String) -> Result<String, String> {
 pub async fn write_file(path: String, content: String) -> Result<(), String> {
     info!("[INFO] [fileops] Writing file: {}", path);
 
+    // Record write BEFORE writing (so watcher knows to ignore the event)
+    crate::write_tracker::record_write(&path);
+
     // Ensure parent directory exists
     if let Some(parent) = Path::new(&path).parent() {
         fs::create_dir_all(parent)

@@ -78,39 +78,30 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const unmountContentRef = useRef<string>('');
   const hasLoadedRef = useRef(false);
 
-  const { save: originalSave, isSaving, lastSaved } = useSave(currentPath, getContent);
+  // Track previous node title for title update detection
+  const prevNodeTitleRef = useRef<string>(node.title);
 
-  // Track save-in-progress for file:modified handler
-  const isSavingRef = useRef(false);
+  // Universal post-save handler - updates title when changed
+  const handleSaveComplete = useCallback(async (savedPath: string, savedContent: string) => {
+    const nodeId = extractNodeIdFromPath(savedPath);
+    const newTitle = extractTitleFromContent(savedContent);
+    const prevTitle = prevNodeTitleRef.current;
 
-  // Wrap save to track isSaving state and update tree title
-  const save = useCallback(async (): Promise<boolean> => {
-    const pathAtSave = currentPathRef.current;
-    const titleAtSave = prevNodeTitleRef.current;
-
-    isSavingRef.current = true;
-    const success = await originalSave();
-    isSavingRef.current = false;  // Clear immediately after write completes
-
-    if (success) {
-      // Derive nodeId from the path that was saved (avoids stale node.id)
-      const nodeId = extractNodeIdFromPath(pathAtSave);
-      const newTitle = extractTitleFromContent(contentRef.current);
-      if (newTitle && newTitle !== titleAtSave) {
-        useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
-      }
+    if (newTitle && newTitle !== prevTitle) {
+      useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
+      console.log('[INFO] [MarkdownEditor] Title updated:', prevTitle, '->', newTitle);
+      prevNodeTitleRef.current = newTitle;
     }
+  }, []);
 
-    return success;
-  }, [originalSave]);
+  // useSave with post-save callback for title updates
+  const { save, isSaving, lastSaved } = useSave(currentPath, getContent, handleSaveComplete);
 
-  const { flushPendingSave, markClean, isDirty, isSavingRef: autoSaveIsSavingRef } = useAutoSave(content, save);
+  const { flushPendingSave, markClean, isDirty } = useAutoSave(content, save);
   useFocusSave(save, content, isDirty);
 
   // Track previous node ID to detect document changes
   const prevNodeIdRef = useRef<string | null>(null);
-  // Track previous node title for document switch title update
-  const prevNodeTitleRef = useRef<string>(node.title);
   // Track rename to skip save on rename-triggered document switch
   const isRenamingRef = useRef(false);
 
@@ -151,37 +142,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       // Skip save if this is a rename (not a user navigation)
       if (isRenamingRef.current) {
         console.log('[INFO] [MarkdownEditor] Skipping save on rename');
-        isRenamingRef.current = false;
         // Just reset refs, don't save
         hasLoadedRef.current = false;
         unmountContentRef.current = '';
         unmountPathRef.current = null;
       } else {
-        // Normal document switch - save previous
-        // Flush any pending auto-save
+        // Normal document switch - flush pending auto-save (includes title update via callback)
         flushPendingSave();
-
-        // Save previous document if we have valid refs
-        if (hasLoadedRef.current && unmountContentRef.current && unmountPathRef.current) {
-          console.log('[DEBUG] [MarkdownEditor] Saving previous document on switch');
-          const prevPath = unmountPathRef.current;
-          const prevContent = unmountContentRef.current;
-          const prevTitle = prevNodeTitleRef.current;
-
-          writeFile(prevPath, prevContent)
-            .then(() => {
-              console.log('[INFO] [MarkdownEditor] Saved previous document on switch');
-
-              // Derive nodeId from the path we just saved (avoids stale prevNodeIdRef)
-              const nodeId = extractNodeIdFromPath(prevPath);
-              const newTitle = extractTitleFromContent(prevContent);
-              if (newTitle && newTitle !== prevTitle) {
-                useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
-                console.log('[INFO] [MarkdownEditor] Updated title on switch:', prevTitle, '->', newTitle);
-              }
-            })
-            .catch((err) => console.error('[ERROR] [MarkdownEditor] Failed to save previous document:', err));
-        }
 
         // Reset refs for new document
         hasLoadedRef.current = false;
@@ -217,12 +184,27 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     return () => {
       // Only save if we actually loaded content AND have valid refs
       if (hasLoadedRef.current && unmountContentRef.current && unmountPathRef.current) {
+        const pathToSave = unmountPathRef.current;
+        const contentToSave = unmountContentRef.current;
+        const prevTitle = prevNodeTitleRef.current;
+
         console.log('[DEBUG] [MarkdownEditor] Unmount save:', {
-          path: unmountPathRef.current,
-          contentLen: unmountContentRef.current.length
+          path: pathToSave,
+          contentLen: contentToSave.length
         });
-        writeFile(unmountPathRef.current, unmountContentRef.current)
-          .then(() => console.log('[INFO] [MarkdownEditor] Saved on unmount'))
+
+        writeFile(pathToSave, contentToSave)
+          .then(() => {
+            console.log('[INFO] [MarkdownEditor] Saved on unmount');
+
+            // Update title (same logic as handleSaveComplete)
+            const nodeId = extractNodeIdFromPath(pathToSave);
+            const newTitle = extractTitleFromContent(contentToSave);
+            if (newTitle && newTitle !== prevTitle) {
+              useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
+              console.log('[INFO] [MarkdownEditor] Title updated on unmount:', prevTitle, '->', newTitle);
+            }
+          })
           .catch((err) => console.error('[ERROR] [MarkdownEditor] Save on unmount failed:', err));
       }
     };
@@ -393,7 +375,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   }, [currentPath, tiptapEditor, markClean]);
 
-  // Listen for external file modifications - ALWAYS auto-reload (Obsidian behavior)
+  // Listen for external file modifications - backend already filtered our own saves
   useEffect(() => {
     if (!isTauriContext()) return;
 
@@ -402,39 +384,33 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       const normalizedCurrentPath = currentPath.replace(/\\/g, '/').toLowerCase();
 
       if (normalizedEventPath === normalizedCurrentPath) {
-        // Skip if we just saved (prevents reading our own write)
-        if (isSavingRef.current || autoSaveIsSavingRef.current) {
-          console.log('[INFO] [MarkdownEditor] Ignoring file:modified during save');
-          return;
-        }
+        // External modification detected - reload
+        console.log('[INFO] [MarkdownEditor] External modification detected - reloading');
 
-        // Read file and compare with our content
         try {
           const diskContent = await readFile(currentPath);
-
-          // If disk content matches our current content, this is our own save
-          if (diskContent === contentRef.current) {
-            console.log('[INFO] [MarkdownEditor] Ignoring own save (content matches)');
-            return;
-          }
-
-          // External modification - reload
-          console.log('[INFO] [MarkdownEditor] External modification detected - reloading');
           setContent(diskContent);
           markClean(diskContent);
+
+          // Update title if changed
+          const nodeId = extractNodeIdFromPath(currentPath);
+          const newTitle = extractTitleFromContent(diskContent);
+          const prevTitle = prevNodeTitleRef.current;
+          if (newTitle && newTitle !== prevTitle) {
+            useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
+            console.log('[INFO] [MarkdownEditor] Title updated from external change:', prevTitle, '->', newTitle);
+            prevNodeTitleRef.current = newTitle;
+          }
 
           // Update Tiptap editor if active
           if (tiptapEditor && !tiptapEditor.isDestroyed) {
             const cursorPos = tiptapEditor.state.selection.anchor;
             tiptapEditor.commands.setContent(diskContent);
-
-            // Restore cursor position (clamped to new content length)
             const maxPos = tiptapEditor.state.doc.content.size;
-            const safePos = Math.min(cursorPos, maxPos);
-            tiptapEditor.commands.setTextSelection(safePos);
+            tiptapEditor.commands.setTextSelection(Math.min(cursorPos, maxPos));
           }
         } catch (err) {
-          console.error('[ERROR] [MarkdownEditor] Failed to read for comparison:', err);
+          console.error('[ERROR] [MarkdownEditor] Failed to reload:', err);
         }
       }
     });

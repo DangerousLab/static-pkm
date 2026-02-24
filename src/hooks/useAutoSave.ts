@@ -16,7 +16,7 @@ const AUTO_SAVE_DELAY_MS = 2000;
  *
  * @param content - Current content string (triggers save when changed)
  * @param save    - Save function from useSave hook
- * @returns flushPendingSave, markClean, isDirty function, and isSavingRef
+ * @returns flushPendingSave, markClean, and isDirty function
  */
 export function useAutoSave(
   content: string,
@@ -25,12 +25,10 @@ export function useAutoSave(
   flushPendingSave: () => void;
   markClean: (diskContent: string) => void;
   isDirty: () => boolean;
-  isSavingRef: React.RefObject<boolean>;
 } {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedContentRef = useRef<string>(''); // Content that matches disk
   const isDirtyRef = useRef<boolean>(false);
-  const isSavingRef = useRef<boolean>(false);
   const saveRef = useRef<() => Promise<boolean>>(save);
   saveRef.current = save;
 
@@ -60,15 +58,12 @@ export function useAutoSave(
 
     // Schedule save in 2 seconds
     saveTimeoutRef.current = setTimeout(async () => {
-      isSavingRef.current = true;
       const success = await saveRef.current();
       if (success) {
         // After successful save, mark content as clean
         savedContentRef.current = content;
         isDirtyRef.current = false;
       }
-      // Clear immediately after write completes
-      isSavingRef.current = false;
     }, AUTO_SAVE_DELAY_MS);
 
     return () => {
@@ -84,13 +79,11 @@ export function useAutoSave(
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = undefined;
       console.log('[DEBUG] [useAutoSave] Flushing pending save');
-      isSavingRef.current = true;
       const success = await saveRef.current();
       if (success) {
         savedContentRef.current = content;
         isDirtyRef.current = false;
       }
-      isSavingRef.current = false;
     }
   }, [content]);
 
@@ -113,6 +106,5 @@ export function useAutoSave(
     flushPendingSave,
     markClean,
     isDirty,
-    isSavingRef,
   };
 }
