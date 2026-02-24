@@ -786,15 +786,14 @@ initial_build() {
 
 # Generate Tauri icons if missing or not RGBA
 generate_icons() {
-echo "Checking Tauri icons..."
-ICON_CHECK=$(file src-tauri/icons/32x32.png 2>/dev/null | grep -c "RGBA")
-if [ "$ICON_CHECK" -eq 0 ]; then
-    echo "Generating Tauri icons from source..."
-    npm run tauri -- icon public/assets/favicon/icon-512.png
-    echo "✓ Tauri icons generated"
-else
-    echo "✓ Tauri icons already valid, skipping"
-fi
+    echo "Checking Tauri icons..."
+    if file src-tauri/icons/32x32.png 2>/dev/null | grep -q "RGBA"; then
+        echo "✓ Tauri icons already valid, skipping"
+    else
+        echo "Generating Tauri icons from source..."
+        npm run tauri -- icon public/assets/favicon/icon-512.png
+        echo "✓ Tauri icons generated"
+    fi
 }
 
 ################################################################################
