@@ -273,6 +273,7 @@
 /* Hide content during scroll restoration with smooth opacity fade */
 .editor-live-preview.scroll-restoring {
   opacity: 0;
+  transition: none;
   pointer-events: none; /* Prevent interaction while hidden */
 }
 
@@ -293,6 +294,7 @@
 /* Hide content during scroll restoration with smooth opacity fade */
 .editor-source-view.scroll-restoring {
   opacity: 0;
+  transition: none;
   pointer-events: none; /* Prevent interaction while hidden */
 }
 
