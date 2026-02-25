@@ -6,7 +6,7 @@
  * @module MarkdownEditor
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { readFile, writeFile, isTauriContext } from '@core/ipc/commands';
 import { listen } from '@tauri-apps/api/event';
 import { useEditorStore } from '@core/state/editorStore';
@@ -16,6 +16,8 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useFocusSave } from '@/hooks/useFocusSave';
 import { OverlayScrollbarsComponent, getScrollbarOptions } from '@core/utils/scrollbar';
 import { needsCustomScrollbar } from '@core/utils/platform';
+import type { OverlayScrollbarsComponentRef } from 'overlayscrollbars-react';
+import type { OverlayScrollbars } from 'overlayscrollbars';
 import type { DocumentNode } from '@/types/navigation';
 import type { Editor } from '@tiptap/react';
 import { EditorToolbar } from './EditorToolbar';
@@ -61,11 +63,112 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [showDeletedModal, setShowDeletedModal] = useState(false);
   // Internal path state for rename handling (updated on file:renamed without remount)
   const [currentPath, setCurrentPath] = useState(absolutePath);
+  // Track whether scroll position has been restored (controls visibility)
+  const [isScrollRestored, setIsScrollRestored] = useState(false);
 
   const mode = useEditorStore((s) => s.mode);
+  const { updateDocumentState, getDocumentState } = useEditorStore();
+
+  // ── State machine for position restoration ────────────────────────────────
+  const editorPhaseRef = useRef<'idle' | 'loading' | 'ready' | 'restoring' | 'active'>('idle');
+  const isRestoringRef = useRef(false);
+
+  // Guard: only save position when active
+  const canSavePosition = () => !isRestoringRef.current && editorPhaseRef.current === 'active';
 
   // Ref to editor container for click-outside detection
   const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Refs for OverlayScrollbars instances
+  const editOsRef = useRef<OverlayScrollbarsComponentRef>(null);
+  const sourceOsRef = useRef<OverlayScrollbarsComponentRef>(null);
+
+  // Extended interface with reject for cleanup
+  interface ViewportPromise {
+    promise: Promise<HTMLElement>;
+    resolve: (viewport: HTMLElement) => void;
+    reject: (reason?: unknown) => void;
+  }
+
+  // Ref-based promise storage (survives re-renders)
+  const editViewportRef = useRef<ViewportPromise | null>(null);
+  const sourceViewportRef = useRef<ViewportPromise | null>(null);
+  const prevModeForPromiseRef = useRef<'edit' | 'source' | null>(null);
+
+  // State for synchronous access (scroll tracking)
+  const [editOsInstance, setEditOsInstance] = useState<OverlayScrollbars | null>(null);
+  const [sourceOsInstance, setSourceOsInstance] = useState<OverlayScrollbars | null>(null);
+
+  const useMacOSScrollbars = needsCustomScrollbar();
+
+  // Create promise only on actual mode change (not re-renders)
+  const createViewportPromise = useCallback((forMode: 'edit' | 'source'): Promise<HTMLElement> => {
+    let resolve: (viewport: HTMLElement) => void;
+    let reject: (reason?: unknown) => void;
+    const promise = new Promise<HTMLElement>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    const promiseObj = { promise, resolve: resolve!, reject: reject! };
+
+    if (forMode === 'edit') {
+      editViewportRef.current = promiseObj;
+    } else {
+      sourceViewportRef.current = promiseObj;
+    }
+
+    console.log(`[DEBUG] [MarkdownEditor] ${forMode} viewport promise created`);
+    return promise;
+  }, []);
+
+  // Get stable promise for current mode - only create if mode changed
+  const getStablePromise = useCallback((forMode: 'edit' | 'source'): Promise<HTMLElement> | undefined => {
+    if (!useMacOSScrollbars) return undefined;
+
+    const ref = forMode === 'edit' ? editViewportRef : sourceViewportRef;
+
+    // Only create new promise if none exists for this mode
+    if (!ref.current) {
+      return createViewportPromise(forMode);
+    }
+    return ref.current.promise;
+  }, [useMacOSScrollbars, createViewportPromise]);
+
+  // Compute promises - stable references
+  const editOsPromise = mode === 'edit' ? getStablePromise('edit') : undefined;
+  const sourceOsPromise = mode === 'source' ? getStablePromise('source') : undefined;
+
+  // Helper to get the actual scrollable viewport (OverlayScrollbars or plain div)
+  const getScrollViewport = useCallback((forMode: 'edit' | 'source'): HTMLElement | null => {
+    if (useMacOSScrollbars) {
+      // OverlayScrollbars: get viewport from OS instance
+      const osRef = forMode === 'edit' ? editOsRef : sourceOsRef;
+      const instance = osRef.current?.osInstance();
+      const viewport = instance?.elements().viewport ?? null;
+
+      console.log('[DEBUG] [MarkdownEditor] getScrollViewport (OverlayScrollbars):', {
+        forMode,
+        viewport: viewport ? 'found' : 'null',
+        scrollHeight: viewport?.scrollHeight,
+        clientHeight: viewport?.clientHeight,
+      });
+
+      return viewport;
+    } else {
+      // Plain div: query directly
+      const selector = forMode === 'edit' ? '.editor-live-preview' : '.editor-source-view';
+      const viewport = document.querySelector<HTMLElement>(selector);
+
+      console.log('[DEBUG] [MarkdownEditor] getScrollViewport (plain div):', {
+        forMode,
+        selector,
+        viewport: viewport ? 'found' : 'null',
+        scrollHeight: viewport?.scrollHeight,
+      });
+
+      return viewport;
+    }
+  }, [useMacOSScrollbars]);
 
   // Stable getter for current content (avoids stale closures in hooks)
   const contentRef = useRef(content);
@@ -273,77 +376,124 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     };
   }, [node.id, absolutePath, markClean]);  // Depend on absolutePath
 
-  // Restore cursor/scroll position after editor mounts or document switches (optional UX)
-  useEffect(() => {
-    if (!tiptapEditor || tiptapEditor.isDestroyed || isLoading) return;
-
-    const cached = useEditorStore.getState().getDocumentState(node.id);
-    if (cached) {
-      // Use setTimeout to ensure DOM is ready
-      setTimeout(() => {
-        if (tiptapEditor.isDestroyed) return;
-
-        if (cached.cursorPosition > 0) {
-          const maxPos = tiptapEditor.state.doc.content.size;
-          tiptapEditor.commands.setTextSelection(Math.min(cached.cursorPosition, maxPos));
-        }
-
-        if (cached.scrollPosition > 0) {
-          const scrollContainer = document.querySelector('.editor-live-preview');
-          if (scrollContainer) {
-            scrollContainer.scrollTop = cached.scrollPosition;
-          }
-        }
-      }, 0);
-    }
-  }, [tiptapEditor, node.id, isLoading]);
-
-  // Save cursor/scroll position when editor changes (optional UX)
-  useEffect(() => {
-    if (!tiptapEditor || tiptapEditor.isDestroyed) return;
-
-    const handleUpdate = () => {
-      const cursor = tiptapEditor.state.selection.anchor;
-      const scrollContainer = document.querySelector('.editor-live-preview');
-      const scroll = scrollContainer?.scrollTop ?? 0;
-
-      useEditorStore.getState().updateDocumentState(node.id, {
-        cursorPosition: cursor,
-        scrollPosition: scroll,
-      });
-    };
-
-    tiptapEditor.on('update', handleUpdate);
-    tiptapEditor.on('selectionUpdate', handleUpdate);
-
-    return () => {
-      tiptapEditor.off('update', handleUpdate);
-      tiptapEditor.off('selectionUpdate', handleUpdate);
-    };
-  }, [tiptapEditor, node.id]);
-
-  // Save cursor/scroll on unmount
-  useEffect(() => {
-    return () => {
-      if (tiptapEditor && !tiptapEditor.isDestroyed) {
-        const cursor = tiptapEditor.state.selection.anchor;
-        const scrollContainer = document.querySelector('.editor-live-preview');
-        const scroll = scrollContainer?.scrollTop ?? 0;
-
-        useEditorStore.getState().updateDocumentState(node.id, {
-          cursorPosition: cursor,
-          scrollPosition: scroll,
-        });
-      }
-    };
-  }, [tiptapEditor, node.id]);
-
   const handleChange = useCallback(
     (newContent: string) => {
       setContent(newContent);
     },
     []
   );
+
+  // Handle mode changes: reject and clear previous mode's promise
+  useEffect(() => {
+    const prevMode = prevModeForPromiseRef.current;
+
+    if (prevMode !== null && prevMode !== mode) {
+      // Mode actually changed - reject and clear the old mode's promise
+      const oldRef = prevMode === 'edit' ? editViewportRef : sourceViewportRef;
+      if (oldRef.current) {
+        console.log(`[DEBUG] [MarkdownEditor] Rejecting ${prevMode} viewport promise (mode changed)`);
+        oldRef.current.reject(new Error('Mode changed'));
+        oldRef.current = null;
+      }
+    }
+
+    prevModeForPromiseRef.current = mode;
+  }, [mode]);
+
+  // Track previous mode to detect mode changes
+  const prevModeRef = useRef(mode);
+
+  // Capture scroll position BEFORE mode switch
+  useEffect(() => {
+    if (prevModeRef.current !== mode) {
+      // MODE IS CHANGING - save current position BEFORE unmount
+      const wasEdit = prevModeRef.current === 'edit';
+      const viewport = getScrollViewport(wasEdit ? 'edit' : 'source');
+
+      if (viewport) {
+        const { scrollTop, scrollHeight, clientHeight } = viewport;
+        const scrollableHeight = Math.max(1, scrollHeight - clientHeight);
+        const scrollPercentage = Math.min(1, Math.max(0, scrollTop / scrollableHeight));
+
+        updateDocumentState(node.id, { scrollPercentage });
+        console.log('[DEBUG] [MarkdownEditor] Mode switch - saved scroll:', {
+          from: prevModeRef.current,
+          to: mode,
+          scrollTop,
+          scrollableHeight,
+          savedPercentage: scrollPercentage,
+        });
+      }
+    }
+    prevModeRef.current = mode;
+  }, [mode, node.id, updateDocumentState, getScrollViewport]);
+
+  // Track scroll position continuously
+  useEffect(() => {
+    if (!canSavePosition()) return;
+
+    const viewport = getScrollViewport(mode);
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      const scrollableHeight = Math.max(1, scrollHeight - clientHeight);
+      const scrollPercentage = Math.min(1, Math.max(0, scrollTop / scrollableHeight));
+
+      updateDocumentState(node.id, { scrollPercentage });
+      console.log('[DEBUG] [MarkdownEditor] Scroll tracked:', { scrollTop, percentage: scrollPercentage });
+    };
+
+    viewport.addEventListener('scroll', handleScroll, { passive: true });
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, [mode, node.id, updateDocumentState, getScrollViewport, editOsInstance, sourceOsInstance]);
+
+  // ── Scroll restoration callback ───────────────────────────────────────────
+  const handleScrollRestored = useCallback(() => {
+    setIsScrollRestored(true);
+    isRestoringRef.current = false;
+    editorPhaseRef.current = 'active';
+    console.log('[INFO] [MarkdownEditor] Scroll restored, position saves enabled');
+  }, []);
+
+  // ── Editor ready handler ───────────────────────────────────────────────────
+  const handleEditorReady = useCallback(() => {
+    const cached = getDocumentState(node.id);
+    if (!cached || cached.scrollPercentage <= 0) {
+      // No restoration needed - immediately active
+      setIsScrollRestored(true);
+      isRestoringRef.current = false;
+      editorPhaseRef.current = 'active';
+      console.log('[INFO] [MarkdownEditor] No scroll restoration needed');
+    } else {
+      // Restoration will happen - wait for callback
+      isRestoringRef.current = true;
+      editorPhaseRef.current = 'restoring';
+      console.log('[INFO] [MarkdownEditor] Waiting for scroll restoration');
+    }
+  }, [node.id, getDocumentState]);
+
+  // Use state for initial scroll percentage (triggers re-render)
+  const [initialScrollPercentage, setInitialScrollPercentage] = useState<number | null>(null);
+
+  // When mode changes, compute initial position from cached state
+  useEffect(() => {
+    editorPhaseRef.current = 'ready';
+    setIsScrollRestored(false); // Reset visibility on mode change
+    const cached = getDocumentState(node.id);
+
+    if (cached && cached.scrollPercentage > 0) {
+      setInitialScrollPercentage(cached.scrollPercentage);
+      console.log('[DEBUG] [MarkdownEditor] Initial scroll percentage set:', {
+        nodeId: node.id,
+        mode,
+        cached: cached.scrollPercentage,
+        newValue: cached.scrollPercentage,
+      });
+    } else {
+      setInitialScrollPercentage(null);
+    }
+  }, [mode, node.id, getDocumentState]);
 
   // Reload content from disk - Obsidian behavior: always auto-reload
   const reloadContent = useCallback(async () => {
@@ -454,7 +604,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   }, []);
 
   const osOptions = getScrollbarOptions();
-  const useMacOSScrollbars = needsCustomScrollbar();
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -488,23 +637,47 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         {mode === 'edit' && (
           useMacOSScrollbars ? (
             <OverlayScrollbarsComponent
+              ref={editOsRef}
               element="div"
-              className="editor-live-preview"
+              className={`editor-live-preview ${isScrollRestored ? '' : 'scroll-restoring'}`}
               options={osOptions}
               defer
+              events={{
+                initialized: (instance) => {
+                  console.log('[DEBUG] [MarkdownEditor] Edit OS initialized');
+                  setEditOsInstance(instance);
+                  // Resolve promise with viewport element directly
+                  const viewport = instance.elements().viewport;
+                  if (viewport && editViewportRef.current) {
+                    editViewportRef.current.resolve(viewport);
+                  }
+                },
+                destroyed: () => {
+                  console.log('[DEBUG] [MarkdownEditor] Edit OS destroyed');
+                  setEditOsInstance(null);
+                  // Don't clear ref here - mode change effect handles it
+                },
+              }}
             >
               <TiptapEditor
                 content={content}
                 onChange={handleChange}
                 onEditorReady={setTiptapEditor}
+                onReady={handleEditorReady}
+                onScrollRestored={handleScrollRestored}
+                initialScrollPercentage={initialScrollPercentage}
+                osReadyPromise={editOsPromise}
               />
             </OverlayScrollbarsComponent>
           ) : (
-            <div className="editor-live-preview">
+            <div className={`editor-live-preview ${isScrollRestored ? '' : 'scroll-restoring'}`}>
               <TiptapEditor
                 content={content}
                 onChange={handleChange}
                 onEditorReady={setTiptapEditor}
+                onReady={handleEditorReady}
+                onScrollRestored={handleScrollRestored}
+                initialScrollPercentage={initialScrollPercentage}
               />
             </div>
           )
@@ -513,21 +686,47 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         {mode === 'source' && (
           useMacOSScrollbars ? (
             <OverlayScrollbarsComponent
+              ref={sourceOsRef}
               element="div"
-              className="editor-source-view"
+              className={`editor-source-view ${isScrollRestored ? '' : 'scroll-restoring'}`}
               options={osOptions}
               defer
+              events={{
+                initialized: (instance) => {
+                  console.log('[DEBUG] [MarkdownEditor] Source OS initialized');
+                  setSourceOsInstance(instance);
+                  // Resolve promise with viewport element directly
+                  const viewport = instance.elements().viewport;
+                  if (viewport && sourceViewportRef.current) {
+                    sourceViewportRef.current.resolve(viewport);
+                  }
+                },
+                destroyed: () => {
+                  console.log('[DEBUG] [MarkdownEditor] Source OS destroyed');
+                  setSourceOsInstance(null);
+                  // Don't clear ref here - mode change effect handles it
+                },
+              }}
             >
               <SourceView
                 content={content}
                 onChange={handleChange}
+                nodeId={node.id}
+                onReady={handleEditorReady}
+                onScrollRestored={handleScrollRestored}
+                initialScrollPercentage={initialScrollPercentage}
+                osReadyPromise={sourceOsPromise}
               />
             </OverlayScrollbarsComponent>
           ) : (
-            <div className="editor-source-view">
+            <div className={`editor-source-view ${isScrollRestored ? '' : 'scroll-restoring'}`}>
               <SourceView
                 content={content}
                 onChange={handleChange}
+                nodeId={node.id}
+                onReady={handleEditorReady}
+                onScrollRestored={handleScrollRestored}
+                initialScrollPercentage={initialScrollPercentage}
               />
             </div>
           )

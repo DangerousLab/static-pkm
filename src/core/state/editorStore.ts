@@ -7,14 +7,36 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, StateStorage } from 'zustand/middleware';
 
 export type EditorMode = 'edit' | 'source';
 
 interface DocumentState {
-  cursorPosition: number;
-  scrollPosition: number;
+  /** Scroll percentage (0-1) - primary cross-mode coordinate */
+  scrollPercentage: number;
 }
+
+/**
+ * Custom storage with Map serialization support
+ */
+const mapStorage: StateStorage = {
+  getItem: (name) => {
+    const str = localStorage.getItem(name);
+    if (!str) return null;
+    return JSON.parse(str, (key, value) => {
+      if (value?.__type === 'Map') return new Map(value.entries);
+      return value;
+    });
+  },
+  setItem: (name, value) => {
+    const serialized = JSON.stringify(value, (key, val) => {
+      if (val instanceof Map) return { __type: 'Map', entries: [...val.entries()] };
+      return val;
+    });
+    localStorage.setItem(name, serialized);
+  },
+  removeItem: localStorage.removeItem.bind(localStorage),
+};
 
 interface EditorStore {
   // ── Mode ─────────────────────────────────────────────────────────────────
@@ -63,8 +85,7 @@ export const useEditorStore = create<EditorStore>()(
             states.set(noteId, { ...existing, ...updates });
           } else {
             states.set(noteId, {
-              cursorPosition: 0,
-              scrollPosition: 0,
+              scrollPercentage: 0,
               ...updates,
             });
           }
@@ -79,10 +100,12 @@ export const useEditorStore = create<EditorStore>()(
     }),
     {
       name: 'unstablon-editor',
-      // Only persist user preferences
+      storage: mapStorage,
+      // Persist user preferences and document states
       partialize: (state) => ({
         mode: state.mode,
         lineNumbersEnabled: state.lineNumbersEnabled,
+        documentStates: state.documentStates,
       }),
     }
   )

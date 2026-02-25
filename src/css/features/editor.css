@@ -268,6 +268,11 @@
   height: 100%;        /* Critical: ProseMirror needs explicit height           */
 }
 
+/* Hide content during scroll restoration to eliminate flicker */
+.editor-live-preview.scroll-restoring {
+  visibility: hidden;
+}
+
 /* ── Source view (CodeMirror 6) ──────────────────────────────────────────────
    Fills the remaining card height. CM6 manages its own scroller internally
    (same pattern as Edit view). The CM editor root gets height:100% in
@@ -278,6 +283,11 @@
   min-height: 0;
   overflow-y: auto;    /* Fallback when not using OverlayScrollbars             */
   overflow-x: hidden;
+}
+
+/* Hide content during scroll restoration to eliminate flicker */
+.editor-source-view.scroll-restoring {
+  visibility: hidden;
 }
 
 /* ── Block widgets (markdown-it rendering via CM6 decorations) ───────────────── */

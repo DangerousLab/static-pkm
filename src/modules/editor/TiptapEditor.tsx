@@ -23,11 +23,14 @@ import Highlight from '@tiptap/extension-highlight';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { common, createLowlight } from 'lowlight';
-
 interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
   onEditorReady?: (editor: Editor) => void;
+  onReady?: () => void;
+  onScrollRestored?: () => void;
+  initialScrollPercentage?: number | null;
+  osReadyPromise?: Promise<HTMLElement>;
 }
 
 const lowlight = createLowlight(common);
@@ -36,12 +39,19 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   content,
   onChange,
   onEditorReady,
+  onReady,
+  onScrollRestored,
+  initialScrollPercentage,
+  osReadyPromise,
 }) => {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   const onEditorReadyRef = useRef(onEditorReady);
   onEditorReadyRef.current = onEditorReady;
+
+  const onScrollRestoredRef = useRef(onScrollRestored);
+  onScrollRestoredRef.current = onScrollRestored;
 
   const editor = useEditor({
     extensions: [
@@ -120,13 +130,68 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   useEffect(() => {
     console.log('[INFO] [TiptapEditor] Editor mounted');
-    if (editor && onEditorReadyRef.current) {
-      onEditorReadyRef.current(editor);
+    if (!editor) {
+      return () => {
+        console.log('[INFO] [TiptapEditor] Editor destroyed');
+      };
     }
-    return () => {
-      console.log('[INFO] [TiptapEditor] Editor destroyed');
-    };
-  }, [editor]);
+
+    // Always call onEditorReady immediately
+    onEditorReadyRef.current?.(editor);
+
+    // Call new onReady callback
+    onReady?.();
+
+    // Handle scroll restoration
+    if (initialScrollPercentage != null && initialScrollPercentage > 0) {
+      let cancelled = false;
+
+      const restoreScroll = async () => {
+        let viewport: HTMLElement | null = null;
+
+        if (osReadyPromise) {
+          try {
+            console.log('[DEBUG] [TiptapEditor] Awaiting viewport ready...');
+            viewport = await osReadyPromise;
+            console.log('[DEBUG] [TiptapEditor] Viewport ready via promise');
+          } catch (err) {
+            // Promise rejected (mode changed) - abort but still restore visibility
+            console.log('[DEBUG] [TiptapEditor] Viewport promise rejected (mode changed)');
+            onScrollRestoredRef.current?.();
+            return;
+          }
+        } else {
+          // Non-OverlayScrollbars case - query DOM
+          viewport = document.querySelector<HTMLElement>('.editor-live-preview');
+          console.log('[DEBUG] [TiptapEditor] Viewport from DOM query');
+        }
+
+        if (cancelled) return;
+
+        if (viewport) {
+          const { scrollHeight, clientHeight } = viewport;
+          const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
+          viewport.scrollTop = scrollableHeight * initialScrollPercentage;
+          console.log('[DEBUG] [TiptapEditor] Scroll restored:', { scrollTop: viewport.scrollTop });
+        }
+
+        // Signal completion
+        onScrollRestoredRef.current?.();
+      };
+
+      restoreScroll();
+      return () => {
+        cancelled = true;
+        console.log('[INFO] [TiptapEditor] Editor destroyed');
+      };
+    } else {
+      // No restoration needed - signal immediately
+      onScrollRestoredRef.current?.();
+      return () => {
+        console.log('[INFO] [TiptapEditor] Editor destroyed');
+      };
+    }
+  }, [editor, initialScrollPercentage, onReady, osReadyPromise]);
 
   // Sync content prop to editor when it changes externally (e.g., cache restore)
   useEffect(() => {

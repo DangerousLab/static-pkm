@@ -15,18 +15,33 @@ import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
 import { foldGutter, foldKeymap } from '@codemirror/language';
 import { useEditorStore } from '@core/state/editorStore';
 import { unstablonSyntaxHighlighting } from '@/lib/syntax/cmHighlight';
-
 interface SourceViewProps {
   content: string;
   onChange: (content: string) => void;
+  nodeId: string;
+  onReady?: () => void;
+  onScrollRestored?: () => void;
+  initialScrollPercentage?: number | null;
+  osReadyPromise?: Promise<HTMLElement>;
 }
 
-export const SourceView: React.FC<SourceViewProps> = ({ content, onChange }) => {
+export const SourceView: React.FC<SourceViewProps> = ({
+  content,
+  onChange,
+  nodeId,
+  onReady,
+  onScrollRestored,
+  initialScrollPercentage,
+  osReadyPromise,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const isExternalUpdateRef = useRef(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const onScrollRestoredRef = useRef(onScrollRestored);
+  onScrollRestoredRef.current = onScrollRestored;
 
   const lineNumbersEnabled = useEditorStore((s) => s.lineNumbersEnabled);
 
@@ -44,6 +59,7 @@ export const SourceView: React.FC<SourceViewProps> = ({ content, onChange }) => 
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap]),  // Add fold keymap
         EditorView.updateListener.of((update) => {
+          // Save content changes
           if (update.docChanged && !isExternalUpdateRef.current) {
             onChangeRef.current(update.state.doc.toString());
           }
@@ -90,14 +106,72 @@ export const SourceView: React.FC<SourceViewProps> = ({ content, onChange }) => 
     const view = new EditorView({ state, parent: containerRef.current });
     viewRef.current = view;
 
-    console.log('[INFO] [SourceView] CodeMirror source editor mounted (simplified, no block widgets)');
+    console.log('[INFO] [SourceView] CodeMirror source editor mounted');
+
+    // Call onReady callback after mount
+    onReady?.();
 
     return () => {
       view.destroy();
       viewRef.current = null;
       console.log('[INFO] [SourceView] CodeMirror source editor destroyed');
     };
-  }, []);
+  }, [nodeId, onReady]);
+
+  // Restore scroll position after OverlayScrollbars is ready
+  useEffect(() => {
+    if (initialScrollPercentage == null || initialScrollPercentage <= 0) {
+      // No restoration needed - signal immediately
+      onScrollRestoredRef.current?.();
+      return;
+    }
+
+    let cancelled = false;
+
+    const restoreScroll = async () => {
+      let viewport: HTMLElement | null = null;
+
+      if (osReadyPromise) {
+        try {
+          console.log('[DEBUG] [SourceView] Awaiting viewport ready...');
+          viewport = await osReadyPromise;
+          console.log('[DEBUG] [SourceView] Viewport ready via promise');
+        } catch (err) {
+          // Promise rejected (mode changed) - abort but still restore visibility
+          console.log('[DEBUG] [SourceView] Viewport promise rejected (mode changed)');
+          onScrollRestoredRef.current?.();
+          return;
+        }
+      } else {
+        // Non-OverlayScrollbars case - query DOM
+        viewport = document.querySelector<HTMLElement>('.editor-source-view');
+        console.log('[DEBUG] [SourceView] Viewport from DOM query');
+      }
+
+      if (cancelled) return;
+
+      if (viewport) {
+        const { scrollHeight, clientHeight } = viewport;
+        const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
+        viewport.scrollTop = scrollableHeight * initialScrollPercentage;
+
+        console.log('[DEBUG] [SourceView] Scroll restored:', {
+          initialScrollPercentage,
+          scrollableHeight,
+          targetScrollTop: viewport.scrollTop,
+        });
+      }
+
+      // Signal completion
+      onScrollRestoredRef.current?.();
+    };
+
+    restoreScroll();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialScrollPercentage, osReadyPromise]);
 
   // ── Sync external content changes ─────────────────────────────────────────
   useEffect(() => {

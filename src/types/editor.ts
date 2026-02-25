@@ -5,10 +5,9 @@
 
 /**
  * Optional document state for cursor/scroll restoration (UX enhancement)
+ * Simplified to scroll percentage only - works reliably across modes
  */
 export interface DocumentState {
-  /** Cursor position (character offset) */
-  cursorPosition: number;
-  /** Scroll position (pixels from top) */
-  scrollPosition: number;
+  /** Scroll percentage (0-1) - primary cross-mode coordinate */
+  scrollPercentage: number;
 }
