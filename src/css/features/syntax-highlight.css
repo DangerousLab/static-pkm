@@ -2,46 +2,57 @@
    Shared between CM6 (edit mode) and highlight.js (read mode).
    Both modes consume these CSS variables, so the theme toggle works
    automatically when data-theme switches on :root.
+
+   IMPORTANT: The app always sets data-theme to "dark" or "light" (never absent).
+   Plain :root {} has specificity (0,1,0) while :root[data-theme="light"] {} has
+   (0,2,0). To avoid losing the specificity race in the production CSS bundle,
+   dark-mode values are defined under BOTH :root {} AND :root[data-theme="dark"] {}.
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Keywords: if, for, return, import, etc. */
-  --code-keyword:   #c792ea;
-  /* Strings: "hello", 'world' */
-  --code-string:    #c3e88d;
-  /* Numbers: 42, 3.14 */
-  --code-number:    #f78c6c;
-  /* Comments: // ... , /* ... */ */
-  --code-comment:   #546e7a;
-  /* Function names / calls */
-  --code-function:  #82aaff;
-  /* Type names / class names */
-  --code-type:      #ffcb6b;
-  /* Operators: +, -, =, => */
-  --code-operator:  #89ddff;
-  /* Builtins: print, len, console */
-  --code-builtin:   #80cbc4;
-  /* Variables / identifiers */
-  --code-variable:  #eeffff;
-  /* Attributes / properties */
-  --code-attr:      #f07178;
-  /* Punctuation */
+  /* Fallback values (used when no data-theme attribute is set) */
+  --code-keyword: #c792ea;
+  --code-string: #c3e88d;
+  --code-number: #f78c6c;
+  --code-comment: #546e7a;
+  --code-function: #82aaff;
+  --code-type: #ffcb6b;
+  --code-operator: #89ddff;
+  --code-builtin: #80cbc4;
+  --code-variable: #eeffff;
+  --code-attr: #f07178;
   --code-punctuation: #89ddff;
-  /* Tag names in HTML/XML/JSX */
-  --code-tag:       #f07178;
+  --code-tag: #f07178;
 }
 
+/* Dark theme — explicit attribute selector to match the specificity of [data-theme="light"] */
+:root[data-theme="dark"] {
+  --code-keyword: #c792ea;
+  --code-string: #c3e88d;
+  --code-number: #f78c6c;
+  --code-comment: #546e7a;
+  --code-function: #82aaff;
+  --code-type: #ffcb6b;
+  --code-operator: #89ddff;
+  --code-builtin: #80cbc4;
+  --code-variable: #eeffff;
+  --code-attr: #f07178;
+  --code-punctuation: #89ddff;
+  --code-tag: #f07178;
+}
+
+/* Light theme */
 :root[data-theme="light"] {
-  --code-keyword:   #7c3aed;
-  --code-string:    #16a34a;
-  --code-number:    #ea580c;
-  --code-comment:   #94a3b8;
-  --code-function:  #2563eb;
-  --code-type:      #b45309;
-  --code-operator:  #0891b2;
-  --code-builtin:   #0f766e;
-  --code-variable:  #111827;
-  --code-attr:      #dc2626;
+  --code-keyword: #7c3aed;
+  --code-string: #16a34a;
+  --code-number: #ea580c;
+  --code-comment: #94a3b8;
+  --code-function: #2563eb;
+  --code-type: #b45309;
+  --code-operator: #0891b2;
+  --code-builtin: #0f766e;
+  --code-variable: #111827;
+  --code-attr: #dc2626;
   --code-punctuation: #0891b2;
-  --code-tag:       #dc2626;
+  --code-tag: #dc2626;
 }

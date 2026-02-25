@@ -50,6 +50,18 @@ export default defineConfig({
       '@contexts': resolve(__dirname, './src/contexts'),
       '@types': resolve(__dirname, './src/types'),
     },
+    // Force single instances of CM6 core packages across all Rollup chunks.
+    // Without this, Vite/Rollup can create separate copies in split chunks,
+    // each with their own Facet registry and StyleModule counter — causing
+    // highlight class IDs and facet priorities to mismatch between dev and build.
+    dedupe: [
+      '@codemirror/state',
+      '@codemirror/view',
+      '@codemirror/language',
+      '@lezer/highlight',
+      '@lezer/common',
+      'style-mod',
+    ],
   },
 
   // Build output configuration

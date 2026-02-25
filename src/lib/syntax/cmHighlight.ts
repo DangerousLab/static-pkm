@@ -3,6 +3,7 @@
 // Import this in EditView.tsx and SourceView.tsx and add to the extensions array.
 
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { Prec } from '@codemirror/state';
 import { tags as t } from '@lezer/highlight';
 
 /**
@@ -12,64 +13,75 @@ import { tags as t } from '@lezer/highlight';
  */
 export const unstablonHighlightStyle = HighlightStyle.define([
   // ── Code-related (programming languages) ────────────────────────────────
-  { tag: t.keyword,                       color: 'var(--code-keyword)' },
-  { tag: t.string,                        color: 'var(--code-string)' },
-  { tag: t.number,                        color: 'var(--code-number)' },
-  { tag: t.comment,                       color: 'var(--code-comment)', fontStyle: 'italic' },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)],
-                                          color: 'var(--code-function)' },
-  { tag: [t.typeName, t.className, t.namespace],
-                                          color: 'var(--code-type)' },
-  { tag: t.operator,                      color: 'var(--code-operator)' },
-  { tag: t.standard(t.variableName),      color: 'var(--code-builtin)' },
-  { tag: t.variableName,                  color: 'var(--code-variable)' },
-  { tag: t.attributeName,                 color: 'var(--code-attr)' },
-  { tag: t.punctuation,                   color: 'var(--code-punctuation)' },
-  { tag: t.tagName,                       color: 'var(--code-tag)' },
-  { tag: t.self,                          color: 'var(--code-keyword)' },
-  { tag: t.bool,                          color: 'var(--code-number)' },
-  { tag: t.null,                          color: 'var(--code-number)' },
-  { tag: t.atom,                          color: 'var(--code-number)' },
-  { tag: t.regexp,                        color: 'var(--code-string)' },
-  { tag: t.escape,                        color: 'var(--code-string)' },
+  { tag: t.keyword, color: 'var(--code-keyword)' },
+  { tag: t.string, color: 'var(--code-string)' },
+  { tag: t.number, color: 'var(--code-number)' },
+  { tag: t.comment, color: 'var(--code-comment)', fontStyle: 'italic' },
+  {
+    tag: [t.function(t.variableName), t.function(t.propertyName)],
+    color: 'var(--code-function)'
+  },
+  {
+    tag: [t.typeName, t.className, t.namespace],
+    color: 'var(--code-type)'
+  },
+  { tag: t.operator, color: 'var(--code-operator)' },
+  { tag: t.standard(t.variableName), color: 'var(--code-builtin)' },
+  { tag: t.variableName, color: 'var(--code-variable)' },
+  { tag: t.attributeName, color: 'var(--code-attr)' },
+  { tag: t.punctuation, color: 'var(--code-punctuation)' },
+  { tag: t.tagName, color: 'var(--code-tag)' },
+  { tag: t.self, color: 'var(--code-keyword)' },
+  { tag: t.bool, color: 'var(--code-number)' },
+  { tag: t.null, color: 'var(--code-number)' },
+  { tag: t.atom, color: 'var(--code-number)' },
+  { tag: t.regexp, color: 'var(--code-string)' },
+  { tag: t.escape, color: 'var(--code-string)' },
 
   // ── Markdown-specific (Source mode) ──────────────────────────────────────
 
   // Headings: # Header text
-  { tag: t.heading1,                      color: 'var(--code-keyword)', fontWeight: 'bold' },
-  { tag: t.heading2,                      color: 'var(--code-keyword)', fontWeight: 'bold' },
-  { tag: t.heading3,                      color: 'var(--code-keyword)', fontWeight: 'bold' },
-  { tag: t.heading4,                      color: 'var(--code-keyword)', fontWeight: 'bold' },
-  { tag: t.heading5,                      color: 'var(--code-keyword)', fontWeight: 'bold' },
-  { tag: t.heading6,                      color: 'var(--code-keyword)', fontWeight: 'bold' },
-  { tag: t.heading,                       color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading1, color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading2, color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading3, color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading4, color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading5, color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading6, color: 'var(--code-keyword)', fontWeight: 'bold' },
+  { tag: t.heading, color: 'var(--code-keyword)', fontWeight: 'bold' },
 
   // Emphasis: *italic* and **bold**
-  { tag: t.emphasis,                      fontStyle: 'italic' },
-  { tag: t.strong,                        fontWeight: 'bold' },
-  { tag: t.strikethrough,                 textDecoration: 'line-through' },
+  { tag: t.emphasis, fontStyle: 'italic' },
+  { tag: t.strong, fontWeight: 'bold' },
+  { tag: t.strikethrough, textDecoration: 'line-through' },
 
   // Links: [text](url) and ![alt](src)
-  { tag: t.link,                          color: 'var(--code-function)', textDecoration: 'underline' },
-  { tag: t.url,                           color: 'var(--code-string)' },
+  { tag: t.link, color: 'var(--code-function)', textDecoration: 'underline' },
+  { tag: t.url, color: 'var(--code-string)' },
 
   // Quotes: > blockquote text
-  { tag: t.quote,                         color: 'var(--code-comment)', fontStyle: 'italic' },
+  { tag: t.quote, color: 'var(--code-comment)', fontStyle: 'italic' },
 
   // Lists: - item, 1. item
-  { tag: t.list,                          color: 'var(--code-operator)' },
+  { tag: t.list, color: 'var(--code-operator)' },
 
   // Code: `inline` and ``` fenced
-  { tag: t.monospace,                     fontFamily: 'var(--font-mono, monospace)' },
+  { tag: t.monospace, fontFamily: 'var(--font-mono, monospace)' },
 
   // Markdown meta characters (# * - ` etc)
-  { tag: t.processingInstruction,         color: 'var(--code-comment)' },
-  { tag: t.meta,                          color: 'var(--code-comment)' },
+  { tag: t.processingInstruction, color: 'var(--code-comment)' },
+  { tag: t.meta, color: 'var(--code-comment)' },
 
   // Content info (language in fenced code)
-  { tag: t.contentSeparator,              color: 'var(--code-punctuation)' },
-  { tag: t.labelName,                     color: 'var(--code-attr)' },
+  { tag: t.contentSeparator, color: 'var(--code-punctuation)' },
+  { tag: t.labelName, color: 'var(--code-attr)' },
 ]);
 
-/** Drop-in CM6 extension. Add to EditView/SourceView extensions array. */
-export const unstablonSyntaxHighlighting = syntaxHighlighting(unstablonHighlightStyle);
+/**
+ * Drop-in CM6 extension. Add to EditView/SourceView extensions array.
+ *
+ * Wrapped in Prec.highest() so our custom colors win in the production
+ * Rollup bundle where language-pack HighlightStyles (loaded dynamically
+ * for fenced code blocks) may otherwise register at a higher facet
+ * priority than our extension due to different initialization order.
+ */
+export const unstablonSyntaxHighlighting = Prec.highest(syntaxHighlighting(unstablonHighlightStyle));
