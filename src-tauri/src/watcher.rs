@@ -160,6 +160,7 @@ struct EventBatch {
 
 impl EventBatch {
     fn add(&mut self, event: &Event) {
+        println!("[DEBUG] [Watcher] Event: kind={:?} paths={:?}", event.kind, event.paths);
         match &event.kind {
             // Navigation tree changes
             EventKind::Create(_) => {
@@ -206,7 +207,20 @@ impl EventBatch {
                             }
                         }
                     }
-                    _ => {}
+                    _ => {
+                        // macOS FSEvents: RenameMode::Any is emitted for BOTH renames and
+                        // deletions. Disambiguate by checking whether the path still exists:
+                        // gone → deletion; still present → rename handled elsewhere.
+                        for path in &event.paths {
+                            if is_content_file(path) && !path.exists() {
+                                println!(
+                                    "[DEBUG] [Watcher] macOS: path gone after rename event, treating as delete: {:?}",
+                                    path
+                                );
+                                self.deletions.push(path.clone());
+                            }
+                        }
+                    }
                 }
             }
             // Content modifications

@@ -1,6 +1,6 @@
 # Markdown Rendering Test 1
 
-This document tests all basic markdown features.
+- [ ] This document tests all basic markdown features.
 
 **Anchor link test:** [Jump to Wide Table](#wide-table-overflow-test) · [Jump to Links](#links) · [Jump to XSS Test](#xss-security-test)
 
