@@ -266,11 +266,14 @@
   overflow-y: auto;    /* Parent container scroll for OverlayScrollbars         */
   overflow-x: hidden;
   height: 100%;        /* Critical: ProseMirror needs explicit height           */
+  opacity: 1;
+  transition: opacity var(--anim-normal) var(--ease-out);
 }
 
-/* Hide content during scroll restoration to eliminate flicker */
+/* Hide content during scroll restoration with smooth opacity fade */
 .editor-live-preview.scroll-restoring {
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none; /* Prevent interaction while hidden */
 }
 
 /* ── Source view (CodeMirror 6) ──────────────────────────────────────────────
@@ -283,11 +286,14 @@
   min-height: 0;
   overflow-y: auto;    /* Fallback when not using OverlayScrollbars             */
   overflow-x: hidden;
+  opacity: 1;
+  transition: opacity var(--anim-normal) var(--ease-out);
 }
 
-/* Hide content during scroll restoration to eliminate flicker */
+/* Hide content during scroll restoration with smooth opacity fade */
 .editor-source-view.scroll-restoring {
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none; /* Prevent interaction while hidden */
 }
 
 /* ── Block widgets (markdown-it rendering via CM6 decorations) ───────────────── */

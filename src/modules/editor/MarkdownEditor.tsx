@@ -73,6 +73,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const editorPhaseRef = useRef<'idle' | 'loading' | 'ready' | 'restoring' | 'active'>('idle');
   const isRestoringRef = useRef(false);
 
+  // Track previous mode for synchronous scroll state reset
+  const prevModeForScrollRef = useRef<'edit' | 'source'>(mode);
+
+  // Synchronous reset: When mode changes, hide content BEFORE first render of new view
+  // This prevents the flash where the new view is briefly visible at scrollTop=0
+  if (prevModeForScrollRef.current !== mode) {
+    if (isScrollRestored) {
+      setIsScrollRestored(false);
+    }
+    prevModeForScrollRef.current = mode;
+  }
+
   // Guard: only save position when active
   const canSavePosition = () => !isRestoringRef.current && editorPhaseRef.current === 'active';
 
@@ -210,7 +222,30 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const prevNodeIdRef = useRef<string | null>(null);
   // Track rename to skip save on rename-triggered document switch
   const isRenamingRef = useRef(false);
+  // Track previous node for viewport promise cleanup
+  const prevNodeIdForPromiseRef = useRef<string | null>(null);
 
+
+  // Clear viewport promises on document change
+  useEffect(() => {
+    const prevNodeId = prevNodeIdForPromiseRef.current;
+
+    if (prevNodeId !== null && prevNodeId !== node.id) {
+      // Document changed - clear viewport promises (they'll be recreated)
+      if (editViewportRef.current) {
+        console.log('[DEBUG] [MarkdownEditor] Clearing edit viewport promise (document changed)');
+        editViewportRef.current.reject(new Error('Document changed'));
+        editViewportRef.current = null;
+      }
+      if (sourceViewportRef.current) {
+        console.log('[DEBUG] [MarkdownEditor] Clearing source viewport promise (document changed)');
+        sourceViewportRef.current.reject(new Error('Document changed'));
+        sourceViewportRef.current = null;
+      }
+    }
+
+    prevNodeIdForPromiseRef.current = node.id;
+  }, [node.id]);
 
   // Listen for file:renamed events
   useEffect(() => {
@@ -261,6 +296,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         unmountContentRef.current = '';
         unmountPathRef.current = null;
       }
+
+      // Reset scroll percentage for new document
+      setInitialScrollPercentage(null);
     }
 
     // Update previous node ID and title
@@ -477,7 +515,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [initialScrollPercentage, setInitialScrollPercentage] = useState<number | null>(null);
 
   // When mode changes, compute initial position from cached state
+  // CRITICAL: Wait for content to load before setting scroll percentage
   useEffect(() => {
+    // Wait for content to load before setting scroll percentage
+    if (isLoading) {
+      console.log('[DEBUG] [MarkdownEditor] Deferring scroll percentage (still loading)');
+      return;
+    }
+
     editorPhaseRef.current = 'ready';
     setIsScrollRestored(false); // Reset visibility on mode change
     const cached = getDocumentState(node.id);
@@ -493,7 +538,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     } else {
       setInitialScrollPercentage(null);
     }
-  }, [mode, node.id, getDocumentState]);
+  }, [mode, node.id, getDocumentState, isLoading]);
 
   // Reload content from disk - Obsidian behavior: always auto-reload
   const reloadContent = useCallback(async () => {
