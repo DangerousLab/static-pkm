@@ -28,6 +28,24 @@
   color: var(--text-main);
 }
 
+/* ── Performance Optimization ───────────────────────────────────────────── */
+
+.tiptap-editor .tiptap > p,
+.tiptap-editor .tiptap > h1,
+.tiptap-editor .tiptap > h2,
+.tiptap-editor .tiptap > h3,
+.tiptap-editor .tiptap > h4,
+.tiptap-editor .tiptap > h5,
+.tiptap-editor .tiptap > h6,
+.tiptap-editor .tiptap > pre,
+.tiptap-editor .tiptap > blockquote,
+.tiptap-editor .tiptap > ul,
+.tiptap-editor .tiptap > ol,
+.tiptap-editor .tiptap > table {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 24px;
+}
+
 /* ── Headings ───────────────────────────────────────────────────────────── */
 
 .tiptap-editor .tiptap h1,
