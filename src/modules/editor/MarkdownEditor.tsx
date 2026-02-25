@@ -6,7 +6,7 @@
  * @module MarkdownEditor
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { readFile, writeFile, isTauriContext } from '@core/ipc/commands';
 import { listen } from '@tauri-apps/api/event';
 import { useEditorStore } from '@core/state/editorStore';
@@ -48,7 +48,7 @@ function extractTitleFromContent(content: string): string {
 function extractNodeIdFromPath(path: string): string {
   const normalized = path.replace(/\\/g, '/');
   const parts = normalized.split('/');
-  return parts[parts.length - 1];
+  return parts[parts.length - 1] ?? '';
 }
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
@@ -65,6 +65,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [currentPath, setCurrentPath] = useState(absolutePath);
   // Track whether scroll position has been restored (controls visibility)
   const [isScrollRestored, setIsScrollRestored] = useState(false);
+  // Increments on every document switch to force scroll restoration re-runs
+  // even when initialScrollPercentage is numerically identical across docs.
+  const [restoreToken, setRestoreToken] = useState(0);
 
   const mode = useEditorStore((s) => s.mode);
   const { updateDocumentState, getDocumentState } = useEditorStore();
@@ -72,6 +75,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // ── State machine for position restoration ────────────────────────────────
   const editorPhaseRef = useRef<'idle' | 'loading' | 'ready' | 'restoring' | 'active'>('idle');
   const isRestoringRef = useRef(false);
+
+  // FIX 2: Cache the most recently computed scroll percentage here on every
+  // scroll event. The mode-switch effect reads this ref instead of querying
+  // the old mode's OS instance, which may already be destroyed by the time
+  // effects run in production builds.
+  const lastScrollPercentageRef = useRef<number>(0);
 
   // Track previous mode for synchronous scroll state reset
   const prevModeForScrollRef = useRef<'edit' | 'source'>(mode);
@@ -89,7 +98,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const canSavePosition = () => !isRestoringRef.current && editorPhaseRef.current === 'active';
 
   // Ref to editor container for click-outside detection
-  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Synchronous flag: document-change effect sets this BEFORE the load effect's
+  // setIsLoading(true) can flush.  The scroll-percentage effect checks this ref
+  // to avoid setting initialScrollPercentage while content is stale.
+  const pendingDocLoadRef = useRef(false);
 
   // Refs for OverlayScrollbars instances
   const editOsRef = useRef<OverlayScrollbarsComponentRef>(null);
@@ -106,6 +120,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const editViewportRef = useRef<ViewportPromise | null>(null);
   const sourceViewportRef = useRef<ViewportPromise | null>(null);
   const prevModeForPromiseRef = useRef<'edit' | 'source' | null>(null);
+
+  // FIX 1: Viewport buffer refs — always store the latest OS viewport element.
+  // These are updated unconditionally in the `initialized` / `destroyed` callbacks
+  // so that if the promise is created AFTER `initialized` fires, it can resolve
+  // immediately from a buffered viewport rather than waiting forever.
+  const editViewportElementRef = useRef<HTMLElement | null>(null);
+  const sourceViewportElementRef = useRef<HTMLElement | null>(null);
 
   // State for synchronous access (scroll tracking)
   const [editOsInstance, setEditOsInstance] = useState<OverlayScrollbars | null>(null);
@@ -127,6 +148,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       editViewportRef.current = promiseObj;
     } else {
       sourceViewportRef.current = promiseObj;
+    }
+
+    // FIX 1: If the viewport is already available (initialized fired before the
+    // promise was created), resolve immediately — UNLESS a doc-load is pending.
+    // During a doc switch, the buffered viewport is the old document's element and
+    // will be detached when React destroys/recreates the OS component. Resolving
+    // with it produces scrollableHeight=0 and scrollTop=0.
+    const elementRef = forMode === 'edit' ? editViewportElementRef : sourceViewportElementRef;
+    if (elementRef.current && !pendingDocLoadRef.current) {
+      console.log(`[DEBUG] [MarkdownEditor] ${forMode} viewport already available — resolving immediately`);
+      promiseObj.resolve(elementRef.current);
     }
 
     console.log(`[DEBUG] [MarkdownEditor] ${forMode} viewport promise created`);
@@ -213,10 +245,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   }, []);
 
   // useSave with post-save callback for title updates
-  const { save, isSaving, lastSaved } = useSave(currentPath, getContent, handleSaveComplete);
+  const { save, isSaving } = useSave(currentPath, getContent, handleSaveComplete);
 
   const { flushPendingSave, markClean, isDirty } = useAutoSave(content, save);
-  useFocusSave(flushPendingSave, isDirty, editorContainerRef);
+  useFocusSave(flushPendingSave, isDirty, editorContainerRef as React.RefObject<HTMLDivElement>);
 
   // Track previous node ID to detect document changes
   const prevNodeIdRef = useRef<string | null>(null);
@@ -280,6 +312,31 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     if (prevNodeIdRef.current !== null && prevNodeIdRef.current !== node.id) {
       console.log('[DEBUG] [MarkdownEditor] Document changed, flushing save:', prevNodeIdRef.current);
 
+      // Capture scroll position for the OLD document before switching.
+      // Same pattern as the mode-switch capture — uses the ref-cached value
+      // because the OS viewport may already be in flux at this point.
+      const scrollPercentage = lastScrollPercentageRef.current;
+      if (scrollPercentage > 0) {
+        updateDocumentState(prevNodeIdRef.current, { scrollPercentage });
+        console.log('[DEBUG] [MarkdownEditor] Document switch - saved scroll for old doc:', {
+          oldNodeId: prevNodeIdRef.current,
+          savedPercentage: scrollPercentage,
+        });
+      }
+
+      // Signal that content for the new document hasn't loaded yet.
+      // This ref is visible to the scroll-percentage effect within the same
+      // effects batch, unlike batched state updates (isLoading).
+      pendingDocLoadRef.current = true;
+
+      // Increment restore token so child editors always re-run their scroll
+      // restoration effect, even if the cached percentage is numerically
+      // identical to the previous document.
+      setRestoreToken((t) => t + 1);
+
+      // Reset the ref for the incoming document
+      lastScrollPercentageRef.current = 0;
+
       // Skip save if this is a rename (not a user navigation)
       if (isRenamingRef.current) {
         console.log('[INFO] [MarkdownEditor] Skipping save on rename');
@@ -304,7 +361,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     // Update previous node ID and title
     prevNodeIdRef.current = node.id;
     prevNodeTitleRef.current = node.title;
-  }, [node.id, flushPendingSave]);
+  }, [node.id, flushPendingSave, updateDocumentState]);
 
   // Keep content ref synced for unmount save (only after THIS document loads)
   useEffect(() => {
@@ -359,6 +416,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     // If renaming, don't reload - content is already in editor
     if (isRenamingRef.current) {
       isRenamingRef.current = false;
+      pendingDocLoadRef.current = false; // No load needed for rename
       console.log('[INFO] [MarkdownEditor] Skipping reload on rename');
       return;
     }
@@ -383,8 +441,21 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             setContent(text);
             setCurrentPath(absolutePath);  // Sync state after successful load
             setIsLoading(false);
+            pendingDocLoadRef.current = false; // Content loaded
             markClean(text); // Mark as clean - prevents auto-save
             console.log('[INFO] [MarkdownEditor] Loaded:', node.id);
+
+            // Production path: OS stays mounted across doc switches and
+            // `initialized` won't re-fire.  Manually resolve the pending
+            // promise from the live instance so TiptapEditor/SourceView can
+            // restore scroll with correct content dimensions.
+            const activeViewportRef = mode === 'edit' ? editViewportRef : sourceViewportRef;
+            const activeOsRef = mode === 'edit' ? editOsRef : sourceOsRef;
+            const liveViewport = activeOsRef.current?.osInstance()?.elements().viewport;
+            if (liveViewport && activeViewportRef.current) {
+              console.log(`[DEBUG] [MarkdownEditor] Resolving ${mode} viewport promise after content load`);
+              activeViewportRef.current.resolve(liveViewport);
+            }
           }
           return; // Success, exit retry loop
         } catch (err) {
@@ -405,6 +476,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
       if (!cancelled) {
         setIsLoading(false);
+        pendingDocLoadRef.current = false; // Clear even on error
       }
     }
 
@@ -444,27 +516,21 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // Capture scroll position BEFORE mode switch
   useEffect(() => {
     if (prevModeRef.current !== mode) {
-      // MODE IS CHANGING - save current position BEFORE unmount
-      const wasEdit = prevModeRef.current === 'edit';
-      const viewport = getScrollViewport(wasEdit ? 'edit' : 'source');
-
-      if (viewport) {
-        const { scrollTop, scrollHeight, clientHeight } = viewport;
-        const scrollableHeight = Math.max(1, scrollHeight - clientHeight);
-        const scrollPercentage = Math.min(1, Math.max(0, scrollTop / scrollableHeight));
-
+      // FIX 2: Use the ref-cached scroll percentage instead of querying the
+      // OS viewport — in production builds the old OS instance is already
+      // destroyed by the time this effect runs, so getScrollViewport returns null.
+      const scrollPercentage = lastScrollPercentageRef.current;
+      if (scrollPercentage > 0) {
         updateDocumentState(node.id, { scrollPercentage });
-        console.log('[DEBUG] [MarkdownEditor] Mode switch - saved scroll:', {
+        console.log('[DEBUG] [MarkdownEditor] Mode switch - saved scroll (ref cache):', {
           from: prevModeRef.current,
           to: mode,
-          scrollTop,
-          scrollableHeight,
           savedPercentage: scrollPercentage,
         });
       }
     }
     prevModeRef.current = mode;
-  }, [mode, node.id, updateDocumentState, getScrollViewport]);
+  }, [mode, node.id, updateDocumentState]);
 
   // Track scroll position continuously
   useEffect(() => {
@@ -478,6 +544,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       const scrollableHeight = Math.max(1, scrollHeight - clientHeight);
       const scrollPercentage = Math.min(1, Math.max(0, scrollTop / scrollableHeight));
 
+      // FIX 2: Keep a ref-cached copy so mode-switch capture doesn't need the live viewport.
+      lastScrollPercentageRef.current = scrollPercentage;
       updateDocumentState(node.id, { scrollPercentage });
       console.log('[DEBUG] [MarkdownEditor] Scroll tracked:', { scrollTop, percentage: scrollPercentage });
     };
@@ -493,6 +561,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     editorPhaseRef.current = 'active';
     console.log('[INFO] [MarkdownEditor] Scroll restored, position saves enabled');
   }, []);
+
+  // FIX 3: Safety net — if scroll restoration stalls for any reason, force the
+  // content visible after 300 ms. This is a defensive fallback that prevents a
+  // permanent state lock; the primary mechanism is the promise chain above.
+  useEffect(() => {
+    if (isScrollRestored) return;
+    const timer = setTimeout(() => {
+      console.log('[WARN] [MarkdownEditor] Scroll restoration timeout — forcing visible');
+      setIsScrollRestored(true);
+      isRestoringRef.current = false;
+      editorPhaseRef.current = 'active';
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isScrollRestored]);
 
   // ── Editor ready handler ───────────────────────────────────────────────────
   const handleEditorReady = useCallback(() => {
@@ -517,8 +599,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   // When mode changes, compute initial position from cached state
   // CRITICAL: Wait for content to load before setting scroll percentage
   useEffect(() => {
-    // Wait for content to load before setting scroll percentage
-    if (isLoading) {
+    // Wait for content to load before setting scroll percentage.
+    // pendingDocLoadRef bridges the gap where React's batched state updates
+    // haven't flushed isLoading=true yet — without it, this effect would
+    // run with stale isLoading=false and restore scroll with wrong content.
+    if (isLoading || pendingDocLoadRef.current) {
       console.log('[DEBUG] [MarkdownEditor] Deferring scroll percentage (still loading)');
       return;
     }
@@ -540,38 +625,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   }, [mode, node.id, getDocumentState, isLoading]);
 
-  // Reload content from disk - Obsidian behavior: always auto-reload
-  const reloadContent = useCallback(async () => {
-    try {
-      console.log('[INFO] [MarkdownEditor] Auto-reloading from disk:', currentPath);
-      const text = await readFile(currentPath);
-
-      // Preserve cursor position in Tiptap
-      let cursorPos: number | null = null;
-      if (tiptapEditor && !tiptapEditor.isDestroyed) {
-        cursorPos = tiptapEditor.state.selection.anchor;
-      }
-
-      setContent(text);
-      markClean(text); // Mark as clean - prevents auto-save loop
-
-      // Update Tiptap editor and restore cursor
-      if (tiptapEditor && !tiptapEditor.isDestroyed) {
-        tiptapEditor.commands.setContent(text);
-
-        // Restore cursor position (clamped to new content length)
-        if (cursorPos !== null) {
-          const maxPos = tiptapEditor.state.doc.content.size;
-          const safePos = Math.min(cursorPos, maxPos);
-          tiptapEditor.commands.setTextSelection(safePos);
-        }
-      }
-
-      console.log('[INFO] [MarkdownEditor] Auto-reload complete');
-    } catch (err) {
-      console.error('[ERROR] [MarkdownEditor] Auto-reload failed:', err);
-    }
-  }, [currentPath, tiptapEditor, markClean]);
+  // Note: reloadContent is handled inline in the file:modified event listener below
 
   // Listen for external file modifications - backend already filtered our own saves
   useEffect(() => {
@@ -691,16 +745,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 initialized: (instance) => {
                   console.log('[DEBUG] [MarkdownEditor] Edit OS initialized');
                   setEditOsInstance(instance);
-                  // Resolve promise with viewport element directly
                   const viewport = instance.elements().viewport;
+                  // FIX 1: Always buffer the viewport element so the promise can
+                  // auto-resolve even if it hasn't been created yet.
+                  editViewportElementRef.current = viewport;
                   if (viewport && editViewportRef.current) {
                     editViewportRef.current.resolve(viewport);
                   }
                 },
                 destroyed: () => {
                   console.log('[DEBUG] [MarkdownEditor] Edit OS destroyed');
+                  // FIX 1: Clear the buffer so stale viewports don't resolve future promises.
+                  editViewportElementRef.current = null;
                   setEditOsInstance(null);
-                  // Don't clear ref here - mode change effect handles it
                 },
               }}
             >
@@ -712,6 +769,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 onScrollRestored={handleScrollRestored}
                 initialScrollPercentage={initialScrollPercentage}
                 osReadyPromise={editOsPromise}
+                restoreToken={restoreToken}
               />
             </OverlayScrollbarsComponent>
           ) : (
@@ -723,6 +781,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 onReady={handleEditorReady}
                 onScrollRestored={handleScrollRestored}
                 initialScrollPercentage={initialScrollPercentage}
+                restoreToken={restoreToken}
               />
             </div>
           )
@@ -740,16 +799,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 initialized: (instance) => {
                   console.log('[DEBUG] [MarkdownEditor] Source OS initialized');
                   setSourceOsInstance(instance);
-                  // Resolve promise with viewport element directly
                   const viewport = instance.elements().viewport;
+                  // FIX 1: Always buffer the viewport element so the promise can
+                  // auto-resolve even if it hasn't been created yet.
+                  sourceViewportElementRef.current = viewport;
                   if (viewport && sourceViewportRef.current) {
                     sourceViewportRef.current.resolve(viewport);
                   }
                 },
                 destroyed: () => {
                   console.log('[DEBUG] [MarkdownEditor] Source OS destroyed');
+                  // FIX 1: Clear the buffer so stale viewports don't resolve future promises.
+                  sourceViewportElementRef.current = null;
                   setSourceOsInstance(null);
-                  // Don't clear ref here - mode change effect handles it
                 },
               }}
             >
@@ -761,6 +823,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 onScrollRestored={handleScrollRestored}
                 initialScrollPercentage={initialScrollPercentage}
                 osReadyPromise={sourceOsPromise}
+                restoreToken={restoreToken}
               />
             </OverlayScrollbarsComponent>
           ) : (
@@ -772,6 +835,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                 onReady={handleEditorReady}
                 onScrollRestored={handleScrollRestored}
                 initialScrollPercentage={initialScrollPercentage}
+                restoreToken={restoreToken}
               />
             </div>
           )

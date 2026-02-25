@@ -31,6 +31,9 @@ interface TiptapEditorProps {
   onScrollRestored?: () => void;
   initialScrollPercentage?: number | null;
   osReadyPromise?: Promise<HTMLElement>;
+  /** Incremented on every document switch to force this effect to re-run
+   * even when initialScrollPercentage is numerically identical across docs. */
+  restoreToken?: number;
 }
 
 const lowlight = createLowlight(common);
@@ -43,6 +46,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   onScrollRestored,
   initialScrollPercentage,
   osReadyPromise,
+  restoreToken,
 }) => {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -102,7 +106,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     immediatelyRender: false, // SSR safety
     shouldRerenderOnTransaction: false, // Critical performance optimization
     onUpdate: ({ editor }) => {
-      const markdown = editor.storage.markdown.getMarkdown();
+      const markdown = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ?? '';
       onChangeRef.current(markdown);
     },
     editorProps: {
@@ -169,14 +173,24 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         if (cancelled) return;
 
         if (viewport) {
-          const { scrollHeight, clientHeight } = viewport;
-          const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
-          viewport.scrollTop = scrollableHeight * initialScrollPercentage;
-          console.log('[DEBUG] [TiptapEditor] Scroll restored:', { scrollTop: viewport.scrollTop });
+          // requestAnimationFrame ensures the browser has laid out new content
+          // before we read scrollHeight. Without it, the content sync effect may
+          // not have fired yet, giving scrollableHeight = 0.
+          requestAnimationFrame(() => {
+            if (cancelled || !viewport.isConnected) {
+              // Viewport was detached (Strict Mode teardown or mode change) —
+              // still signal restoration so the visibility gate opens.
+              onScrollRestoredRef.current?.();
+              return;
+            }
+            const { scrollHeight, clientHeight } = viewport;
+            const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
+            viewport.scrollTop = scrollableHeight * initialScrollPercentage;
+            console.log('[DEBUG] [TiptapEditor] Scroll restored:', { scrollTop: viewport.scrollTop });
+            onScrollRestoredRef.current?.();
+          });
+          return; // onScrollRestored called inside rAF
         }
-
-        // Signal completion
-        onScrollRestoredRef.current?.();
       };
 
       restoreScroll();
@@ -191,14 +205,14 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         console.log('[INFO] [TiptapEditor] Editor destroyed');
       };
     }
-  }, [editor, initialScrollPercentage, onReady, osReadyPromise]);
+  }, [editor, initialScrollPercentage, onReady, osReadyPromise, restoreToken]);
 
   // Sync content prop to editor when it changes externally (e.g., cache restore)
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
 
     // Get current editor markdown content
-    const currentContent = editor.storage.markdown?.getMarkdown?.() ?? '';
+    const currentContent = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown?.() ?? '';
 
     // Only update if content actually differs (avoid cursor jump)
     if (content && content !== currentContent) {

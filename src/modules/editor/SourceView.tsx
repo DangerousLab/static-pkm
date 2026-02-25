@@ -23,6 +23,9 @@ interface SourceViewProps {
   onScrollRestored?: () => void;
   initialScrollPercentage?: number | null;
   osReadyPromise?: Promise<HTMLElement>;
+  /** Incremented on every document switch to force this effect to re-run
+   * even when initialScrollPercentage is numerically identical across docs. */
+  restoreToken?: number;
 }
 
 export const SourceView: React.FC<SourceViewProps> = ({
@@ -33,6 +36,7 @@ export const SourceView: React.FC<SourceViewProps> = ({
   onScrollRestored,
   initialScrollPercentage,
   osReadyPromise,
+  restoreToken,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -151,19 +155,26 @@ export const SourceView: React.FC<SourceViewProps> = ({
       if (cancelled) return;
 
       if (viewport) {
-        const { scrollHeight, clientHeight } = viewport;
-        const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
-        viewport.scrollTop = scrollableHeight * initialScrollPercentage;
-
-        console.log('[DEBUG] [SourceView] Scroll restored:', {
-          initialScrollPercentage,
-          scrollableHeight,
-          targetScrollTop: viewport.scrollTop,
+        // requestAnimationFrame ensures the browser has laid out new content
+        // before we read scrollHeight. Without it, CodeMirror may not have
+        // rendered the new document yet, giving scrollableHeight = 0.
+        requestAnimationFrame(() => {
+          if (cancelled || !viewport.isConnected) {
+            onScrollRestoredRef.current?.();
+            return;
+          }
+          const { scrollHeight, clientHeight } = viewport;
+          const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
+          viewport.scrollTop = scrollableHeight * initialScrollPercentage;
+          console.log('[DEBUG] [SourceView] Scroll restored:', {
+            initialScrollPercentage,
+            scrollableHeight,
+            targetScrollTop: viewport.scrollTop,
+          });
+          onScrollRestoredRef.current?.();
         });
+        return; // onScrollRestored called inside rAF
       }
-
-      // Signal completion
-      onScrollRestoredRef.current?.();
     };
 
     restoreScroll();
@@ -171,7 +182,7 @@ export const SourceView: React.FC<SourceViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [initialScrollPercentage, osReadyPromise]);
+  }, [initialScrollPercentage, osReadyPromise, restoreToken]);
 
   // ── Sync external content changes ─────────────────────────────────────────
   useEffect(() => {

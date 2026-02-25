@@ -7,7 +7,8 @@
  */
 
 import { create } from 'zustand';
-import { persist, StateStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import type { PersistStorage, StorageValue } from 'zustand/middleware';
 
 export type EditorMode = 'edit' | 'source';
 
@@ -19,23 +20,23 @@ interface DocumentState {
 /**
  * Custom storage with Map serialization support
  */
-const mapStorage: StateStorage = {
-  getItem: (name) => {
+const mapStorage: PersistStorage<EditorStore> = {
+  getItem: (name): StorageValue<EditorStore> | null => {
     const str = localStorage.getItem(name);
     if (!str) return null;
-    return JSON.parse(str, (key, value) => {
+    return JSON.parse(str, (_key, value) => {
       if (value?.__type === 'Map') return new Map(value.entries);
       return value;
-    });
+    }) as StorageValue<EditorStore>;
   },
   setItem: (name, value) => {
-    const serialized = JSON.stringify(value, (key, val) => {
+    const serialized = JSON.stringify(value, (_key, val) => {
       if (val instanceof Map) return { __type: 'Map', entries: [...val.entries()] };
       return val;
     });
     localStorage.setItem(name, serialized);
   },
-  removeItem: localStorage.removeItem.bind(localStorage),
+  removeItem: (name) => localStorage.removeItem(name),
 };
 
 interface EditorStore {
@@ -106,7 +107,7 @@ export const useEditorStore = create<EditorStore>()(
         mode: state.mode,
         lineNumbersEnabled: state.lineNumbersEnabled,
         documentStates: state.documentStates,
-      }),
+      }) as EditorStore,
     }
   )
 );
