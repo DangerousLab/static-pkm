@@ -1,36 +1,20 @@
-# Node modules
+# ----------------------------------------------------------------------
+# Node & Build Outputs
+# ----------------------------------------------------------------------
 node_modules/
+dist/
+dist-pwa/
 *.log
 
-# Build outputs (auto-generated)
+# ----------------------------------------------------------------------
+# Vite / Frontend Auto-generated
+# ----------------------------------------------------------------------
 src/css/main.css
 src/css/app.min.css
 src/css/app.min.css.map
 public/data/tree.json
-
-# Vite build output
-dist/
-
-# PWA build output
-dist-pwa/
-
-# Tauri build outputs
-src-tauri/target/
-src-tauri/Cargo.lock
-
-# Icons
-src-tauri/icons/
-
-# HTTPS certificates (local testing only)
-.cert/
-
-# Build documentation
-ROLLUP-GUIDE.md
-
-# Third-party vendor libraries (downloaded during setup)
 public/vendor/
-
-# Generated scripts and configs (created by setup-dev.sh)
+ROLLUP-GUIDE.md
 scripts/generate-css-entry.mjs
 scripts/generate-tree.mjs
 scripts/generate-cache-manifest.mjs
@@ -40,18 +24,27 @@ postcss.config.cjs
 rollup.config.js
 rollup.config.css.js
 
-# OS files
-.DS_Store
+# ----------------------------------------------------------------------
+# Tauri Build Outputs & Generated
+# ----------------------------------------------------------------------
+src-tauri/target/
+src-tauri/Cargo.lock
+src-tauri/gen/
+src-tauri/icons/
 
-# IDE
+# ----------------------------------------------------------------------
+# System & IDE
+# ----------------------------------------------------------------------
+.DS_Store
 .vscode/
 .idea/
-
-# Backups
+.cert/
 backup-*/
 
-# Claude config
+# ----------------------------------------------------------------------
+# AI & Local Workspaces
+# ----------------------------------------------------------------------
 /.claude
 .mcp.json
-#CLAUDE.md
+CLAUDE.md
 /public/Home/test
