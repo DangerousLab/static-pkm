@@ -42,9 +42,6 @@ src-tauri/icons/
 backup-*/
 
 # ----------------------------------------------------------------------
-# AI & Local Workspaces
+# Local Workspaces
 # ----------------------------------------------------------------------
-/.claude
-.mcp.json
-CLAUDE.md
-/public/Home/test
+/public/Home/
