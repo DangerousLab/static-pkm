@@ -340,3 +340,237 @@
   width: 1rem;
   height: 1rem;
 }
+
+/* ── Focus extension ─────────────────────────────────────────────────────── */
+
+.tiptap-editor .tiptap .is-focused {
+  outline: none;
+  border-radius: 0.25rem;
+}
+
+/* ── Dropcursor ──────────────────────────────────────────────────────────── */
+
+.ProseMirror-dropcursor {
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* ── Bubble Menu ─────────────────────────────────────────────────────────── */
+
+.bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--bg-elevated, #1e1e1e);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.bubble-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: var(--text-main, #d4d4d4);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.bubble-menu-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.bubble-menu-btn.is-active {
+  background: var(--accent-muted, rgba(99, 102, 241, 0.2));
+  color: var(--accent, #818cf8);
+}
+
+.bubble-menu-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  margin: 0 2px;
+}
+
+/* Color button inside bubble menu */
+.bubble-menu-color-btn {
+  position: relative;
+  cursor: pointer;
+}
+
+.bubble-menu-color-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+}
+
+.bubble-menu-color-swatch {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  font-family: var(--font-body, sans-serif);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Floating Menu ───────────────────────────────────────────────────────── */
+
+.floating-menu {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.floating-menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  color: var(--text-muted, #666);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.floating-menu-trigger:hover {
+  background: var(--accent-muted, rgba(99, 102, 241, 0.15));
+  color: var(--accent, #818cf8);
+}
+
+.floating-menu-trigger.is-open {
+  transform: rotate(45deg);
+  background: var(--accent-muted, rgba(99, 102, 241, 0.2));
+  color: var(--accent, #818cf8);
+}
+
+.floating-menu-panel {
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 160px;
+  background: var(--bg-elevated, #1e1e1e);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  z-index: 100;
+}
+
+.floating-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: var(--text-main, #d4d4d4);
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.floating-menu-item:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.floating-menu-separator {
+  height: 1px;
+  background: var(--border-subtle, rgba(255, 255, 255, 0.08));
+  margin: 4px 0;
+}
+
+/* ── FormatToolbar color inputs ──────────────────────────────────────────── */
+
+.editor-fmt-color-btn {
+  position: relative;
+  cursor: pointer;
+}
+
+.editor-fmt-color-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+}
+
+.editor-fmt-color-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* ── FormatToolbar selects ───────────────────────────────────────────────── */
+
+.editor-fmt-select {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 0.25rem;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.04));
+  color: var(--text-main, #d4d4d4);
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+  max-width: 120px;
+}
+
+.editor-fmt-select:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Character count display ─────────────────────────────────────────────── */
+
+.editor-fmt-char-count {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+  padding-left: 8px;
+  user-select: none;
+}
+
+/* ── Invisible Characters ────────────────────────────────────────────────── */
+
+.tiptap-editor .tiptap .invisible-character {
+  color: var(--text-muted, #a3a3a3);
+  opacity: 0.3;
+  user-select: none;
+  font-family: var(--font-mono, monospace);
+}
+
+.tiptap-editor .tiptap .invisible-character--space {
+  content: '·';
+}
+
+.tiptap-editor .tiptap .invisible-character--hard-break {
+  content: '↵';
+}
+
+.tiptap-editor .tiptap .invisible-character--paragraph {
+  content: '¶';
+}

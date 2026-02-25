@@ -9,6 +9,8 @@
 import { useRef, useEffect } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Paragraph from '@tiptap/extension-paragraph';
+import Heading from '@tiptap/extension-heading';
 import { Markdown } from 'tiptap-markdown';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
@@ -22,7 +24,18 @@ import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import FontFamily from '@tiptap/extension-font-family';
+import { CharacterCount, Focus, TrailingNode } from '@tiptap/extensions';
 import { common, createLowlight } from 'lowlight';
+import { EditorBubbleMenu } from './EditorBubbleMenu';
+import { EditorFloatingMenu } from './EditorFloatingMenu';
+import { FontSize } from './extensions/FontSize';
+import { BackgroundColor } from './extensions/BackgroundColor';
+import { LineHeight } from './extensions/LineHeight';
+import InvisibleCharacters from '@tiptap/extension-invisible-characters';
+
 interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
@@ -37,6 +50,57 @@ interface TiptapEditorProps {
 }
 
 const lowlight = createLowlight(common);
+
+const CustomParagraph = Paragraph.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state: any, node: any) {
+          if (node.attrs.textAlign || node.attrs.lineHeight) {
+            const style = [];
+            if (node.attrs.textAlign) style.push(`text-align: ${node.attrs.textAlign}`);
+            if (node.attrs.lineHeight) style.push(`line-height: ${node.attrs.lineHeight}`);
+
+            state.write(`<p style="${style.join('; ')}">\n\n`);
+            state.renderInline(node);
+            state.write('\n\n</p>');
+            state.closeBlock(node);
+          } else {
+            state.renderInline(node);
+            state.closeBlock(node);
+          }
+        },
+        parse: { setup() { } }
+      }
+    };
+  }
+});
+
+const CustomHeading = Heading.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state: any, node: any) {
+          if (node.attrs.textAlign || node.attrs.lineHeight) {
+            const style = [];
+            if (node.attrs.textAlign) style.push(`text-align: ${node.attrs.textAlign}`);
+            if (node.attrs.lineHeight) style.push(`line-height: ${node.attrs.lineHeight}`);
+
+            state.write(`<h${node.attrs.level} style="${style.join('; ')}">\n\n`);
+            state.renderInline(node);
+            state.write(`\n\n</h${node.attrs.level}>`);
+            state.closeBlock(node);
+          } else {
+            state.write(state.repeat('#', node.attrs.level) + ' ');
+            state.renderInline(node);
+            state.closeBlock(node);
+          }
+        },
+        parse: { setup() { } }
+      }
+    };
+  }
+});
 
 export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   content,
@@ -60,14 +124,22 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        codeBlock: false, // Use CodeBlockLowlight instead
+        codeBlock: false,    // Use CodeBlockLowlight instead
+        paragraph: false,    // Use CustomParagraph instead
+        heading: false,      // Use CustomHeading instead
+        dropcursor: {
+          color: 'var(--accent)',
+          width: 2,
+        },
       }),
+      CustomParagraph,
+      CustomHeading,
       Markdown.configure({
-        html: false,
+        html: true,
         tightLists: true,
         bulletListMarker: '-',
         linkify: true,
-        breaks: true, // Changed from false - preserves single newlines as <br>
+        breaks: true,
         transformPastedText: true,
         transformCopiedText: true,
       }),
@@ -75,7 +147,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         placeholder: 'Start writing...',
       }),
       Link.configure({
-        openOnClick: false, // Handle clicks ourselves
+        openOnClick: false,
         autolink: true,
       }),
       Typography,
@@ -101,6 +173,22 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       }),
       TextStyle,
       Color,
+      // ── New extensions ────────────────────────────────────────────────────
+      Subscript,
+      Superscript,
+      FontFamily,
+      FontSize,
+      BackgroundColor,
+      LineHeight,
+      InvisibleCharacters.configure({
+        injectCSS: false, // We will provide custom styling
+      }),
+      CharacterCount,
+      Focus.configure({
+        className: 'is-focused',
+        mode: 'all',
+      }),
+      TrailingNode,
     ],
     content,
     immediatelyRender: false, // SSR safety
@@ -238,9 +326,13 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   }
 
   return (
-    <EditorContent
-      editor={editor}
-      className="tiptap-editor"
-    />
+    <>
+      <EditorBubbleMenu editor={editor} />
+      <EditorFloatingMenu editor={editor} />
+      <EditorContent
+        editor={editor}
+        className="tiptap-editor"
+      />
+    </>
   );
 };
