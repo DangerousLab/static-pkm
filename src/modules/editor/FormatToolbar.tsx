@@ -7,7 +7,7 @@
  * @module FormatToolbar
  */
 
-import { Editor } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
 import {
   Bold,
   Italic,

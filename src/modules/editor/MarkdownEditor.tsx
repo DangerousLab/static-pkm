@@ -19,7 +19,7 @@ import { needsCustomScrollbar } from '@core/utils/platform';
 import type { OverlayScrollbarsComponentRef } from 'overlayscrollbars-react';
 import type { OverlayScrollbars } from 'overlayscrollbars';
 import type { DocumentNode } from '@/types/navigation';
-import type { Editor } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
 import { EditorToolbar } from './EditorToolbar';
 import { TiptapEditor } from './TiptapEditor';
 import { SourceView } from './SourceView';

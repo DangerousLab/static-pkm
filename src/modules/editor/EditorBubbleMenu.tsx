@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { Editor } from '@tiptap/react';
-import { posToDOMRect } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
+import { posToDOMRect } from '@tiptap/core';
 import { createPortal } from 'react-dom';
 import {
     Bold,

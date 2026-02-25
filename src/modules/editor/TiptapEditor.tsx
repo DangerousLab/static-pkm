@@ -1,13 +1,15 @@
 /**
  * TiptapEditor
  * Tiptap-based WYSIWYG markdown editor with Typora-like experience.
- * Provides fast rendering with shouldRerenderOnTransaction optimization.
+ * Uses @tiptap/core directly (no @tiptap/react) — editor instance is managed
+ * via useRef/useEffect for maximum performance. React owns the container div;
+ * ProseMirror/TipTap own everything inside it.
  *
  * @module TiptapEditor
  */
 
-import { useRef, useEffect } from 'react';
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useRef, useEffect, useState } from 'react';
+import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Paragraph from '@tiptap/extension-paragraph';
 import Heading from '@tiptap/extension-heading';
@@ -112,6 +114,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   osReadyPromise,
   restoreToken,
 }) => {
+  // Stable refs for callbacks — avoids stale closure captures in effects
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -121,120 +124,145 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   const onScrollRestoredRef = useRef(onScrollRestored);
   onScrollRestoredRef.current = onScrollRestored;
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        codeBlock: false,    // Use CodeBlockLowlight instead
-        paragraph: false,    // Use CustomParagraph instead
-        heading: false,      // Use CustomHeading instead
-        dropcursor: {
-          color: 'var(--accent)',
-          width: 2,
-        },
-      }),
-      CustomParagraph,
-      CustomHeading,
-      Markdown.configure({
-        html: true,
-        tightLists: true,
-        bulletListMarker: '-',
-        linkify: true,
-        breaks: true,
-        transformPastedText: true,
-        transformCopiedText: true,
-      }),
-      Placeholder.configure({
-        placeholder: 'Start writing...',
-      }),
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-      }),
-      Typography,
-      CodeBlockLowlight.configure({
-        lowlight,
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableCell,
-      TableHeader,
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      Underline,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Highlight.configure({
-        multicolor: true,
-      }),
-      TextStyle,
-      Color,
-      // ── New extensions ────────────────────────────────────────────────────
-      Subscript,
-      Superscript,
-      FontFamily,
-      FontSize,
-      BackgroundColor,
-      LineHeight,
-      InvisibleCharacters.configure({
-        injectCSS: false, // We will provide custom styling
-      }),
-      CharacterCount,
-      Focus.configure({
-        className: 'is-focused',
-        mode: 'all',
-      }),
-      TrailingNode,
-    ],
-    content,
-    immediatelyRender: false, // SSR safety
-    shouldRerenderOnTransaction: false, // Critical performance optimization
-    onUpdate: ({ editor }) => {
-      const markdown = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ?? '';
-      onChangeRef.current(markdown);
-    },
-    editorProps: {
-      handleClick: (view, pos, event) => {
-        // Handle internal link clicks
-        const { doc } = view.state;
-        const $pos = doc.resolve(pos);
-        const marks = $pos.marks();
-        const linkMark = marks.find(m => m.type.name === 'link');
+  // Mount container — React owns this div, TipTap/ProseMirror own everything inside
+  const mountRef = useRef<HTMLDivElement>(null);
 
-        if (linkMark) {
-          const href = linkMark.attrs.href;
-          // Check for wikilinks or internal links
-          if (href.startsWith('[[') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
-            event.preventDefault();
-            // TODO: Dispatch navigation event
-            console.log('[INFO] [TiptapEditor] Internal link clicked:', href);
-            return true;
-          }
-        }
-        return false;
-      },
-    },
-  });
+  // Stable ref to the Editor instance — never stored in React state to avoid re-renders
+  const editorRef = useRef<Editor | null>(null);
 
+  // Single boolean state — triggers one re-render after mount so the bubble/floating
+  // menus can receive the editor instance. Does NOT fire on transactions.
+  const [editorReady, setEditorReady] = useState(false);
+
+  // ── Mount / unmount the Editor instance ───────────────────────────────────
   useEffect(() => {
-    console.log('[INFO] [TiptapEditor] Editor mounted');
-    if (!editor) {
-      return () => {
-        console.log('[INFO] [TiptapEditor] Editor destroyed');
-      };
-    }
+    if (!mountRef.current) return;
 
-    // Always call onEditorReady immediately
+    console.log('[INFO] [TiptapEditor] Mounting editor instance');
+
+    const editor = new Editor({
+      element: mountRef.current,
+      extensions: [
+        StarterKit.configure({
+          codeBlock: false,    // Use CodeBlockLowlight instead
+          paragraph: false,    // Use CustomParagraph instead
+          heading: false,      // Use CustomHeading instead
+          dropcursor: {
+            color: 'var(--accent)',
+            width: 2,
+          },
+        }),
+        CustomParagraph,
+        CustomHeading,
+        Markdown.configure({
+          html: true,
+          tightLists: true,
+          bulletListMarker: '-',
+          linkify: true,
+          breaks: true,
+          transformPastedText: true,
+          transformCopiedText: true,
+        }),
+        Placeholder.configure({
+          placeholder: 'Start writing...',
+        }),
+        Link.configure({
+          openOnClick: false,
+          autolink: true,
+        }),
+        Typography,
+        CodeBlockLowlight.configure({
+          lowlight,
+        }),
+        Table.configure({
+          resizable: true,
+        }),
+        TableRow,
+        TableCell,
+        TableHeader,
+        TaskList,
+        TaskItem.configure({
+          nested: true,
+        }),
+        Underline,
+        TextAlign.configure({
+          types: ['heading', 'paragraph'],
+        }),
+        Highlight.configure({
+          multicolor: true,
+        }),
+        TextStyle,
+        Color,
+        Subscript,
+        Superscript,
+        FontFamily,
+        FontSize,
+        BackgroundColor,
+        LineHeight,
+        InvisibleCharacters.configure({
+          injectCSS: false, // We provide custom styling
+        }),
+        CharacterCount,
+        Focus.configure({
+          className: 'is-focused',
+          mode: 'all',
+        }),
+        TrailingNode,
+      ],
+      content,
+      editorProps: {
+        handleClick: (view, pos, event) => {
+          // Handle internal link clicks
+          const { doc } = view.state;
+          const $pos = doc.resolve(pos);
+          const marks = $pos.marks();
+          const linkMark = marks.find(m => m.type.name === 'link');
+
+          if (linkMark) {
+            const href = linkMark.attrs.href;
+            // Check for wikilinks or internal links
+            if (href.startsWith('[[') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
+              event.preventDefault();
+              // TODO: Dispatch navigation event
+              console.log('[INFO] [TiptapEditor] Internal link clicked:', href);
+              return true;
+            }
+          }
+          return false;
+        },
+      },
+      onUpdate: ({ editor }) => {
+        const markdown = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ?? '';
+        onChangeRef.current(markdown);
+      },
+    });
+
+    editorRef.current = editor;
+
+    // Notify parent that editor is ready
     onEditorReadyRef.current?.(editor);
-
-    // Call new onReady callback
     onReady?.();
 
-    // Handle scroll restoration
+    // Trigger one re-render so bubble/floating menus mount with the editor instance
+    setEditorReady(true);
+
+    return () => {
+      console.log('[INFO] [TiptapEditor] Destroying editor instance');
+      editor.destroy();
+      editorRef.current = null;
+      setEditorReady(false);
+    };
+    // Empty deps: mount once per component lifetime. Content synced via separate effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Scroll restoration ─────────────────────────────────────────────────────
+  // Depends on initialScrollPercentage + restoreToken so it re-runs on each
+  // document switch and mode change, but NOT on every content change.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
     if (initialScrollPercentage != null && initialScrollPercentage > 0) {
       let cancelled = false;
 
@@ -243,17 +271,17 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
         if (osReadyPromise) {
           try {
-            console.log('[DEBUG] [TiptapEditor] Awaiting viewport ready...');
+            console.log('[DEBUG] [TiptapEditor] Awaiting OS viewport ready...');
             viewport = await osReadyPromise;
-            console.log('[DEBUG] [TiptapEditor] Viewport ready via promise');
+            console.log('[DEBUG] [TiptapEditor] Viewport ready via OS promise');
           } catch (err) {
-            // Promise rejected (mode changed) - abort but still restore visibility
-            console.log('[DEBUG] [TiptapEditor] Viewport promise rejected (mode changed)');
+            // Promise rejected (mode changed or doc changed) — abort but ungate visibility
+            console.log('[DEBUG] [TiptapEditor] Viewport promise rejected:', err);
             onScrollRestoredRef.current?.();
             return;
           }
         } else {
-          // Non-OverlayScrollbars case - query DOM
+          // Non-OverlayScrollbars path — query DOM directly
           viewport = document.querySelector<HTMLElement>('.editor-live-preview');
           console.log('[DEBUG] [TiptapEditor] Viewport from DOM query');
         }
@@ -261,48 +289,47 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         if (cancelled) return;
 
         if (viewport) {
-          // requestAnimationFrame ensures the browser has laid out new content
-          // before we read scrollHeight. Without it, the content sync effect may
-          // not have fired yet, giving scrollableHeight = 0.
+          // rAF ensures browser has laid out new content before reading scrollHeight.
+          // Without it the content-sync effect may not have fired yet → scrollableHeight = 0.
           requestAnimationFrame(() => {
-            if (cancelled || !viewport.isConnected) {
-              // Viewport was detached (Strict Mode teardown or mode change) —
-              // still signal restoration so the visibility gate opens.
+            if (cancelled || !viewport!.isConnected) {
+              // Viewport detached (Strict Mode teardown or mode/doc change) —
+              // still ungate visibility so the UI doesn't stay hidden.
               onScrollRestoredRef.current?.();
               return;
             }
-            const { scrollHeight, clientHeight } = viewport;
+            const { scrollHeight, clientHeight } = viewport!;
             const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
-            viewport.scrollTop = scrollableHeight * initialScrollPercentage;
-            console.log('[DEBUG] [TiptapEditor] Scroll restored:', { scrollTop: viewport.scrollTop });
+            viewport!.scrollTop = scrollableHeight * initialScrollPercentage;
+            console.log('[DEBUG] [TiptapEditor] Scroll restored:', { scrollTop: viewport!.scrollTop });
             onScrollRestoredRef.current?.();
           });
-          return; // onScrollRestored called inside rAF
         }
       };
 
       restoreScroll();
-      return () => {
-        cancelled = true;
-        console.log('[INFO] [TiptapEditor] Editor destroyed');
-      };
+      return () => { cancelled = true; };
     } else {
-      // No restoration needed - signal immediately
+      // No restoration needed — ungate visibility immediately
       onScrollRestoredRef.current?.();
-      return () => {
-        console.log('[INFO] [TiptapEditor] Editor destroyed');
-      };
     }
-  }, [editor, initialScrollPercentage, onReady, osReadyPromise, restoreToken]);
+  }, [initialScrollPercentage, osReadyPromise, restoreToken]);
+  // NOTE: editorRef is intentionally excluded — editor readiness is handled by
+  // the mount effect above, not here. onReady fires synchronously in the mount
+  // effect, which triggers the parent to set initialScrollPercentage, which
+  // then triggers this effect via restoreToken.
 
-  // Sync content prop to editor when it changes externally (e.g., cache restore)
+  // ── Content sync ───────────────────────────────────────────────────────────
+  // Sync content prop to editor when it changes externally (e.g. cache restore,
+  // external file modification via file:modified IPC event).
   useEffect(() => {
+    const editor = editorRef.current;
     if (!editor || editor.isDestroyed) return;
 
     // Get current editor markdown content
     const currentContent = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown?.() ?? '';
 
-    // Only update if content actually differs (avoid cursor jump)
+    // Only update if content actually differs (avoids cursor jump)
     if (content && content !== currentContent) {
       // Preserve cursor position
       const { from, to } = editor.state.selection;
@@ -319,20 +346,15 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         }
       });
     }
-  }, [editor, content]);
+  }, [content]);
 
-  if (!editor) {
-    return <div className="tiptap-loading">Loading editor...</div>;
-  }
-
+  // React owns this container div. TipTap/ProseMirror mount inside it via new Editor({ element }).
+  // Do NOT render children here — the editor manages its own DOM subtree.
   return (
     <>
-      <EditorBubbleMenu editor={editor} />
-      <EditorFloatingMenu editor={editor} />
-      <EditorContent
-        editor={editor}
-        className="tiptap-editor"
-      />
+      {editorReady && editorRef.current && <EditorBubbleMenu editor={editorRef.current} />}
+      {editorReady && editorRef.current && <EditorFloatingMenu editor={editorRef.current} />}
+      <div ref={mountRef} className="tiptap-editor" />
     </>
   );
 };
