@@ -13,38 +13,39 @@
 /* ── Firefox / W3C standard ─────────────────────────────────────────────────── */
 
 * {
-  scrollbar-width: thin;
+  /* scrollbar-width: thin; */
   /* scrollbar-color is Firefox-only; Tauri/WebKit uses ::-webkit-scrollbar-thumb below */
 }
 
 /* ── Webkit (Chrome, Safari, Edge, Tauri) ────────────────────────────────────── */
 
-::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 6px;
-  height: 6px;  /* horizontal scrollbar */
+  height: 6px;
+  /* horizontal scrollbar */
 }
 
-::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: var(--radius-full);
 }
 
-::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
 
-::-webkit-scrollbar-corner {
+*::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 /* ── Mobile: even thinner ────────────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
-  ::-webkit-scrollbar {
+  *::-webkit-scrollbar {
     width: 4px;
     height: 4px;
   }
