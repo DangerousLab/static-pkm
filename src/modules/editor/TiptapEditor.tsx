@@ -36,12 +36,24 @@ interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
   onEditorReady?: (editor: Editor) => void;
+  /**
+   * When true, TiptapEditor skips its own content sync logic entirely.
+   * The parent (e.g. PersistentWindow) is responsible for all content
+   * updates via direct editor commands (shiftContentNonUndoable).
+   *
+   * This eliminates the dual content-setting race condition where both the
+   * prop-based sync effect and PersistentWindow's shiftContentNonUndoable
+   * call setContent() concurrently, causing the initial viewport (line ~156)
+   * to be parsed before or after extensions are registered.
+   */
+  externalContentControl?: boolean;
 }
 
 export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   content,
   onChange,
   onEditorReady,
+  externalContentControl = false,
 }) => {
   // Stable refs for callbacks — avoids stale closure captures in effects
   const onChangeRef = useRef(onChange);
@@ -49,6 +61,10 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   const onEditorReadyRef = useRef(onEditorReady);
   onEditorReadyRef.current = onEditorReady;
+
+  // Stable ref for externalContentControl — read inside the async initEditor closure
+  const externalContentControlRef = useRef(externalContentControl);
+  externalContentControlRef.current = externalContentControl;
 
   // Mount container — React owns this div, TipTap/ProseMirror own everything inside
   const mountRef = useRef<HTMLDivElement>(null);
@@ -75,7 +91,16 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       const tInitStart = performance.now();
       console.log(`[PERF] [Tiptap] 1. initEditor started: 0ms`);
 
+      // Detect inline features from visible content (task lists, etc.)
       const requirements = detectRequiredExtensions(content);
+
+      // Always register code block and table extensions regardless of what's in
+      // the initial viewport. Code blocks and tables may appear anywhere in the
+      // document; relying on detection of the initial window caused them to
+      // silently fall back to <p><code> when the viewport didn't contain them.
+      requirements.add('code');
+      requirements.add('table');
+
       const tAfterScan = performance.now();
       console.log(`[PERF] [Tiptap] 2. detectRequiredExtensions took: ${(tAfterScan - tInitStart).toFixed(2)}ms`, requirements);
 
@@ -162,8 +187,14 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       const tAfterMount = performance.now();
       console.log(`[PERF] [Tiptap] 4. new Editor() constructor took: ${(tAfterMount - tBeforeMount).toFixed(2)}ms`);
 
-      // Explicitly set the content here to guarantee that tiptap-markdown intercepts and parses it.
-      editorInstance.commands.setContent(content);
+      // Set initial content — skipped when externalContentControl is true because
+      // the parent (PersistentWindow) owns content and will call setContent via
+      // shiftContentNonUndoable once it receives the onEditorReady callback.
+      // Skipping here avoids the race where initEditor() sets content='' from
+      // its stale closure before PersistentWindow has fetched the real blocks.
+      if (!externalContentControlRef.current) {
+        editorInstance.commands.setContent(content);
+      }
 
       const tAfterSetContent = performance.now();
       console.log(`[PERF] [Tiptap] 5. setContent(markdown) parsing took: ${(tAfterSetContent - tAfterMount).toFixed(2)}ms`);
@@ -198,7 +229,13 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // ── Content sync ───────────────────────────────────────────────────────────
   // Handles incoming content updates after the editor has mounted.
   // This is how we support document switches or external modifications.
+  //
+  // Disabled when externalContentControl=true — in that mode the parent
+  // (PersistentWindow) owns all content and updates it directly via
+  // shiftContentNonUndoable. Enabling sync here would cause a second
+  // setContent() call that races with shiftContentNonUndoable.
   useEffect(() => {
+    if (externalContentControl) return;
     const editor = editorRef.current;
     if (editor && editorReady && !editor.isDestroyed) {
       const currentMarkdown = (editor.storage as any).markdown?.getMarkdown() ?? '';
@@ -207,7 +244,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         editor.commands.setContent(content);
       }
     }
-  }, [content, editorReady]);
+  }, [content, editorReady, externalContentControl]);
 
   return (
     <>

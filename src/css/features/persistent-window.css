@@ -10,9 +10,12 @@
  *   .persistent-window__editor-anchor — absolutely positioned wrapper for TipTap
  *
  * Modifier classes (added dynamically by PersistentWindow):
- *   .persistent-window__editor-anchor.pw-skeleton  — slow scroll degradation
- *   .persistent-window__editor-anchor.pw-flyover   — fast scroll, editor hidden
- *   .persistent-window__editor-anchor.pw-settle    — fade-in after scroll stops
+ *   .persistent-window__editor-anchor.pw-flyover   — outside loaded range, editor hidden
+ *   .persistent-window__editor-anchor.pw-settle    — fade-in after scroll stops / within range
+ *
+ * Scroll mode tuning tokens (--pw-*):
+ *   Override these on .persistent-window to tune scroll UX without touching JS.
+ *   Hysteresis and buffer constants are in ViewportCoordinator.ts.
  * ─────────────────────────────────────────────────────────────────────────── */
 
 /* ── Scroll container ─────────────────────────────────────────────────────── */
@@ -28,6 +31,22 @@
 
   /* Smooth momentum scrolling on touch devices */
   -webkit-overflow-scrolling: touch;
+
+  /* Disable the browser's scroll anchoring algorithm. Our ViewportCoordinator
+   * manages scroll position explicitly via synchronous scrollTop corrections
+   * (v5.4). The browser's algorithm selects anchor nodes from the ProseMirror
+   * DOM and adjusts scrollTop when those nodes are destroyed by setContent()
+   * — fighting our own corrections and causing unpredictable jumps. */
+  overflow-anchor: none;
+
+  /* ── Scroll mode tuning tokens ────────────────────────────────────────── */
+  /* Adjust these to tune scroll UX feel without touching JS or rebuilding.  */
+  /* Note: skeleton mode has been removed. Only flyover (full dim) is used.  */
+  --pw-flyover-opacity: 0;      /* Editor opacity while outside loaded range  */
+  --pw-fade-out-duration: 120ms; /* Speed of hide transition on flyover        */
+  --pw-fade-out-easing: ease-out;
+  --pw-fade-in-duration: 40ms;   /* Speed of reveal after settle               */
+  --pw-fade-in-easing: ease-out;
 }
 
 /* ── Height spacer ────────────────────────────────────────────────────────── */
@@ -46,32 +65,31 @@
 
 .persistent-window__editor-anchor {
   position: absolute;
-  /* `top` is set dynamically via inline style (= translateY px) */
+  /* `top` is managed imperatively by PersistentWindow via editorAnchorRef
+   * (v5.4) — NOT through React state. This allows the position change,
+   * content swap, and scrollTop correction to be batched synchronously.
+   * The default 0 is overwritten on first content load. */
+  top: 0;
   left: 0;
   right: 0;
 
   /* Restore pointer events so TipTap receives clicks */
   pointer-events: auto;
 
-  /* Opacity transitions for scroll-mode degradation */
-  transition: opacity 100ms ease-out;
+  /* Default fade-out transition (dim/hide during scroll) */
+  transition: opacity var(--pw-fade-out-duration) var(--pw-fade-out-easing);
 }
 
 /* ── Scroll mode modifiers ────────────────────────────────────────────────── */
 
-/* Slow scroll: editor fades slightly to signal it may lag behind */
-.persistent-window__editor-anchor.pw-skeleton {
-  opacity: 0.35;
-}
-
-/* Fast scroll: hide editor entirely, show only the native scrollbar */
+/* Outside loaded range: hide editor entirely while new content is fetched */
 .persistent-window__editor-anchor.pw-flyover {
-  opacity: 0;
+  opacity: var(--pw-flyover-opacity);
   pointer-events: none;
 }
 
-/* Scroll stopped: fade back in */
+/* Scroll stopped: fade back in using the settle transition */
 .persistent-window__editor-anchor.pw-settle {
   opacity: 1;
-  transition: opacity 150ms ease-in;
+  transition: opacity var(--pw-fade-in-duration) var(--pw-fade-in-easing);
 }

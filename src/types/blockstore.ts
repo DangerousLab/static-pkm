@@ -10,6 +10,32 @@
 
 // ── Block metadata ─────────────────────────────────────────────────────────────
 
+/**
+ * Semantic type of a block, determined by the Rust scanner.
+ *
+ * Code fences and tables use `overflow-x: auto` in CSS (no text wrapping),
+ * so their estimated heights are viewport-independent and more accurate.
+ * Headings carry explicit CSS-measured heights (font-size, margins, line-height).
+ * Paragraphs, lists, and blockquotes can wrap; their heights are estimated from
+ * line count and refined later by DOM measurement.
+ *
+ * v5.3: Added heading1-6, list, blockquote, horizontalRule variants.
+ */
+export type BlockType =
+  | 'paragraph'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'heading4'
+  | 'heading5'
+  | 'heading6'
+  | 'list'
+  | 'blockquote'
+  | 'horizontalRule'
+  | 'codeFence'
+  | 'table'
+  | 'frontmatter';
+
 /** Metadata for a single content block (no markdown body). */
 export interface BlockMeta {
   /** Zero-based sequential index. */
@@ -22,6 +48,8 @@ export interface BlockMeta {
   estimatedHeight: number;
   /** Hex-encoded FNV-1a hash of the block content for change detection. */
   contentHash: string;
+  /** Semantic block type — used for rendering hints and height estimation. */
+  blockType: BlockType;
 }
 
 // ── Document handle ────────────────────────────────────────────────────────────
@@ -75,8 +103,8 @@ export interface BlockSearchMatch {
 
 // ── Viewport ───────────────────────────────────────────────────────────────────
 
-/** Scroll mode determined by scroll velocity. */
-export type ScrollMode = 'smooth' | 'skeleton' | 'flyover' | 'settle';
+/** Scroll mode — position-aware, no velocity classification. */
+export type ScrollMode = 'smooth' | 'flyover' | 'settle';
 
 /** Emitted by ViewportCoordinator on every scroll event. */
 export interface ViewportUpdate {
@@ -84,7 +112,7 @@ export interface ViewportUpdate {
   startBlock: number;
   /** Index past the last block in the loaded window. */
   endBlock: number;
-  /** Degradation mode based on scroll velocity. */
+  /** Scroll mode: smooth (content ready), flyover (outside loaded range), settle (stopped). */
   mode: ScrollMode;
   /** CSS translateY value for the editor anchor div (pixels). */
   translateY: number;

@@ -12,7 +12,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use scanner::{fnv1a_hash, reassemble, scan, Block};
+use scanner::{estimate_height, fnv1a_hash, reassemble, scan, Block, BlockType};
 
 // ── IPC-serialisable data types ────────────────────────────────────────────────
 
@@ -26,6 +26,8 @@ pub struct BlockMeta {
     pub estimated_height: f64,
     /// Hex-encoded FNV-1a hash for change detection.
     pub content_hash: String,
+    /// Semantic block type — used for rendering hints and height estimation.
+    pub block_type: BlockType,
 }
 
 impl BlockMeta {
@@ -36,6 +38,7 @@ impl BlockMeta {
             end_line: b.end_line,
             estimated_height: b.estimated_height,
             content_hash: format!("{:x}", b.content_hash),
+            block_type: b.block_type,
         }
     }
 }
@@ -218,7 +221,10 @@ impl DocumentStore {
         for upd in updates {
             if let Some(block) = doc.blocks.get_mut(upd.id) {
                 block.markdown = upd.markdown.clone();
-                block.estimated_height = block.markdown.lines().count().max(1) as f64 * 24.0;
+                block.estimated_height = estimate_height(
+                    block.markdown.lines().count().max(1),
+                    block.block_type,
+                );
                 block.content_hash = fnv1a_hash(&block.markdown);
                 doc.dirty = true;
             } else {
