@@ -10,16 +10,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { Markdown } from 'tiptap-markdown';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { Table } from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
 import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -30,15 +22,15 @@ import FontFamily from '@tiptap/extension-font-family';
 import InvisibleCharacters from '@tiptap/extension-invisible-characters';
 import CharacterCount from '@tiptap/extension-character-count';
 import Focus from '@tiptap/extension-focus';
-import { common, createLowlight } from 'lowlight';
 // Custom extensions
 import { BackgroundColor } from './extensions/BackgroundColor';
 import { FontSize } from './extensions/FontSize';
 import { LineHeight } from './extensions/LineHeight';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
 import { EditorFloatingMenu } from './EditorFloatingMenu';
-
-const lowlight = createLowlight(common);
+// Utils
+import { detectRequiredExtensions } from './utils/extensionScanner';
+import { loadExtensions } from './utils/extensionLoader';
 
 interface TiptapEditorProps {
   content: string;
@@ -72,109 +64,126 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   useEffect(() => {
     if (!mountRef.current) return;
 
+    let isCancelled = false;
+    let editorInstance: Editor | null = null;
+
     console.log('[INFO] [TiptapEditor] Mounting editor instance');
 
-    const editor = new Editor({
-      element: mountRef.current,
-      extensions: [
-        StarterKit.configure({
-          codeBlock: false, // Disable default to use CodeBlockLowlight
-          dropcursor: {
-            color: 'var(--accent)',
-            width: 2,
-          },
-        }),
-        Markdown.configure({
-          html: true,
-          tightLists: true,
-          bulletListMarker: '-',
-          linkify: true,
-          breaks: true,
-          transformPastedText: true,
-          transformCopiedText: true,
-        }),
-        Placeholder.configure({
-          placeholder: 'Start writing...',
-        }),
-        Typography,
-        CodeBlockLowlight.configure({
-          lowlight,
-        }),
-        Table.configure({
-          resizable: true,
-        }),
-        TableRow,
-        TableCell,
-        TableHeader,
-        TaskList,
-        TaskItem.configure({
-          nested: true,
-        }),
-        TextAlign.configure({
-          types: ['heading', 'paragraph'],
-        }),
-        Highlight.configure({
-          multicolor: true,
-        }),
-        TextStyle,
-        Color,
-        Subscript,
-        Superscript,
-        FontFamily,
-        FontSize,
-        BackgroundColor,
-        LineHeight,
-        InvisibleCharacters.configure({
-          injectCSS: false, // We provide custom styling
-        }),
-        CharacterCount,
-        Focus.configure({
-          className: 'is-focused',
-          mode: 'all',
-        }),
-      ],
-      content: '', // Initialize empty! tiptap-markdown requires setContent to parse initial load.
-      editorProps: {
-        handleClick: (view, pos, event) => {
-          // Handle internal link clicks
-          const { doc } = view.state;
-          const $pos = doc.resolve(pos);
-          const marks = $pos.marks();
-          const linkMark = marks.find(m => m.type.name === 'link');
+    async function initEditor() {
+      if (!mountRef.current) return;
 
-          if (linkMark) {
-            const href = linkMark.attrs.href;
-            // Check for wikilinks or internal links
-            if (href.startsWith('[[') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
-              event.preventDefault();
-              // TODO: Dispatch navigation event
-              console.log('[INFO] [TiptapEditor] Internal link clicked:', href);
-              return true;
+      const tInitStart = performance.now();
+      console.log(`[PERF] [Tiptap] 1. initEditor started: 0ms`);
+
+      const requirements = detectRequiredExtensions(content);
+      const tAfterScan = performance.now();
+      console.log(`[PERF] [Tiptap] 2. detectRequiredExtensions took: ${(tAfterScan - tInitStart).toFixed(2)}ms`, requirements);
+
+      const dynamicExtensions = await loadExtensions(requirements);
+      const tAfterLoad = performance.now();
+      console.log(`[PERF] [Tiptap] 3. loadExtensions await took: ${(tAfterLoad - tAfterScan).toFixed(2)}ms`);
+
+      if (isCancelled) {
+        console.log(`[PERF] [Tiptap] cancelled before mount`);
+        return;
+      }
+
+      const tBeforeMount = performance.now();
+      editorInstance = new Editor({
+        element: mountRef.current,
+        extensions: [
+          StarterKit.configure({
+            codeBlock: false, // Disable default to use CodeBlockLowlight
+            dropcursor: {
+              color: 'var(--accent)',
+              width: 2,
+            },
+          }),
+          Placeholder.configure({
+            placeholder: 'Start writing...',
+          }),
+          Typography,
+          TextAlign.configure({
+            types: ['heading', 'paragraph'],
+          }),
+          Highlight.configure({
+            multicolor: true,
+          }),
+          TextStyle,
+          Color,
+          Subscript,
+          Superscript,
+          FontFamily,
+          FontSize,
+          BackgroundColor,
+          LineHeight,
+          InvisibleCharacters.configure({
+            injectCSS: false, // We provide custom styling
+          }),
+          CharacterCount,
+          Focus.configure({
+            className: 'is-focused',
+            mode: 'all',
+          }),
+          ...dynamicExtensions,
+        ],
+        content: '', // Initialize empty! tiptap-markdown requires setContent to parse initial load.
+        editorProps: {
+          handleClick: (view, pos, event) => {
+            // Handle internal link clicks
+            const { doc } = view.state;
+            const $pos = doc.resolve(pos);
+            const marks = $pos.marks();
+            const linkMark = marks.find(m => m.type.name === 'link');
+
+            if (linkMark) {
+              const href = linkMark.attrs.href;
+              // Check for wikilinks or internal links
+              if (href.startsWith('[[') || (!href.startsWith('http') && !href.startsWith('mailto:'))) {
+                event.preventDefault();
+                // TODO: Dispatch navigation event
+                console.log('[INFO] [TiptapEditor] Internal link clicked:', href);
+                return true;
+              }
             }
-          }
-          return false;
+            return false;
+          },
         },
-      },
-      onUpdate: ({ editor }) => {
-        const markdown = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ?? '';
-        onChangeRef.current(markdown);
-      },
-    });
+        onUpdate: ({ editor }) => {
+          const markdown = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ?? '';
+          onChangeRef.current(markdown);
+        },
+      });
 
-    // Explicitly set the content here to guarantee that tiptap-markdown intercepts and parses it.
-    editor.commands.setContent(content);
+      const tAfterMount = performance.now();
+      console.log(`[PERF] [Tiptap] 4. new Editor() constructor took: ${(tAfterMount - tBeforeMount).toFixed(2)}ms`);
 
-    editorRef.current = editor;
+      // Explicitly set the content here to guarantee that tiptap-markdown intercepts and parses it.
+      editorInstance.commands.setContent(content);
 
-    // Notify parent that editor instance is available
-    onEditorReadyRef.current?.(editor);
+      const tAfterSetContent = performance.now();
+      console.log(`[PERF] [Tiptap] 5. setContent(markdown) parsing took: ${(tAfterSetContent - tAfterMount).toFixed(2)}ms`);
 
-    // Trigger one re-render so bubble/floating menus mount with the editor instance
-    setEditorReady(true);
+      editorRef.current = editorInstance;
+
+      // Notify parent that editor instance is available
+      onEditorReadyRef.current?.(editorInstance);
+
+      // Trigger one re-render so bubble/floating menus mount with the editor instance
+      setEditorReady(true);
+
+      const tEnd = performance.now();
+      console.log(`[PERF] [Tiptap] 6. Total async init flow took: ${(tEnd - tInitStart).toFixed(2)}ms`);
+    }
+
+    initEditor().catch(err => console.error('[ERROR] [TiptapEditor] Initialization failed:', err));
 
     return () => {
+      isCancelled = true;
       console.log('[INFO] [TiptapEditor] Destroying editor instance');
-      editor.destroy();
+      if (editorInstance) {
+        editorInstance.destroy();
+      }
       editorRef.current = null;
       setEditorReady(false);
     };
