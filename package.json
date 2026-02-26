@@ -45,7 +45,6 @@
     "@tiptap/extension-floating-menu": "^3.20.0",
     "@tiptap/extension-focus": "^3.20.0",
     "@tiptap/extension-font-family": "^3.20.0",
-    "@tiptap/extension-font-size": "^3.0.0-next.3",
     "@tiptap/extension-highlight": "^3.20.0",
     "@tiptap/extension-invisible-characters": "^3.20.0",
     "@tiptap/extension-link": "^3.20.0",
@@ -80,9 +79,6 @@
     "react-dom": "^19.0.0",
     "ses": "^1.14.0",
     "tailwind-merge": "^3.5.0",
-    "tiptap-extension-background-color": "^1.0.0",
-    "tiptap-extension-font-size": "^1.2.0",
-    "tiptap-extension-line-height": "^1.0.0",
     "tiptap-markdown": "^0.9.0",
     "zustand": "^5.0.0"
   },
