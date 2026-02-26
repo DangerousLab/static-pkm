@@ -149,7 +149,11 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
             return false;
           },
         },
-        onUpdate: ({ editor }) => {
+        onUpdate: ({ editor, transaction }) => {
+          // Viewport shift transactions (fired by PersistentWindow.shiftContentNonUndoable)
+          // must not trigger onChange — they are non-undoable position updates, not user edits.
+          if (transaction.getMeta('viewportShift')) return;
+
           const markdown = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown() ?? '';
           onChangeRef.current(markdown);
         },

@@ -1,0 +1,77 @@
+/* ── Persistent Window Architecture ──────────────────────────────────────────
+ *
+ * Layout for the synthetic-scrollbar editor container used by the Persistent
+ * Window Architecture. All blocks outside the visible range live only in the
+ * Rust backend; only ~200 blocks are mounted in TipTap at any time.
+ *
+ * Class hierarchy:
+ *   .persistent-window              — outer scroll container (overflow-y: auto)
+ *   .persistent-window__total-space — invisible spacer that forces full scroll height
+ *   .persistent-window__editor-anchor — absolutely positioned wrapper for TipTap
+ *
+ * Modifier classes (added dynamically by PersistentWindow):
+ *   .persistent-window__editor-anchor.pw-skeleton  — slow scroll degradation
+ *   .persistent-window__editor-anchor.pw-flyover   — fast scroll, editor hidden
+ *   .persistent-window__editor-anchor.pw-settle    — fade-in after scroll stops
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Scroll container ─────────────────────────────────────────────────────── */
+
+.persistent-window {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* Fill the remaining vertical space inside editor-container */
+  flex: 1;
+  min-height: 0;
+
+  /* Smooth momentum scrolling on touch devices */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Height spacer ────────────────────────────────────────────────────────── */
+
+.persistent-window__total-space {
+  /* Height is set dynamically via inline style (= totalEstimatedHeight px).
+   * Relative positioning is the offset parent for the editor anchor below. */
+  position: relative;
+  width: 100%;
+
+  /* Prevent this element from capturing mouse events */
+  pointer-events: none;
+}
+
+/* ── Editor anchor ────────────────────────────────────────────────────────── */
+
+.persistent-window__editor-anchor {
+  position: absolute;
+  /* `top` is set dynamically via inline style (= translateY px) */
+  left: 0;
+  right: 0;
+
+  /* Restore pointer events so TipTap receives clicks */
+  pointer-events: auto;
+
+  /* Opacity transitions for scroll-mode degradation */
+  transition: opacity 100ms ease-out;
+}
+
+/* ── Scroll mode modifiers ────────────────────────────────────────────────── */
+
+/* Slow scroll: editor fades slightly to signal it may lag behind */
+.persistent-window__editor-anchor.pw-skeleton {
+  opacity: 0.35;
+}
+
+/* Fast scroll: hide editor entirely, show only the native scrollbar */
+.persistent-window__editor-anchor.pw-flyover {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Scroll stopped: fade back in */
+.persistent-window__editor-anchor.pw-settle {
+  opacity: 1;
+  transition: opacity 150ms ease-in;
+}

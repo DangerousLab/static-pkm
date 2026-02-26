@@ -1,0 +1,97 @@
+/**
+ * Block store types for the Persistent Window Architecture.
+ *
+ * The block store splits a markdown document into paragraph-level blocks,
+ * keeping only a viewport-sized window in TipTap at any time. Blocks outside
+ * the viewport are held in the Rust backend's in-memory DocumentStore.
+ *
+ * @module blockstore
+ */
+
+// ── Block metadata ─────────────────────────────────────────────────────────────
+
+/** Metadata for a single content block (no markdown body). */
+export interface BlockMeta {
+  /** Zero-based sequential index. */
+  id: number;
+  /** First line number of this block in the source file (zero-based). */
+  startLine: number;
+  /** Last line number of this block in the source file (inclusive, zero-based). */
+  endLine: number;
+  /** Estimated render height in pixels (refined later by DOM measurement). */
+  estimatedHeight: number;
+  /** Hex-encoded FNV-1a hash of the block content for change detection. */
+  contentHash: string;
+}
+
+// ── Document handle ────────────────────────────────────────────────────────────
+
+/**
+ * Returned by `open_document`. Contains full block metadata but no content.
+ * The frontend uses this to initialise the synthetic scrollbar and
+ * ViewportCoordinator.
+ */
+export interface DocumentHandle {
+  /** Unique document identifier (normalised absolute path). */
+  docId: string;
+  /** Absolute filesystem path to the source file. */
+  path: string;
+  /** Total number of blocks in the document. */
+  totalBlocks: number;
+  /** Sum of all `estimatedHeight` values — used as the spacer div height. */
+  totalEstimatedHeight: number;
+  /** Metadata for every block in document order. */
+  blocks: BlockMeta[];
+}
+
+// ── Block content ──────────────────────────────────────────────────────────────
+
+/** A block with its markdown body — returned by `get_blocks`. */
+export interface BlockContent {
+  id: number;
+  markdown: string;
+}
+
+// ── Edit sync ──────────────────────────────────────────────────────────────────
+
+/** Result returned by `update_visible_window` after the backend re-scans. */
+export interface WindowUpdateResult {
+  /** New total block count after potential splits/merges. */
+  newTotalBlocks: number;
+  /** New total estimated height. */
+  newTotalHeight: number;
+  /** Updated block metadata (full document, for scrollbar recalibration). */
+  blocks: BlockMeta[];
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────────
+
+/** A search match within the block store. */
+export interface BlockSearchMatch {
+  blockId: number;
+  startLine: number;
+  matchText: string;
+}
+
+// ── Viewport ───────────────────────────────────────────────────────────────────
+
+/** Scroll mode determined by scroll velocity. */
+export type ScrollMode = 'smooth' | 'skeleton' | 'flyover' | 'settle';
+
+/** Emitted by ViewportCoordinator on every scroll event. */
+export interface ViewportUpdate {
+  /** Index of the first block in the loaded window (may include buffer). */
+  startBlock: number;
+  /** Index past the last block in the loaded window. */
+  endBlock: number;
+  /** Degradation mode based on scroll velocity. */
+  mode: ScrollMode;
+  /** CSS translateY value for the editor anchor div (pixels). */
+  translateY: number;
+}
+
+/** Visible block range used for edit-sync saves. */
+export interface VisibleRange {
+  startBlock: number;
+  endBlock: number;
+}

@@ -3,6 +3,7 @@
 //! Rust backend for the Unstablon Personal Knowledge Management application.
 //! Provides file operations, SQLite indexing, and IPC commands.
 
+mod blockstore;
 mod commands;
 mod db;
 mod error;
@@ -128,6 +129,9 @@ pub fn run() {
             let database = Arc::new(db::Database::from_connection(conn));
             app.manage(DbState(database));
 
+            // Initialise the block store for the Persistent Window Architecture
+            app.manage(blockstore::DocumentStore::new());
+
             info!("[INFO] [lib] Application setup complete");
 
             // Intercept OS window close button to allow frontend to handle unsaved changes
@@ -148,15 +152,27 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // File operations
             commands::fileops::read_file,
             commands::fileops::write_file,
             commands::fileops::list_directory,
             commands::fileops::get_navigation_tree,
             commands::fileops::get_file_mtime,
             commands::fileops::start_watching_vault,
+            // Full-text search
             commands::search::search_content,
             commands::search::index_content,
             commands::search::rebuild_index,
+            // Block store (Persistent Window Architecture)
+            commands::blockstore::open_document,
+            commands::blockstore::get_blocks,
+            commands::blockstore::update_blocks,
+            commands::blockstore::update_visible_window,
+            commands::blockstore::update_block_height,
+            commands::blockstore::save_document,
+            commands::blockstore::close_document,
+            commands::blockstore::search_blocks,
+            // Window management
             force_close_window,
         ])
         .run(tauri::generate_context!())

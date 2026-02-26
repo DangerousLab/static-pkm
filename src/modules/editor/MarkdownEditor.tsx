@@ -1,23 +1,31 @@
 /**
  * MarkdownEditor
  * Full-featured markdown editor with two modes: Edit (Tiptap WYSIWYG) and Source (CodeMirror).
- * Obsidian-style always-auto-save approach with event-based saves.
+ *
+ * In Tauri context, edit mode uses the Persistent Window Architecture (block store +
+ * PersistentWindow). Source mode always reads/writes the full file from disk.
+ *
+ * In PWA/browser context, both modes use the legacy full-file load path.
  *
  * @module MarkdownEditor
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { readFile, writeFile, isTauriContext } from '@core/ipc/commands';
+import { updateVisibleWindow, saveDocument } from '@core/ipc/blockstore';
 import { listen } from '@tauri-apps/api/event';
 import { useEditorStore } from '@core/state/editorStore';
 import { useNavigationStore } from '@core/state/navigationStore';
 import { useSave } from '@/hooks/useSave';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useFocusSave } from '@/hooks/useFocusSave';
+import { useBlockStore } from '@/hooks/useBlockStore';
 import type { DocumentNode } from '@/types/navigation';
+import type { VisibleRange, WindowUpdateResult } from '@/types/blockstore';
 import type { Editor } from '@tiptap/core';
-import { EditorToolbar } from './EditorToolbar';
 import { TiptapEditor } from './TiptapEditor';
+import { EditorToolbar } from './EditorToolbar';
+import { PersistentWindow } from './PersistentWindow';
 import { SourceView } from './SourceView';
 import { FormatToolbar } from './FormatToolbar';
 import { DeletedFileModal } from '@components/DeletedFileModal';
@@ -27,67 +35,76 @@ interface MarkdownEditorProps {
   absolutePath: string;
 }
 
-/**
- * Extract title from markdown content (first # heading)
- * Normalizes CRLF to LF to handle Windows line endings
- */
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 function extractTitleFromContent(content: string): string {
-  // Normalize CRLF to LF
   const normalized = content.replace(/\r\n/g, '\n');
-  const match = normalized.match(/^#\s+(.+)$/m);
-  return match?.[1]?.trim() ?? '';
+  return normalized.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? '';
 }
 
-/**
- * Extract node ID (filename) from absolute path
- */
 function extractNodeIdFromPath(path: string): string {
   const normalized = path.replace(/\\/g, '/');
   const parts = normalized.split('/');
   return parts[parts.length - 1] ?? '';
 }
 
+// ── Component ──────────────────────────────────────────────────────────────────
+
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   node,
   absolutePath,
 }) => {
-  const [content, setContent] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const mode = useEditorStore((s) => s.mode);
+  const isEditMode = mode === 'edit';
+  const isSourceMode = mode === 'source';
+
+  // Persistent window is only available in Tauri context.
+  const usePW = isTauriContext();
+
+  // ── Block store (Tauri edit mode only) ───────────────────────────────────
+  // Pass null when in source mode so the block store closes.
+  const { docHandle, isLoading: pwLoading, error: pwError, closeDoc } = useBlockStore(
+    usePW && isEditMode ? absolutePath : null,
+  );
+
+  const docHandleRef = useRef(docHandle);
+  docHandleRef.current = docHandle;
+
+  // ── Source / legacy content ───────────────────────────────────────────────
+  // Used by SourceView (all modes) and TiptapEditor when in PWA mode.
+  const [legacyContent, setLegacyContent] = useState('');
+  const [legacyLoading, setLegacyLoading] = useState(false);
+  const [legacyError, setLegacyError] = useState<string | null>(null);
+
+  // ── Editor instance (surfaced to toolbars) ────────────────────────────────
   const [tiptapEditor, setTiptapEditor] = useState<Editor | null>(null);
+
+  // ── Misc state ────────────────────────────────────────────────────────────
   const [isDeleted, setIsDeleted] = useState(false);
   const [showDeletedModal, setShowDeletedModal] = useState(false);
-  // Internal path state for rename handling (updated on file:renamed without remount)
   const [currentPath, setCurrentPath] = useState(absolutePath);
 
-  const mode = useEditorStore((s) => s.mode);
-
-  // Ref to editor container for click-outside detection
+  // ── Refs ──────────────────────────────────────────────────────────────────
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Stable getter for current content (avoids stale closures in hooks)
-  const contentRef = useRef(content);
-  contentRef.current = content;
-  const getContent = useCallback(() => contentRef.current, []);
+  // Visible window state (PersistentWindow reports this on every edit)
+  const visibleWindowMarkdownRef = useRef<string>('');
+  const visibleRangeRef = useRef<VisibleRange>({ startBlock: 0, endBlock: 0 });
 
-  // Stable ref for current path (avoids stale closure in save)
   const currentPathRef = useRef(currentPath);
   currentPathRef.current = currentPath;
 
-  // Track path for unmount save - ONLY update after content is loaded
-  const unmountPathRef = useRef<string | null>(null);
-  const unmountContentRef = useRef<string>('');
-  const hasLoadedRef = useRef(false);
-
-  // Track previous node title for title update detection
+  const prevNodeIdRef = useRef<string | null>(null);
   const prevNodeTitleRef = useRef<string>(node.title);
 
-  // Universal post-save handler - updates title when changed
-  const handleSaveComplete = useCallback(async (savedPath: string, savedContent: string) => {
+  const hasLoadedRef = useRef(false);
+  const isRenamingRef = useRef(false);
+
+  // ── Title update ──────────────────────────────────────────────────────────
+  const updateTitle = useCallback((savedPath: string, savedContent: string) => {
     const nodeId = extractNodeIdFromPath(savedPath);
     const newTitle = extractTitleFromContent(savedContent);
     const prevTitle = prevNodeTitleRef.current;
-
     if (newTitle && newTitle !== prevTitle) {
       useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
       console.log('[INFO] [MarkdownEditor] Title updated:', prevTitle, '->', newTitle);
@@ -95,246 +112,262 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     }
   }, []);
 
-  // useSave with post-save callback for title updates
-  const { save, isSaving } = useSave(currentPath, getContent, handleSaveComplete);
+  // ── Auto-save content tracking ────────────────────────────────────────────
+  // We feed a single string into useAutoSave to drive dirty-state detection.
+  // In PW mode this is the visible window markdown; in legacy mode it's the full content.
+  const [autoSaveContent, setAutoSaveContent] = useState('');
 
-  const { flushPendingSave, markClean, isDirty } = useAutoSave(content, save);
-  useFocusSave(flushPendingSave, isDirty, editorContainerRef as React.RefObject<HTMLDivElement>);
+  // ── Save implementation ────────────────────────────────────────────────────
+  const save = useCallback(async (): Promise<boolean> => {
+    const path = currentPathRef.current;
 
-  // Track previous node ID to detect document changes
-  const prevNodeIdRef = useRef<string | null>(null);
-  // Track rename to skip save on rename-triggered document switch
-  const isRenamingRef = useRef(false);
+    if (usePW && docHandleRef.current && isEditMode) {
+      // ── Block store save (Tauri edit mode) ──────────────────────────────
+      const { docId } = docHandleRef.current;
+      const markdown = visibleWindowMarkdownRef.current;
+      const { startBlock, endBlock } = visibleRangeRef.current;
 
-  // Listen for file:renamed events
-  useEffect(() => {
-    if (!isTauriContext()) return;
-
-    const unlistenPromise = listen<{ old_path: string; new_path: string }>('file:renamed', (event) => {
-      const oldNorm = event.payload.old_path.replace(/\\/g, '/').toLowerCase();
-      const currentNorm = currentPath.replace(/\\/g, '/').toLowerCase();
-
-      if (oldNorm === currentNorm) {
-        console.log('[INFO] [MarkdownEditor] File renamed - updating path silently');
-        isRenamingRef.current = true;
-
-        // Update path without triggering reload
-        const normalizedNewPath = event.payload.new_path.replace(/\\/g, '/');
-        setCurrentPath(normalizedNewPath);
-        unmountPathRef.current = normalizedNewPath;
-
-        console.log('[DEBUG] [MarkdownEditor] Updated path on rename:', oldNorm, '->', normalizedNewPath);
+      if (!markdown) {
+        console.log('[INFO] [MarkdownEditor] Skipped PW save - empty window');
+        return false;
       }
-    });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
-  }, [currentPath]);
-
-  // CRITICAL: Save and reset refs when document changes
-  useEffect(() => {
-    if (prevNodeIdRef.current !== null && prevNodeIdRef.current !== node.id) {
-      console.log('[DEBUG] [MarkdownEditor] Document changed, flushing save:', prevNodeIdRef.current);
-
-      if (isRenamingRef.current) {
-        console.log('[INFO] [MarkdownEditor] Skipping save on rename');
-        hasLoadedRef.current = false;
-        unmountContentRef.current = '';
-        unmountPathRef.current = null;
-      } else {
-        flushPendingSave();
-        hasLoadedRef.current = false;
-        unmountContentRef.current = '';
-        unmountPathRef.current = null;
+      try {
+        const result: WindowUpdateResult = await updateVisibleWindow(
+          docId, startBlock, endBlock, markdown,
+        );
+        await saveDocument(docId);
+        console.log('[INFO] [MarkdownEditor] PW saved:', docId, `(${result.newTotalBlocks} blocks)`);
+        updateTitle(path, markdown);
+        return true;
+      } catch (err) {
+        console.error('[ERROR] [MarkdownEditor] PW save failed:', err);
+        return false;
+      }
+    } else {
+      // ── Full-file save (PWA / source mode) ──────────────────────────────
+      const content = legacyContent;
+      if (!content) {
+        console.log('[INFO] [MarkdownEditor] Skipped legacy save - empty content');
+        return false;
+      }
+      try {
+        await writeFile(path, content);
+        console.log('[INFO] [MarkdownEditor] Legacy saved:', path);
+        updateTitle(path, content);
+        return true;
+      } catch (err) {
+        console.error('[ERROR] [MarkdownEditor] Legacy save failed:', err);
+        return false;
       }
     }
+  }, [usePW, isEditMode, updateTitle, legacyContent]);
 
+  // getContent for useSave (Ctrl+S indicator / keyboard shortcut)
+  const getContent = useCallback((): string => {
+    if (usePW && isEditMode) return visibleWindowMarkdownRef.current;
+    return legacyContent;
+  }, [usePW, isEditMode, legacyContent]);
+
+  const { isSaving } = useSave(currentPath, getContent);
+  const { flushPendingSave, markClean, isDirty } = useAutoSave(autoSaveContent, save);
+  useFocusSave(flushPendingSave, isDirty, editorContainerRef as React.RefObject<HTMLDivElement>);
+
+  // ── Load legacy content ───────────────────────────────────────────────────
+  // Triggers on: initial mount (PWA), source mode (Tauri), document switch (PWA).
+  const loadLegacyContent = useCallback(async (path: string): Promise<void> => {
+    setLegacyLoading(true);
+    setLegacyError(null);
+    try {
+      const text = await readFile(path);
+      setLegacyContent(text);
+      markClean(text);
+      hasLoadedRef.current = true;
+      console.log('[INFO] [MarkdownEditor] Legacy loaded:', node.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load document';
+      setLegacyError(msg);
+      console.error('[ERROR] [MarkdownEditor] Legacy load failed:', err);
+    } finally {
+      setLegacyLoading(false);
+    }
+  }, [node.id, markClean]);
+
+  // PWA: load on mount / document switch
+  useEffect(() => {
+    if (usePW) return; // PW handles its own load
+    if (isRenamingRef.current) { isRenamingRef.current = false; return; }
+    loadLegacyContent(absolutePath);
+  }, [node.id, absolutePath, usePW, loadLegacyContent]);
+
+  // Tauri source mode: save block store then read from disk
+  useEffect(() => {
+    if (!usePW || !isSourceMode) return;
+
+    let cancelled = false;
+    async function enterSourceMode(): Promise<void> {
+      setLegacyLoading(true);
+      // Flush block-store save so disk is up-to-date
+      await flushPendingSave();
+      try {
+        const text = await readFile(currentPathRef.current);
+        if (!cancelled) {
+          setLegacyContent(text);
+          setLegacyLoading(false);
+          markClean(text);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLegacyError(err instanceof Error ? err.message : 'Failed to load for source view');
+          setLegacyLoading(false);
+        }
+      }
+    }
+    enterSourceMode();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usePW, isSourceMode]);
+
+  // When block store opens, mark clean so autoSave doesn't fire immediately
+  useEffect(() => {
+    if (docHandle) {
+      hasLoadedRef.current = true;
+      markClean(''); // Visible window content is fetched by PersistentWindow
+    }
+  }, [docHandle?.docId, markClean]);
+
+  // ── Document switch ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (prevNodeIdRef.current !== null && prevNodeIdRef.current !== node.id) {
+      if (!isRenamingRef.current) {
+        flushPendingSave();
+      }
+      hasLoadedRef.current = false;
+      isRenamingRef.current = false;
+    }
     prevNodeIdRef.current = node.id;
     prevNodeTitleRef.current = node.title;
   }, [node.id, flushPendingSave]);
 
-  // Keep content ref synced for unmount save (only after THIS document loads)
-  useEffect(() => {
-    if (hasLoadedRef.current && !isLoading && content) {
-      unmountContentRef.current = content;
-    }
-  }, [content, isLoading]);
+  // ── Unmount save (legacy path only) ──────────────────────────────────────
+  const legacyContentRef = useRef(legacyContent);
+  legacyContentRef.current = legacyContent;
 
-  // Update path ref AFTER content loads, not on mount
-  useEffect(() => {
-    if (!isLoading && content) {
-      unmountPathRef.current = currentPath;
-      hasLoadedRef.current = true;
-      console.log('[INFO] [MarkdownEditor] Refs updated:', { path: currentPath, contentLen: content.length });
-    }
-  }, [isLoading, content, currentPath]);
-
-  // Save on unmount only
   useEffect(() => {
     return () => {
-      if (hasLoadedRef.current && unmountContentRef.current && unmountPathRef.current) {
-        const pathToSave = unmountPathRef.current;
-        const contentToSave = unmountContentRef.current;
-        const prevTitle = prevNodeTitleRef.current;
+      if (!usePW && hasLoadedRef.current && legacyContentRef.current) {
+        writeFile(currentPathRef.current, legacyContentRef.current)
+          .then(() => console.log('[INFO] [MarkdownEditor] Unmount save complete'))
+          .catch((err) => console.error('[ERROR] [MarkdownEditor] Unmount save failed:', err));
+      }
+    };
+  }, []); // Empty deps — runs only on unmount
 
-        console.log('[DEBUG] [MarkdownEditor] Unmount save:', {
-          path: pathToSave,
-          contentLen: contentToSave.length
-        });
+  // ── PersistentWindow callbacks ────────────────────────────────────────────
+  const handleWindowChange = useCallback((markdown: string, range: VisibleRange) => {
+    visibleWindowMarkdownRef.current = markdown;
+    visibleRangeRef.current = range;
+    setAutoSaveContent(markdown);
+  }, []);
 
-        writeFile(pathToSave, contentToSave)
-          .then(() => {
-            console.log('[INFO] [MarkdownEditor] Saved on unmount');
+  const handleEditorReady = useCallback((editor: Editor) => {
+    setTiptapEditor(editor);
+  }, []);
 
-            const nodeId = extractNodeIdFromPath(pathToSave);
-            const newTitle = extractTitleFromContent(contentToSave);
-            if (newTitle && newTitle !== prevTitle) {
-              useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
-              console.log('[INFO] [MarkdownEditor] Title updated on unmount:', prevTitle, '->', newTitle);
+  // ── Legacy content change ─────────────────────────────────────────────────
+  const handleLegacyChange = useCallback((newContent: string) => {
+    setLegacyContent(newContent);
+    setAutoSaveContent(newContent);
+  }, []);
+
+  // ── File rename listener ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isTauriContext()) return;
+    const unlistenPromise = listen<{ old_path: string; new_path: string }>(
+      'file:renamed',
+      (event) => {
+        const oldNorm = event.payload.old_path.replace(/\\/g, '/').toLowerCase();
+        if (oldNorm === currentPath.replace(/\\/g, '/').toLowerCase()) {
+          isRenamingRef.current = true;
+          const newPath = event.payload.new_path.replace(/\\/g, '/');
+          setCurrentPath(newPath);
+          console.log('[INFO] [MarkdownEditor] Renamed:', oldNorm, '->', newPath);
+        }
+      },
+    );
+    return () => { unlistenPromise.then((u) => u()); };
+  }, [currentPath]);
+
+  // ── External modification listener ────────────────────────────────────────
+  useEffect(() => {
+    if (!isTauriContext()) return;
+    const unlistenPromise = listen<{ path: string; mtime: number }>(
+      'file:modified',
+      async (event) => {
+        const eventNorm = event.payload.path.replace(/\\/g, '/').toLowerCase();
+        if (eventNorm !== currentPath.replace(/\\/g, '/').toLowerCase()) return;
+        console.log('[INFO] [MarkdownEditor] External modification detected');
+
+        if (usePW && isEditMode && docHandleRef.current) {
+          // Close and reopen the document so the backend rescans blocks
+          try {
+            await closeDoc();
+            // Toggling the path triggers useBlockStore to reopen
+            setCurrentPath((p) => p); // same path — useBlockStore keyed on absolutePath
+            // Force useBlockStore effect to re-run by toggling a dummy state
+            setIsDeleted(false); // harmless re-render trigger
+          } catch (err) {
+            console.error('[ERROR] [MarkdownEditor] Failed to reopen after external edit:', err);
+          }
+        } else {
+          // PWA / source mode: reload from disk
+          try {
+            const diskContent = await readFile(currentPath);
+            setLegacyContent(diskContent);
+            markClean(diskContent);
+            updateTitle(currentPath, diskContent);
+            if (tiptapEditor && !tiptapEditor.isDestroyed) {
+              const cursor = tiptapEditor.state.selection.anchor;
+              tiptapEditor.commands.setContent(diskContent);
+              const max = tiptapEditor.state.doc.content.size;
+              tiptapEditor.commands.setTextSelection(Math.min(cursor, max));
             }
-          })
-          .catch((err) => console.error('[ERROR] [MarkdownEditor] Save on unmount failed:', err));
-      }
-    };
-  }, []); // Empty deps - runs only on unmount
-
-  // ── Load file on mount / note switch ───────────────────────────────────────
-  useEffect(() => {
-    if (isRenamingRef.current) {
-      isRenamingRef.current = false;
-      console.log('[INFO] [MarkdownEditor] Skipping reload on rename');
-      return;
-    }
-
-    let cancelled = false;
-
-    async function load(): Promise<void> {
-      setIsLoading(true);
-      setLoadError(null);
-      setIsDeleted(false);
-      setShowDeletedModal(false);
-
-      const maxRetries = 3;
-      let lastError: Error | null = null;
-
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          const text = await readFile(absolutePath);
-
-          if (!cancelled) {
-            setContent(text);
-            setCurrentPath(absolutePath);
-            setIsLoading(false);
-            markClean(text);
-            console.log('[INFO] [MarkdownEditor] Loaded:', node.id);
-          }
-          return;
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error('Failed to load document');
-
-          if (attempt < maxRetries) {
-            console.log(`[WARN] [MarkdownEditor] Load attempt ${attempt} failed, retrying...`);
-            await new Promise((resolve) => setTimeout(resolve, 100));
+          } catch (err) {
+            console.error('[ERROR] [MarkdownEditor] Reload failed:', err);
           }
         }
-      }
+      },
+    );
+    return () => { unlistenPromise.then((u) => u()); };
+  }, [currentPath, usePW, isEditMode, markClean, tiptapEditor, closeDoc, updateTitle]);
 
-      if (!cancelled && lastError) {
-        setLoadError(lastError.message);
-        console.error('[ERROR] [MarkdownEditor] Load failed after retries:', lastError);
-      }
-
-      if (!cancelled) {
-        setIsLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [node.id, absolutePath, markClean]);
-
-  const handleChange = useCallback(
-    (newContent: string) => {
-      setContent(newContent);
-    },
-    []
-  );
-
-  // Listen for external file modifications - backend already filtered our own saves
+  // ── File deletion listener ────────────────────────────────────────────────
   useEffect(() => {
     if (!isTauriContext()) return;
-
-    const unlistenPromise = listen<{ path: string; mtime: number }>('file:modified', async (event) => {
-      const normalizedEventPath = event.payload.path.replace(/\\/g, '/').toLowerCase();
-      const normalizedCurrentPath = currentPath.replace(/\\/g, '/').toLowerCase();
-
-      if (normalizedEventPath === normalizedCurrentPath) {
-        console.log('[INFO] [MarkdownEditor] External modification detected - reloading');
-
-        try {
-          const diskContent = await readFile(currentPath);
-          setContent(diskContent);
-          markClean(diskContent);
-
-          const nodeId = extractNodeIdFromPath(currentPath);
-          const newTitle = extractTitleFromContent(diskContent);
-          const prevTitle = prevNodeTitleRef.current;
-          if (newTitle && newTitle !== prevTitle) {
-            useNavigationStore.getState().updateNodeTitle(nodeId, newTitle);
-            console.log('[INFO] [MarkdownEditor] Title updated from external change:', prevTitle, '->', newTitle);
-            prevNodeTitleRef.current = newTitle;
-          }
-
-          if (tiptapEditor && !tiptapEditor.isDestroyed) {
-            const cursorPos = tiptapEditor.state.selection.anchor;
-            tiptapEditor.commands.setContent(diskContent);
-            const maxPos = tiptapEditor.state.doc.content.size;
-            tiptapEditor.commands.setTextSelection(Math.min(cursorPos, maxPos));
-          }
-        } catch (err) {
-          console.error('[ERROR] [MarkdownEditor] Failed to reload:', err);
+    const unlistenPromise = listen<{ path: string; note_id: string }>(
+      'file:deleted',
+      (event) => {
+        if (event.payload.note_id === node.id) {
+          setIsDeleted(true);
+          setShowDeletedModal(true);
         }
-      }
-    });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
-  }, [currentPath, markClean, tiptapEditor]);
-
-  // Listen for file deletion events - show immediate restore prompt
-  useEffect(() => {
-    if (!isTauriContext()) return;
-
-    const unlistenPromise = listen<{ path: string; note_id: string }>('file:deleted', (event) => {
-      if (event.payload.note_id === node.id) {
-        console.log('[INFO] [MarkdownEditor] File deleted on disk:', node.id);
-        setIsDeleted(true);
-        setShowDeletedModal(true);
-      }
-    });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
+      },
+    );
+    return () => { unlistenPromise.then((u) => u()); };
   }, [node.id]);
 
-  // Handle deleted file modal actions
   const handleRestore = useCallback(() => {
     setIsDeleted(false);
     setShowDeletedModal(false);
-    console.log('[INFO] [MarkdownEditor] File restored:', absolutePath);
-  }, [absolutePath]);
+  }, []);
 
   const handleDiscard = useCallback(() => {
     useNavigationStore.getState().setActiveNode(null);
-    console.log('[INFO] [MarkdownEditor] Deleted file discarded, returning to initial page');
   }, []);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Loading / error ───────────────────────────────────────────────────────
+  const isLoading = (usePW && isEditMode) ? pwLoading : legacyLoading;
+  const loadError = (usePW && isEditMode) ? pwError : legacyError;
+
   if (isLoading) {
     return (
       <div className="editor-container">
@@ -353,46 +386,50 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     );
   }
 
-  // Only the active editor component is mounted to save memory and parsing time
-  const isEditMode = mode === 'edit';
-  const isSourceMode = mode === 'source';
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <div className="editor-container" ref={editorContainerRef}>
-        <EditorToolbar
-          isSaving={isSaving}
-          isDeleted={isDeleted}
-        />
+        <EditorToolbar isSaving={isSaving} isDeleted={isDeleted} />
 
         {isEditMode && tiptapEditor && <FormatToolbar editor={tiptapEditor} />}
 
-        {isEditMode && (
+        {/* Tauri edit mode: Persistent Window */}
+        {isEditMode && usePW && docHandle && (
+          <PersistentWindow
+            docHandle={docHandle}
+            onWindowChange={handleWindowChange}
+            onEditorReady={handleEditorReady}
+          />
+        )}
+
+        {/* PWA edit mode: legacy full-document TipTap */}
+        {isEditMode && !usePW && (
           <div className="editor-live-preview">
             <TiptapEditor
-              content={content}
-              onChange={handleChange}
+              content={legacyContent}
+              onChange={handleLegacyChange}
               onEditorReady={setTiptapEditor}
             />
           </div>
         )}
 
+        {/* Source mode (both Tauri and PWA) */}
         {isSourceMode && (
           <div className="editor-source-view">
             <SourceView
-              content={content}
-              onChange={handleChange}
+              content={legacyContent}
+              onChange={handleLegacyChange}
               nodeId={node.id}
             />
           </div>
         )}
       </div>
 
-      {/* Deleted file modal */}
       {showDeletedModal && (
         <DeletedFileModal
           absolutePath={absolutePath}
-          content={content}
+          content={legacyContent}
           onRestore={handleRestore}
           onDiscard={handleDiscard}
         />
