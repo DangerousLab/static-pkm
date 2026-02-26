@@ -1,118 +1,55 @@
 /**
  * TiptapEditor
- * Tiptap-based WYSIWYG markdown editor with Typora-like experience.
- * Uses @tiptap/core directly (no @tiptap/react) — editor instance is managed
- * via useRef/useEffect for maximum performance. React owns the container div;
- * ProseMirror/TipTap own everything inside it.
+ * WYSIWYG editor component based on @tiptap/core.
+ * Uses a purely functional approach with traditional event-based
+ * architecture to align with Unstablon's 9-layer model.
  *
  * @module TiptapEditor
  */
 
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import Paragraph from '@tiptap/extension-paragraph';
-import Heading from '@tiptap/extension-heading';
 import { Markdown } from 'tiptap-markdown';
 import Placeholder from '@tiptap/extension-placeholder';
-import Link from '@tiptap/extension-link';
 import Typography from '@tiptap/extension-typography';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import { Table } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
-import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import FontFamily from '@tiptap/extension-font-family';
-import { CharacterCount, Focus, TrailingNode } from '@tiptap/extensions';
+import InvisibleCharacters from '@tiptap/extension-invisible-characters';
+import CharacterCount from '@tiptap/extension-character-count';
+import Focus from '@tiptap/extension-focus';
 import { common, createLowlight } from 'lowlight';
+// Custom extensions
+import { BackgroundColor } from './extensions/BackgroundColor';
+import { FontSize } from './extensions/FontSize';
+import { LineHeight } from './extensions/LineHeight';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
 import { EditorFloatingMenu } from './EditorFloatingMenu';
-import { FontSize } from './extensions/FontSize';
-import { BackgroundColor } from './extensions/BackgroundColor';
-import { LineHeight } from './extensions/LineHeight';
-import InvisibleCharacters from '@tiptap/extension-invisible-characters';
+
+const lowlight = createLowlight(common);
 
 interface TiptapEditorProps {
   content: string;
   onChange: (content: string) => void;
   onEditorReady?: (editor: Editor) => void;
-  onReady?: () => void;
-  onScrollRestored?: () => void;
-  initialScrollPercentage?: number | null;
-  osReadyPromise?: Promise<HTMLElement>;
-  /** Incremented on every document switch to force this effect to re-run
-   * even when initialScrollPercentage is numerically identical across docs. */
-  restoreToken?: number;
 }
-
-const lowlight = createLowlight(common);
-
-const CustomParagraph = Paragraph.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(state: any, node: any) {
-          if (node.attrs.textAlign || node.attrs.lineHeight) {
-            const style = [];
-            if (node.attrs.textAlign) style.push(`text-align: ${node.attrs.textAlign}`);
-            if (node.attrs.lineHeight) style.push(`line-height: ${node.attrs.lineHeight}`);
-
-            state.write(`<p style="${style.join('; ')}">\n\n`);
-            state.renderInline(node);
-            state.write('\n\n</p>');
-            state.closeBlock(node);
-          } else {
-            state.renderInline(node);
-            state.closeBlock(node);
-          }
-        },
-        parse: { setup() { } }
-      }
-    };
-  }
-});
-
-const CustomHeading = Heading.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(state: any, node: any) {
-          if (node.attrs.textAlign || node.attrs.lineHeight) {
-            const style = [];
-            if (node.attrs.textAlign) style.push(`text-align: ${node.attrs.textAlign}`);
-            if (node.attrs.lineHeight) style.push(`line-height: ${node.attrs.lineHeight}`);
-
-            state.write(`<h${node.attrs.level} style="${style.join('; ')}">\n\n`);
-            state.renderInline(node);
-            state.write(`\n\n</h${node.attrs.level}>`);
-            state.closeBlock(node);
-          } else {
-            state.write(state.repeat('#', node.attrs.level) + ' ');
-            state.renderInline(node);
-            state.closeBlock(node);
-          }
-        },
-        parse: { setup() { } }
-      }
-    };
-  }
-});
 
 export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   content,
   onChange,
   onEditorReady,
-  onReady,
-  onScrollRestored,
-  initialScrollPercentage,
-  osReadyPromise,
-  restoreToken,
 }) => {
   // Stable refs for callbacks — avoids stale closure captures in effects
   const onChangeRef = useRef(onChange);
@@ -120,9 +57,6 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   const onEditorReadyRef = useRef(onEditorReady);
   onEditorReadyRef.current = onEditorReady;
-
-  const onScrollRestoredRef = useRef(onScrollRestored);
-  onScrollRestoredRef.current = onScrollRestored;
 
   // Mount container — React owns this div, TipTap/ProseMirror own everything inside
   const mountRef = useRef<HTMLDivElement>(null);
@@ -144,16 +78,12 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       element: mountRef.current,
       extensions: [
         StarterKit.configure({
-          codeBlock: false,    // Use CodeBlockLowlight instead
-          paragraph: false,    // Use CustomParagraph instead
-          heading: false,      // Use CustomHeading instead
+          codeBlock: false, // Disable default to use CodeBlockLowlight
           dropcursor: {
             color: 'var(--accent)',
             width: 2,
           },
         }),
-        CustomParagraph,
-        CustomHeading,
         Markdown.configure({
           html: true,
           tightLists: true,
@@ -165,10 +95,6 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         }),
         Placeholder.configure({
           placeholder: 'Start writing...',
-        }),
-        Link.configure({
-          openOnClick: false,
-          autolink: true,
         }),
         Typography,
         CodeBlockLowlight.configure({
@@ -184,7 +110,6 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         TaskItem.configure({
           nested: true,
         }),
-        Underline,
         TextAlign.configure({
           types: ['heading', 'paragraph'],
         }),
@@ -207,9 +132,8 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           className: 'is-focused',
           mode: 'all',
         }),
-        TrailingNode,
       ],
-      content,
+      content: '', // Initialize empty! tiptap-markdown requires setContent to parse initial load.
       editorProps: {
         handleClick: (view, pos, event) => {
           // Handle internal link clicks
@@ -237,11 +161,13 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       },
     });
 
+    // Explicitly set the content here to guarantee that tiptap-markdown intercepts and parses it.
+    editor.commands.setContent(content);
+
     editorRef.current = editor;
 
-    // Notify parent that editor is ready
+    // Notify parent that editor instance is available
     onEditorReadyRef.current?.(editor);
-    onReady?.();
 
     // Trigger one re-render so bubble/floating menus mount with the editor instance
     setEditorReady(true);
@@ -256,100 +182,20 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Scroll restoration ─────────────────────────────────────────────────────
-  // Depends on initialScrollPercentage + restoreToken so it re-runs on each
-  // document switch and mode change, but NOT on every content change.
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    if (initialScrollPercentage != null && initialScrollPercentage > 0) {
-      let cancelled = false;
-
-      const restoreScroll = async () => {
-        let viewport: HTMLElement | null = null;
-
-        if (osReadyPromise) {
-          try {
-            console.log('[DEBUG] [TiptapEditor] Awaiting OS viewport ready...');
-            viewport = await osReadyPromise;
-            console.log('[DEBUG] [TiptapEditor] Viewport ready via OS promise');
-          } catch (err) {
-            // Promise rejected (mode changed or doc changed) — abort but ungate visibility
-            console.log('[DEBUG] [TiptapEditor] Viewport promise rejected:', err);
-            onScrollRestoredRef.current?.();
-            return;
-          }
-        } else {
-          // Non-OverlayScrollbars path — query DOM directly
-          viewport = document.querySelector<HTMLElement>('.editor-live-preview');
-          console.log('[DEBUG] [TiptapEditor] Viewport from DOM query');
-        }
-
-        if (cancelled) return;
-
-        if (viewport) {
-          // rAF ensures browser has laid out new content before reading scrollHeight.
-          // Without it the content-sync effect may not have fired yet → scrollableHeight = 0.
-          requestAnimationFrame(() => {
-            if (cancelled || !viewport!.isConnected) {
-              // Viewport detached (Strict Mode teardown or mode/doc change) —
-              // still ungate visibility so the UI doesn't stay hidden.
-              onScrollRestoredRef.current?.();
-              return;
-            }
-            const { scrollHeight, clientHeight } = viewport!;
-            const scrollableHeight = Math.max(0, scrollHeight - clientHeight);
-            viewport!.scrollTop = scrollableHeight * initialScrollPercentage;
-            console.log('[DEBUG] [TiptapEditor] Scroll restored:', { scrollTop: viewport!.scrollTop });
-            onScrollRestoredRef.current?.();
-          });
-        }
-      };
-
-      restoreScroll();
-      return () => { cancelled = true; };
-    } else {
-      // No restoration needed — ungate visibility immediately
-      onScrollRestoredRef.current?.();
-    }
-  }, [initialScrollPercentage, osReadyPromise, restoreToken]);
-  // NOTE: editorRef is intentionally excluded — editor readiness is handled by
-  // the mount effect above, not here. onReady fires synchronously in the mount
-  // effect, which triggers the parent to set initialScrollPercentage, which
-  // then triggers this effect via restoreToken.
-
   // ── Content sync ───────────────────────────────────────────────────────────
-  // Sync content prop to editor when it changes externally (e.g. cache restore,
-  // external file modification via file:modified IPC event).
+  // Handles incoming content updates after the editor has mounted.
+  // This is how we support document switches or external modifications.
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || editor.isDestroyed) return;
-
-    // Get current editor markdown content
-    const currentContent = (editor.storage as { markdown?: { getMarkdown: () => string } }).markdown?.getMarkdown?.() ?? '';
-
-    // Only update if content actually differs (avoids cursor jump)
-    if (content && content !== currentContent) {
-      // Preserve cursor position
-      const { from, to } = editor.state.selection;
-      editor.commands.setContent(content);
-
-      // Restore cursor (clamped to new content length)
-      requestAnimationFrame(() => {
-        if (!editor.isDestroyed) {
-          const maxPos = editor.state.doc.content.size;
-          editor.commands.setTextSelection({
-            from: Math.min(from, maxPos),
-            to: Math.min(to, maxPos),
-          });
-        }
-      });
+    if (editor && editorReady && !editor.isDestroyed) {
+      const currentMarkdown = (editor.storage as any).markdown?.getMarkdown() ?? '';
+      if (content !== currentMarkdown) {
+        // tiptap-markdown hooks into setContent when passed as the primary argument
+        editor.commands.setContent(content);
+      }
     }
-  }, [content]);
+  }, [content, editorReady]);
 
-  // React owns this container div. TipTap/ProseMirror mount inside it via new Editor({ element }).
-  // Do NOT render children here — the editor manages its own DOM subtree.
   return (
     <>
       {editorReady && editorRef.current && <EditorBubbleMenu editor={editorRef.current} />}
@@ -358,3 +204,5 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     </>
   );
 };
+
+export default TiptapEditor;

@@ -2,7 +2,6 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useSidebarStore } from '@core/state/sidebarStore';
 import { useNavigationStore, selectBreadcrumbPath } from '@core/state/navigationStore';
 import { useIsMobile, useShouldAutoCloseSidebar } from '@hooks/useWindowSize';
-import { OverlayScrollbarsComponent, getScrollbarOptions } from '@core/utils/scrollbar';
 import { getNodeId } from '@/types/navigation';
 import Breadcrumb from './Breadcrumb';
 import NavItem from './NavItem';
@@ -164,12 +163,7 @@ function Sidebar(): React.JSX.Element {
 
         {/* Navigation Menu — OverlayScrollbarsComponent owns the scroll container.
             navRef stays on the inner <nav> for DOM width measurement only. */}
-        <OverlayScrollbarsComponent
-          element="div"
-          className="sidebar-nav-scroll"
-          options={getScrollbarOptions()}
-          defer
-        >
+        <div className="sidebar-nav-scroll">
           <nav ref={navRef} id="sidebarNav" className="sidebar-nav">
             {children.length > 0 ? (
               children.map((node) => (
@@ -181,7 +175,7 @@ function Sidebar(): React.JSX.Element {
               </p>
             )}
           </nav>
-        </OverlayScrollbarsComponent>
+        </div>
 
         {/* Sidebar Footer */}
         <div className="sidebar-footer">

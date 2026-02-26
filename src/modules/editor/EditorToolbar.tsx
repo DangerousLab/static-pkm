@@ -1,7 +1,7 @@
 /**
  * EditorToolbar
  * Simplified toolbar for Obsidian-style auto-save:
- * - Mode toggle, line numbers toggle, save status, optional manual save button
+ * - Mode toggle, save status
  *
  * @module EditorToolbar
  */
@@ -24,12 +24,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 }) => {
   const mode = useEditorStore((s) => s.mode);
   const setMode = useEditorStore((s) => s.setMode);
-  const lineNumbersEnabled = useEditorStore((s) => s.lineNumbersEnabled);
-  const setLineNumbers = useEditorStore((s) => s.setLineNumbers);
 
   return (
     <div className="editor-toolbar">
-      {/* ── Row 1: Mode toggle + status + save ────────────────────────────────── */}
+      {/* ── Row 1: Mode toggle + status ─────────────────────────────────────── */}
       <div className="editor-toolbar-row">
         <div className="editor-toolbar-left">
           {/* Mode toggle pill group */}
@@ -55,21 +53,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               </button>
             ))}
           </div>
-
-          {/* Line numbers toggle */}
-          <button
-            onClick={() => setLineNumbers(!lineNumbersEnabled)}
-            className={[
-              'ml-2 px-2 py-1 rounded-md text-sm font-mono transition-colors',
-              lineNumbersEnabled
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
-            ].join(' ')}
-            aria-label={lineNumbersEnabled ? 'Hide line numbers' : 'Show line numbers'}
-            title={lineNumbersEnabled ? 'Line numbers: ON' : 'Line numbers: OFF'}
-          >
-            #
-          </button>
         </div>
 
         {/* Right: Status (no save button with auto-save) */}
