@@ -27,14 +27,14 @@ import type { BlockMeta, ScrollMode, ViewportUpdate } from '@/types/blockstore';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 /** Maximum blocks loaded into TipTap at any time. */
-const MAX_LOADED_BLOCKS = 300;
+const MAX_LOADED_BLOCKS = 400;
 
 /**
  * Buffer loaded above and below the visible area.
  * With ~30 visible blocks at DEFAULT_BLOCK_HEIGHT, the loaded window is
- * ~230 blocks (100 + 30 + 100), well within MAX_LOADED_BLOCKS = 300.
+ * ~330 blocks (150 + 30 + 150), well within MAX_LOADED_BLOCKS = 400.
  */
-const BUFFER_BLOCKS = 100;
+const BUFFER_BLOCKS = 30;
 
 /**
  * Hysteresis threshold (blocks).
@@ -42,14 +42,14 @@ const BUFFER_BLOCKS = 100;
  * A new range is only emitted when `firstVisible` has moved within
  * HYSTERESIS_BLOCKS of either edge of the currently loaded range.
  *
- * With BUFFER_BLOCKS=100 and HYSTERESIS_BLOCKS=40, the user must scroll
- * through 60 blocks of pre-loaded content before a new fetch is queued.
+ * With BUFFER_BLOCKS=150 and HYSTERESIS_BLOCKS=75, the user must scroll
+ * through 75 blocks of pre-loaded content before a new fetch is queued.
  * This prevents the oscillation loop:
  *   height mismatch → scroll adjust → new range → fetch → height change → repeat
  *
  * Tunable: increase to reduce fetch frequency (at the cost of a smaller safe zone).
  */
-const HYSTERESIS_BLOCKS = 40;
+const HYSTERESIS_BLOCKS = 25;
 
 /**
  * Cooldown (ms) after emitting a range shift.
@@ -66,7 +66,7 @@ const HYSTERESIS_BLOCKS = 40;
  *
  * Tunable: increase if rubber-banding persists, decrease if fetches feel sluggish.
  */
-const SHIFT_COOLDOWN_MS = 500;
+const SHIFT_COOLDOWN_MS = 50;
 
 /**
  * Fallback height used when a block's estimated height is 0.
@@ -185,7 +185,6 @@ export class ViewportCoordinator {
     // scrollTop write (step 4 of the synchronous correction pattern).
     if (this.skipNextScroll) {
       this.skipNextScroll = false;
-      console.log(`[DEBUG] [VC] onScroll SUPPRESSED | scrollTop=${scrollTop.toFixed(0)}`);
       return;
     }
 
@@ -307,11 +306,6 @@ export class ViewportCoordinator {
     const mode = this.resolveMode(firstVisible);
     const shouldEmit = this.shouldEmitRange(firstVisible, startBlock, endBlock);
 
-    console.log(
-      `[DEBUG] [VC] processScroll | scrollTop=${scrollTop.toFixed(0)} firstVisible=${firstVisible}` +
-      ` range=[${startBlock},${endBlock}] mode=${mode} emit=${shouldEmit} estTranslateY=${translateY.toFixed(0)}`,
-    );
-
     if (shouldEmit) {
       this.lastEmittedRange = { startBlock, endBlock };
       this.lastEmitTime = Date.now();
@@ -333,7 +327,6 @@ export class ViewportCoordinator {
     if (this.settleTimer !== null) {
       clearTimeout(this.settleTimer);
     }
-    console.log(`[DEBUG] [VC] scheduleSettle | scrollTop=${scrollTop.toFixed(0)} (${SETTLE_DEBOUNCE_MS}ms timer)`);
     this.settleTimer = setTimeout(() => {
       this.settleTimer = null;
       const settled = this.computeBlockRange(scrollTop);
@@ -341,10 +334,6 @@ export class ViewportCoordinator {
         startBlock: settled.startBlock,
         endBlock: settled.endBlock,
       };
-      console.log(
-        `[DEBUG] [VC] SETTLE FIRED | scrollTop=${scrollTop.toFixed(0)}` +
-        ` range=[${settled.startBlock},${settled.endBlock}] estTranslateY=${settled.translateY.toFixed(0)}`,
-      );
       this.onChange({ ...settled, mode: 'settle' });
     }, SETTLE_DEBOUNCE_MS);
   }
@@ -365,11 +354,19 @@ export class ViewportCoordinator {
     const blocksPerViewport = this.blocksPerViewport();
     const lastVisible = firstVisible + blocksPerViewport;
 
-    const mode: ScrollMode = (firstVisible >= loadedStart && lastVisible <= loadedEnd) ? 'smooth' : 'flyover';
+    const topMargin = firstVisible - loadedStart;
+    const bottomMargin = loadedEnd - lastVisible;
+    const totalBlocks = this.heights.length;
 
-    console.log(
-      `[DEBUG] [VC] resolveMode | visible=[${firstVisible},${lastVisible}] loaded=[${loadedStart},${loadedEnd}] → ${mode}`,
-    );
+    // Treat document boundaries as infinite safe margin
+    const effectiveTopMargin = loadedStart === 0 ? Infinity : topMargin;
+    const effectiveBottomMargin = loadedEnd >= totalBlocks ? Infinity : bottomMargin;
+
+    // Trigger flyover if ANY margin is completely exhausted (<= 0)
+    // The previous hysteresis check (100 blocks) triggers earlier to emit a fetch,
+    // but flyover should only clamp down if that fetch fails to arrive before
+    // the user outruns the visible buffer.
+    const mode: ScrollMode = (effectiveTopMargin > 0 && effectiveBottomMargin > 0) ? 'smooth' : 'flyover';
 
     return mode;
   }
@@ -398,7 +395,6 @@ export class ViewportCoordinator {
 
     // First emission — always emit
     if (lastStart === -1) {
-      console.log(`[DEBUG] [VC] shouldEmit | FIRST EMISSION`);
       return true;
     }
 
@@ -412,7 +408,6 @@ export class ViewportCoordinator {
     // to finish reflowing before we consider another range shift.
     const cooldownRemaining = SHIFT_COOLDOWN_MS - (Date.now() - this.lastEmitTime);
     if (cooldownRemaining > 0) {
-      console.log(`[DEBUG] [VC] shouldEmit | COOLDOWN (${cooldownRemaining.toFixed(0)}ms remaining)`);
       return false;
     }
 
@@ -420,7 +415,6 @@ export class ViewportCoordinator {
 
     // Nothing loaded yet — emit immediately
     if (loadedStart === 0 && loadedEnd === 0) {
-      console.log(`[DEBUG] [VC] shouldEmit | NOTHING LOADED → emit`);
       return true;
     }
 
@@ -439,11 +433,6 @@ export class ViewportCoordinator {
 
     // Emit when either margin has shrunk below the threshold
     const shouldEmit = topMargin < HYSTERESIS_BLOCKS || bottomMargin < HYSTERESIS_BLOCKS;
-
-    console.log(
-      `[DEBUG] [VC] shouldEmit | topMargin=${topMargin} bottomMargin=${bottomMargin}` +
-      ` threshold=${HYSTERESIS_BLOCKS} → ${shouldEmit}`,
-    );
 
     return shouldEmit;
   }

@@ -48,6 +48,7 @@ import type { DocumentHandle, ViewportUpdate, VisibleRange } from '@/types/block
 import { getBlocks } from '@core/ipc/blockstore';
 import { ViewportCoordinator } from './ViewportCoordinator';
 import { TiptapEditor } from './TiptapEditor';
+import { parseBlocksToFragment, shiftViewportDown, shiftViewportUp } from './surgicalTransaction';
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -311,73 +312,147 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           return;
         }
 
-        // ── CASE A & B: Overlapping shift (delta-based, pixel-perfect) ──────────
+        // ── CASE A & B: Overlapping shift (surgical transactions, pixel-perfect) ──
         //
-        // Instead of measuring block heights and trying to compute how far the
-        // anchor should move, we:
-        //   1. Record the screen Y of the first surviving block BEFORE setContent.
-        //   2. Call setContent (DOM changes).
-        //   3. Record the same block's screen Y AFTER setContent.
+        // Instead of setContent() — which replaces the entire document and forces
+        // ProseMirror to diff/rebuild all 300+ nodes — we build targeted transactions
+        // that only touch the changed ends. Surviving nodes in the middle keep their
+        // existing DOM elements, eliminating the stutter at scroll boundaries.
+        //
+        // Anchor correction still uses the same delta-based DOM measurement pattern:
+        //   1. Record the screen Y of the first surviving block BEFORE the transaction.
+        //   2. Dispatch the surgical transaction (DOM changes only at the edges).
+        //   3. Record the same block's screen Y AFTER the transaction.
         //   4. Apply -(newY - oldY) to the anchor to cancel the displacement.
-        //
-        // This is pixel-perfect: it captures ALL sources of movement (margins,
-        // padding, block-type differences, collapsed margins) with no estimation.
         //
         // CASE A (downward): surviving block = old children[removeCount] → new children[0]
         // CASE B (upward):   surviving block = old children[0]           → new children[addCount]
+        //
+        // Safety valve: if the block-to-node assumption is violated or parsing
+        // fails, catch the error and fall back to shiftContentNonUndoable().
 
         if (isDownward) {
-          const removeCount = startBlock - oldStart;
+          const addedBlocks = blocks.filter((b) => b.id >= oldEnd);
           const editorDom = editor.view.dom;
 
-          // 1. Record surviving block's screen Y BEFORE setContent
-          const survivorBefore = editorDom.children[removeCount] as HTMLElement | undefined;
-          const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+          try {
+            // Parse only the added blocks and the full new window.
+            // We need both to derive the real PM node counts, because blocks
+            // do NOT map 1:1 to ProseMirror top-level nodes — the markdown
+            // parser merges/splits blocks at structural boundaries (e.g. adjacent
+            // list items). Block-based counts always diverge from PM node counts.
+            const addedFragment = parseBlocksToFragment(editor, addedBlocks);
+            const fullNewFragment = parseBlocksToFragment(editor, blocks);
 
-          // 2. Replace content (removes blocks from the top of the editor)
-          shiftContentNonUndoable(editor, markdown);
+            // surviving nodes in the new parse = fullNew − added
+            // nodes to remove from old doc = currentCount − survivingCount
+            const currentNodeCount = editor.state.doc.content.childCount;
+            const removeNodeCount = currentNodeCount
+              - (fullNewFragment.childCount - addedFragment.childCount);
 
-          // 3. Record that same block's screen Y AFTER setContent (now at children[0])
-          const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
-          const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+            if (removeNodeCount < 0 || removeNodeCount > currentNodeCount) {
+              throw new Error(
+                `invalid removeNodeCount=${removeNodeCount} (current=${currentNodeCount} fullNew=${fullNewFragment.childCount} added=${addedFragment.childCount})`,
+              );
+            }
 
-          // 4. Cancel the displacement: anchor moves by -(newY - oldY)
-          const delta = newY - oldY;
-          incrementalTranslateYRef.current -= delta;
-          anchor.style.top = `${incrementalTranslateYRef.current}px`;
+            // 1. Record surviving block's screen Y BEFORE the transaction.
+            //    The first surviving node is at PM index removeNodeCount.
+            const survivorBefore = editorDom.children[removeNodeCount] as HTMLElement | undefined;
+            const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
 
-          console.log(
-            `[DEBUG] [PW] CASE A (downward) | removing ${removeCount} blocks from top\n` +
-            `  oldY=${oldY.toFixed(1)} newY=${newY.toFixed(1)} delta=${delta.toFixed(1)}\n` +
-            `  anchorTop: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
-          );
+            // 2. Surgical: delete removeNodeCount nodes from top, insert added at bottom
+            shiftViewportDown(editor, removeNodeCount, addedFragment);
+
+            // 3. Record that same block's screen Y AFTER the transaction (now at children[0])
+            const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
+            const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+
+            // 4. Cancel the displacement: anchor moves by -(newY - oldY)
+            const delta = newY - oldY;
+            incrementalTranslateYRef.current -= delta;
+            anchor.style.top = `${incrementalTranslateYRef.current}px`;
+
+            console.log(
+              `[DEBUG] [PW] CASE A (downward) | removeNodes=${removeNodeCount} addNodes=${addedFragment.childCount}` +
+              ` (blocks: -${startBlock - oldStart} +${addedBlocks.length})\n` +
+              `  oldY=${oldY.toFixed(1)} newY=${newY.toFixed(1)} delta=${delta.toFixed(1)}\n` +
+              `  anchorTop: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
+            );
+          } catch (err) {
+            console.warn('[WARN] [PW] CASE A surgical failed, falling back to setContent:', err);
+
+            // Fallback: full replace — same as old behaviour. Survivor measurement
+            // is skipped entirely; the delta correction will see 0 delta here which
+            // is acceptable because setContent rebuilds the DOM from scratch.
+            const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
+            const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+            shiftContentNonUndoable(editor, markdown);
+            const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
+            const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+            const delta = newY - oldY;
+            incrementalTranslateYRef.current -= delta;
+            anchor.style.top = `${incrementalTranslateYRef.current}px`;
+          }
         }
 
         if (isUpward) {
-          const addCount = oldStart - startBlock;
+          const addedBlocks = blocks.filter((b) => b.id < oldStart);
           const editorDom = editor.view.dom;
 
-          // 1. Record surviving block's screen Y BEFORE setContent (currently at children[0])
-          const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
-          const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+          try {
+            // Same two-parse approach as CASE A: derive PM node counts from
+            // actual parsing results, not block index arithmetic.
+            const addedFragment = parseBlocksToFragment(editor, addedBlocks);
+            const fullNewFragment = parseBlocksToFragment(editor, blocks);
 
-          // 2. Replace content (adds blocks to the top of the editor)
-          shiftContentNonUndoable(editor, markdown);
+            const currentNodeCount = editor.state.doc.content.childCount;
+            const removeNodeCount = currentNodeCount
+              - (fullNewFragment.childCount - addedFragment.childCount);
 
-          // 3. Record that same block's screen Y AFTER setContent (now at children[addCount])
-          const survivorAfter = editorDom.children[addCount] as HTMLElement | undefined;
-          const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+            if (removeNodeCount < 0 || removeNodeCount > currentNodeCount) {
+              throw new Error(
+                `invalid removeNodeCount=${removeNodeCount} (current=${currentNodeCount} fullNew=${fullNewFragment.childCount} added=${addedFragment.childCount})`,
+              );
+            }
 
-          // 4. Cancel the displacement: anchor moves by -(newY - oldY)
-          const delta = newY - oldY;
-          incrementalTranslateYRef.current -= delta;
-          anchor.style.top = `${incrementalTranslateYRef.current}px`;
+            // 1. Record surviving block's screen Y BEFORE the transaction.
+            //    The first surviving node in the old doc is children[0].
+            const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
+            const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
 
-          console.log(
-            `[DEBUG] [PW] CASE B (upward) | adding ${addCount} blocks to top\n` +
-            `  oldY=${oldY.toFixed(1)} newY=${newY.toFixed(1)} delta=${delta.toFixed(1)}\n` +
-            `  anchorTop: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
-          );
+            // 2. Surgical: insert added nodes at top, delete removeNodeCount from bottom
+            shiftViewportUp(editor, addedFragment, removeNodeCount);
+
+            // 3. Record that same block's screen Y AFTER the transaction.
+            //    After inserting addedFragment.childCount nodes at the top, the
+            //    first surviving node has shifted to children[addedFragment.childCount].
+            const survivorAfter = editorDom.children[addedFragment.childCount] as HTMLElement | undefined;
+            const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+
+            // 4. Cancel the displacement: anchor moves by -(newY - oldY)
+            const delta = newY - oldY;
+            incrementalTranslateYRef.current -= delta;
+            anchor.style.top = `${incrementalTranslateYRef.current}px`;
+
+            console.log(
+              `[DEBUG] [PW] CASE B (upward) | addNodes=${addedFragment.childCount} removeNodes=${removeNodeCount}` +
+              ` (blocks: +${addedBlocks.length} -${oldEnd - endBlock})\n` +
+              `  oldY=${oldY.toFixed(1)} newY=${newY.toFixed(1)} delta=${delta.toFixed(1)}\n` +
+              `  anchorTop: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
+            );
+          } catch (err) {
+            console.warn('[WARN] [PW] CASE B surgical failed, falling back to setContent:', err);
+
+            const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
+            const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+            shiftContentNonUndoable(editor, markdown);
+            const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
+            const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+            const delta = newY - oldY;
+            incrementalTranslateYRef.current -= delta;
+            anchor.style.top = `${incrementalTranslateYRef.current}px`;
+          }
         }
 
         // Update tracking after all mutations.
