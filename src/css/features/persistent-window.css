@@ -39,6 +39,12 @@
    * — fighting our own corrections and causing unpredictable jumps. */
   overflow-anchor: none;
 
+  /* Isolate layout calculations from the rest of the document.
+   * This is critical for macOS Safari/Chrome, as it prevents the browser's
+   * scroll compositor from recalculating the whole DOM height or triggering
+   * synthetic reflow scrolls when we surgically mutate internal absolute nodes. */
+  contain: layout paint;
+
   /* ── Scroll mode tuning tokens ────────────────────────────────────────── */
   /* Adjust these to tune scroll UX feel without touching JS or rebuilding.  */
   /* Note: skeleton mode has been removed. Only flyover (full dim) is used.  */
@@ -75,6 +81,13 @@
 
   /* Restore pointer events so TipTap receives clicks */
   pointer-events: auto;
+
+  /* Force hardware acceleration and composite isolation on the moving anchor. 
+   * This ensures the instantaneous top/translateY swap during surgical updates
+   * happens on the GPU, completely detached from Mac's native scroll engine 
+   * which otherwise misinterprets the offset shift as a semantic layout jump. */
+  transform: translateZ(0);
+  will-change: transform, top;
 
   /* Default fade-out transition (dim/hide during scroll) */
   transition: opacity var(--pw-fade-out-duration) var(--pw-fade-out-easing);

@@ -34,7 +34,7 @@ const MAX_LOADED_BLOCKS = 400;
  * With ~30 visible blocks at DEFAULT_BLOCK_HEIGHT, the loaded window is
  * ~330 blocks (150 + 30 + 150), well within MAX_LOADED_BLOCKS = 400.
  */
-const BUFFER_BLOCKS = 30;
+const BUFFER_BLOCKS = 100;
 
 /**
  * Hysteresis threshold (blocks).
@@ -49,7 +49,7 @@ const BUFFER_BLOCKS = 30;
  *
  * Tunable: increase to reduce fetch frequency (at the cost of a smaller safe zone).
  */
-const HYSTERESIS_BLOCKS = 25;
+const HYSTERESIS_BLOCKS = 70;
 
 /**
  * Cooldown (ms) after emitting a range shift.
@@ -66,7 +66,7 @@ const HYSTERESIS_BLOCKS = 25;
  *
  * Tunable: increase if rubber-banding persists, decrease if fetches feel sluggish.
  */
-const SHIFT_COOLDOWN_MS = 50;
+const SHIFT_COOLDOWN_MS = 150;
 
 /**
  * Fallback height used when a block's estimated height is 0.
@@ -119,15 +119,15 @@ export class ViewportCoordinator {
 
   // ── Scroll suppression ─────────────────────────────────────────────────────
   /**
-   * When true, the next `onScroll` call is a no-op.
+   * Timestamp (ms) until which all `onScroll` events should be discarded.
    *
-   * Set by `suppressNextScroll()` before PersistentWindow applies a corrective
-   * `scrollTop` write (step 4 of the synchronous correction pattern). Without
-   * suppression, the corrective write would fire a scroll event that causes
-   * the coordinator to recompute its range — potentially triggering another
-   * fetch cycle and cascading rubber-banding.
+   * Replaces the old `skipNextScroll` boolean. Modern WebKit/macOS dispatches
+   * layout reflow scroll events asynchronously (a frame or two later) rather
+   * than strictly synchronously during the DOM mutation. A brief time-based
+   * window blinds the coordinator to these micro-adjustments, breaking the
+   * endless ±2 block oscillation loop.
    */
-  private skipNextScroll = false;
+  private ignoreScrollUntil = 0;
 
   // ── Range tracking ─────────────────────────────────────────────────────────
   /**
@@ -181,12 +181,14 @@ export class ViewportCoordinator {
    * animation frame.
    */
   onScroll(scrollTop: number): void {
-    // Ignore the scroll event triggered by PersistentWindow's corrective
-    // scrollTop write (step 4 of the synchronous correction pattern).
-    if (this.skipNextScroll) {
-      this.skipNextScroll = false;
+    // Ignore scroll events sparked asynchronously by layout reflows from DOM
+    // mutations (surgical shift overlapping insertions/deletions).
+    if (Date.now() < this.ignoreScrollUntil) {
+      console.log(`[DEBUG] [VC] onScroll IGNORED | scrollTop=${scrollTop.toFixed(0)} | ignoreRemaining=${this.ignoreScrollUntil - Date.now()}ms`);
       return;
     }
+
+    console.log(`[DEBUG] [VC] onScroll ACCEPTED | scrollTop=${scrollTop.toFixed(0)}`);
 
     this.pendingScrollTop = scrollTop;
 
@@ -256,15 +258,15 @@ export class ViewportCoordinator {
   }
 
   /**
-   * Suppress the next `onScroll` call.
+   * Suppress `onScroll` processing for a specific duration.
    *
-   * Call this immediately before a corrective `scrollTop` write so the
-   * resulting scroll event is not treated as a new user gesture. Without
-   * suppression the corrective write cascades into another range computation
-   * and potential fetch cycle.
+   * Call this immediately before surgical block range fetching/DOM mutations.
+   * It prevents the engine from capturing asynchronous macroscopic reflow `scrollTop`
+   * values that immediately bounce the ViewportCoordinator into an opposite
+   * surgical shift, preventing endless 'down 2, up 2' loop oscillations.
    */
-  suppressNextScroll(): void {
-    this.skipNextScroll = true;
+  suppressScrollFor(ms: number): void {
+    this.ignoreScrollUntil = Date.now() + ms;
   }
 
   /**

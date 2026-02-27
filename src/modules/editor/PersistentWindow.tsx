@@ -305,6 +305,9 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           const estimatedTranslateY = viewportUpdate!.translateY;
           incrementalTranslateYRef.current = estimatedTranslateY;
           anchor.style.top = `${estimatedTranslateY}px`;
+
+          // Suppress macroscopic asynchronous browser scroll events sparked by DOM changes
+          coordinator.suppressScrollFor(150);
           shiftContentNonUndoable(editor, markdown);
 
           console.log(
@@ -399,7 +402,18 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
             // 2. Surgical: delete removeNodeCount nodes from top, insert added at bottom
             const ts0 = performance.now();
+            const preDispatchScrollTop = container.scrollTop;
+            coordinator.suppressScrollFor(150);
             shiftViewportDown(editor, removeNodeCount, addedFragment);
+
+            // Safari/WebKit aggressively overrides `overflow-anchor: none` during synchronous DOM 
+            // mutations, illegally modifying the container's `scrollTop` to maintain the visual offset.
+            // If we don't revert it, `newY - oldY` is 0, failing to trigger our own translation compensation,
+            // while permanently altering the semantic scroll position (causing oscillation).
+            if (container.scrollTop !== preDispatchScrollTop) {
+              container.scrollTop = preDispatchScrollTop;
+              coordinator.suppressScrollFor(150); // renew suppression timer
+            }
             const ts1 = performance.now();
 
             // 3. Record that same block's screen Y AFTER the transaction (now at children[0]).
@@ -412,6 +426,11 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             const delta = newY - oldY;
             incrementalTranslateYRef.current -= delta;
             anchor.style.top = `${incrementalTranslateYRef.current}px`;
+
+            console.log(
+              `[DEBUG] [PW] CASE A Math | survivorBefore.top=${oldY.toFixed(2)} survivorAfter.top=${newY.toFixed(2)} ` +
+              `delta=${delta.toFixed(2)} anchorNewTop=${incrementalTranslateYRef.current.toFixed(2)} scrollTop=${container.scrollTop.toFixed(2)}`
+            );
 
             console.log(
               `[DEBUG] [PW] CASE A | -${startBlock - oldStart}blk +${addedBlocks.length}blk` +
@@ -429,6 +448,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             // is acceptable because setContent rebuilds the DOM from scratch.
             const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
             const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+            coordinator.suppressScrollFor(150);
             shiftContentNonUndoable(editor, markdown);
             const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
             const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
@@ -490,7 +510,15 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
             // 2. Surgical: insert added nodes at top, delete removeNodeCount from bottom
             const ts0 = performance.now();
+            const preDispatchScrollTop = container.scrollTop;
+            coordinator.suppressScrollFor(150);
             shiftViewportUp(editor, addedFragment, removeNodeCount);
+
+            // Revert aggressive WebKit scroll anchoring (same as CASE A)
+            if (container.scrollTop !== preDispatchScrollTop) {
+              container.scrollTop = preDispatchScrollTop;
+              coordinator.suppressScrollFor(150); // renew suppression timer
+            }
             const ts1 = performance.now();
 
             // 3. Record that same block's screen Y AFTER the transaction.
@@ -507,6 +535,11 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             anchor.style.top = `${incrementalTranslateYRef.current}px`;
 
             console.log(
+              `[DEBUG] [PW] CASE B Math | survivorBefore.top=${oldY.toFixed(2)} survivorAfter.top=${newY.toFixed(2)} ` +
+              `delta=${delta.toFixed(2)} anchorNewTop=${incrementalTranslateYRef.current.toFixed(2)} scrollTop=${container.scrollTop.toFixed(2)}`
+            );
+
+            console.log(
               `[DEBUG] [PW] CASE B | +${addedBlocks.length}blk -${oldEnd - endBlock}blk` +
               ` +${addedFragment.childCount}nd -${removeNodeCount}nd\n` +
               `  addParse=${(ta1 - ta0).toFixed(1)}ms probe=${(tp1 - tp0).toFixed(1)}ms` +
@@ -519,6 +552,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
             const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
             const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+            coordinator.suppressScrollFor(150);
             shiftContentNonUndoable(editor, markdown);
             const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
             const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
