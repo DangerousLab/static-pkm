@@ -138,6 +138,9 @@ export function shiftViewportDown(
   removeCount: number,
   addedFragment: Fragment,
 ): void {
+  let del1Ms = 0;
+  let ins2Ms = 0;
+
   // Dispatch 1: Delete from the top.
   // preMatch (backward from end) matches all surviving nodes by === identity.
   if (removeCount > 0) {
@@ -147,7 +150,9 @@ export function shiftViewportDown(
       tr1.delete(0, deleteEndPos);
       tr1.setMeta('addToHistory', false);
       tr1.setMeta('viewportShift', true);
+      const d1s = performance.now();
       editor.view.dispatch(tr1);
+      del1Ms = performance.now() - d1s;
     }
   }
 
@@ -159,8 +164,14 @@ export function shiftViewportDown(
     tr2.insert(tr2.doc.content.size, addedFragment);
     tr2.setMeta('addToHistory', false);
     tr2.setMeta('viewportShift', true);
+    const d2s = performance.now();
     editor.view.dispatch(tr2);
+    ins2Ms = performance.now() - d2s;
   }
+
+  console.log(
+    `[DEBUG] [ST] shiftDown | del=${del1Ms.toFixed(1)}ms ins=${ins2Ms.toFixed(1)}ms`,
+  );
 }
 
 /**
@@ -192,6 +203,9 @@ export function shiftViewportUp(
   addedFragment: Fragment,
   removeCount: number,
 ): void {
+  let del1Ms = 0;
+  let ins2Ms = 0;
+
   // Dispatch 1: Delete from the bottom.
   // Forward scan matches all surviving nodes by === identity.
   if (removeCount > 0) {
@@ -207,7 +221,9 @@ export function shiftViewportUp(
         tr1.delete(deleteStartPos, deleteEndPos);
         tr1.setMeta('addToHistory', false);
         tr1.setMeta('viewportShift', true);
+        const d1s = performance.now();
         editor.view.dispatch(tr1);
+        del1Ms = performance.now() - d1s;
       }
     }
   }
@@ -220,6 +236,12 @@ export function shiftViewportUp(
     tr2.insert(0, addedFragment);
     tr2.setMeta('addToHistory', false);
     tr2.setMeta('viewportShift', true);
+    const d2s = performance.now();
     editor.view.dispatch(tr2);
+    ins2Ms = performance.now() - d2s;
   }
+
+  console.log(
+    `[DEBUG] [ST] shiftUp | del=${del1Ms.toFixed(1)}ms ins=${ins2Ms.toFixed(1)}ms`,
+  );
 }

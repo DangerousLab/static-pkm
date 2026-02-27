@@ -44,7 +44,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Editor } from '@tiptap/core';
-import type { DocumentHandle, ViewportUpdate, VisibleRange } from '@/types/blockstore';
+import type { BlockContent, DocumentHandle, ViewportUpdate, VisibleRange } from '@/types/blockstore';
 import { getBlocks } from '@core/ipc/blockstore';
 import { ViewportCoordinator } from './ViewportCoordinator';
 import { TiptapEditor } from './TiptapEditor';
@@ -144,6 +144,14 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
   // Track the currently loaded block range for edit sync
   const loadedRangeRef = useRef<VisibleRange>({ startBlock: 0, endBlock: 0 });
+
+  /**
+   * Stores the blocks array from the most recent successful fetch.
+   * Used by the boundary-probe logic in CASE A/B to access the removed
+   * blocks (which are in the old window but not in the new blocks array).
+   * Set after every case (A, B, C) so it's always populated when A/B run.
+   */
+  const prevBlocksRef = useRef<BlockContent[]>([]);
 
   // ── ViewportCoordinator ───────────────────────────────────────────────────────
 
@@ -304,6 +312,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             ` incrementalReset=${estimatedTranslateY.toFixed(0)}`,
           );
 
+          prevBlocksRef.current = blocks;
           loadedRangeRef.current = { startBlock, endBlock };
           coordinator.setLoadedRange(startBlock, endBlock);
 
@@ -336,37 +345,68 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           const editorDom = editor.view.dom;
 
           try {
-            // Parse only the added blocks and the full new window.
-            // We need both to derive the real PM node counts, because blocks
-            // do NOT map 1:1 to ProseMirror top-level nodes — the markdown
-            // parser merges/splits blocks at structural boundaries (e.g. adjacent
-            // list items). Block-based counts always diverge from PM node counts.
+            // Parse added blocks (needed for the surgical insert).
+            const ta0 = performance.now();
             const addedFragment = parseBlocksToFragment(editor, addedBlocks);
-            const fullNewFragment = parseBlocksToFragment(editor, blocks);
+            const ta1 = performance.now();
 
-            // surviving nodes in the new parse = fullNew − added
-            // nodes to remove from old doc = currentCount − survivingCount
+            // Boundary-probe: compute removeNodeCount without parsing the full
+            // new window. Removed blocks are in the PREVIOUS fetch (prevBlocksRef),
+            // not in the current blocks array. We parse [removed + firstSurvivor]
+            // together to correctly handle any boundary merge (e.g. two adjacent
+            // list blocks forming one <ul> in the old doc), then subtract
+            // firstSurvivor's standalone count to isolate the removed portion.
+            //
+            // combinedFragment.childCount - firstSurvivorAlone.childCount
+            //   = nodes contributed by the removed blocks in the boundary context
+            //   = number of nodes to delete from the top of the old doc.
+            //
+            // Fallback to full-window parse if prevBlocksRef is empty (shouldn't
+            // happen: CASE A/B only run when there is overlap, meaning a previous
+            // fetch already populated prevBlocksRef).
             const currentNodeCount = editor.state.doc.content.childCount;
-            const removeNodeCount = currentNodeCount
-              - (fullNewFragment.childCount - addedFragment.childCount);
+            let removeNodeCount: number;
+
+            const tp0 = performance.now();
+            const removedBlocks = prevBlocksRef.current.filter((b) => b.id < startBlock);
+            const firstSurvivor = blocks[0];
+
+            if (removedBlocks.length === 0 || !firstSurvivor) {
+              // Fallback: full-window parse (original approach)
+              const fullNewFragment = parseBlocksToFragment(editor, blocks);
+              removeNodeCount = currentNodeCount
+                - (fullNewFragment.childCount - addedFragment.childCount);
+            } else {
+              const combinedFragment = parseBlocksToFragment(editor, [...removedBlocks, firstSurvivor]);
+              const firstSurvivorAlone = parseBlocksToFragment(editor, [firstSurvivor]);
+              removeNodeCount = combinedFragment.childCount - firstSurvivorAlone.childCount;
+            }
+            const tp1 = performance.now();
 
             if (removeNodeCount < 0 || removeNodeCount > currentNodeCount) {
               throw new Error(
-                `invalid removeNodeCount=${removeNodeCount} (current=${currentNodeCount} fullNew=${fullNewFragment.childCount} added=${addedFragment.childCount})`,
+                `invalid removeNodeCount=${removeNodeCount} (current=${currentNodeCount} added=${addedFragment.childCount})`,
               );
             }
 
             // 1. Record surviving block's screen Y BEFORE the transaction.
             //    The first surviving node is at PM index removeNodeCount.
+            //    getBoundingClientRect() here should not force layout (DOM is untouched).
+            const tb0 = performance.now();
             const survivorBefore = editorDom.children[removeNodeCount] as HTMLElement | undefined;
             const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+            const tb1 = performance.now();
 
             // 2. Surgical: delete removeNodeCount nodes from top, insert added at bottom
+            const ts0 = performance.now();
             shiftViewportDown(editor, removeNodeCount, addedFragment);
+            const ts1 = performance.now();
 
-            // 3. Record that same block's screen Y AFTER the transaction (now at children[0])
+            // 3. Record that same block's screen Y AFTER the transaction (now at children[0]).
+            //    getBoundingClientRect() after a DOM mutation forces a synchronous reflow.
             const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
             const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+            const tb2 = performance.now();
 
             // 4. Cancel the displacement: anchor moves by -(newY - oldY)
             const delta = newY - oldY;
@@ -374,10 +414,12 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             anchor.style.top = `${incrementalTranslateYRef.current}px`;
 
             console.log(
-              `[DEBUG] [PW] CASE A (downward) | removeNodes=${removeNodeCount} addNodes=${addedFragment.childCount}` +
-              ` (blocks: -${startBlock - oldStart} +${addedBlocks.length})\n` +
-              `  oldY=${oldY.toFixed(1)} newY=${newY.toFixed(1)} delta=${delta.toFixed(1)}\n` +
-              `  anchorTop: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
+              `[DEBUG] [PW] CASE A | -${startBlock - oldStart}blk +${addedBlocks.length}blk` +
+              ` -${removeNodeCount}nd +${addedFragment.childCount}nd\n` +
+              `  addParse=${(ta1 - ta0).toFixed(1)}ms probe=${(tp1 - tp0).toFixed(1)}ms` +
+              ` bcrBefore=${(tb1 - tb0).toFixed(1)}ms dispatch=${(ts1 - ts0).toFixed(1)}ms` +
+              ` bcrAfter=${(tb2 - ts1).toFixed(1)}ms\n` +
+              `  delta=${delta.toFixed(1)} anchor: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
             );
           } catch (err) {
             console.warn('[WARN] [PW] CASE A surgical failed, falling back to setContent:', err);
@@ -401,34 +443,63 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           const editorDom = editor.view.dom;
 
           try {
-            // Same two-parse approach as CASE A: derive PM node counts from
-            // actual parsing results, not block index arithmetic.
+            // Parse added blocks (needed for the surgical insert).
+            const ta0 = performance.now();
             const addedFragment = parseBlocksToFragment(editor, addedBlocks);
-            const fullNewFragment = parseBlocksToFragment(editor, blocks);
+            const ta1 = performance.now();
 
+            // Boundary-probe: same approach as CASE A but mirrored.
+            // Removed blocks are at the END of the old window (IDs >= endBlock).
+            // We parse [lastSurvivor + removed] to capture the boundary merge,
+            // then subtract lastSurvivor's standalone count.
+            //
+            // lastSurvivor = blocks[blocks.length - 1] (highest ID in new window,
+            // which is always a surviving block since it falls in [oldStart, endBlock)).
             const currentNodeCount = editor.state.doc.content.childCount;
-            const removeNodeCount = currentNodeCount
-              - (fullNewFragment.childCount - addedFragment.childCount);
+            let removeNodeCount: number;
+
+            const tp0 = performance.now();
+            const removedBlocks = prevBlocksRef.current.filter((b) => b.id >= endBlock);
+            const lastSurvivor = blocks[blocks.length - 1];
+
+            if (removedBlocks.length === 0 || !lastSurvivor) {
+              // Fallback: full-window parse (original approach)
+              const fullNewFragment = parseBlocksToFragment(editor, blocks);
+              removeNodeCount = currentNodeCount
+                - (fullNewFragment.childCount - addedFragment.childCount);
+            } else {
+              const combinedFragment = parseBlocksToFragment(editor, [lastSurvivor, ...removedBlocks]);
+              const lastSurvivorAlone = parseBlocksToFragment(editor, [lastSurvivor]);
+              removeNodeCount = combinedFragment.childCount - lastSurvivorAlone.childCount;
+            }
+            const tp1 = performance.now();
 
             if (removeNodeCount < 0 || removeNodeCount > currentNodeCount) {
               throw new Error(
-                `invalid removeNodeCount=${removeNodeCount} (current=${currentNodeCount} fullNew=${fullNewFragment.childCount} added=${addedFragment.childCount})`,
+                `invalid removeNodeCount=${removeNodeCount} (current=${currentNodeCount} added=${addedFragment.childCount})`,
               );
             }
 
             // 1. Record surviving block's screen Y BEFORE the transaction.
             //    The first surviving node in the old doc is children[0].
+            //    getBoundingClientRect() here should not force layout (DOM is untouched).
+            const tb0 = performance.now();
             const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
             const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
+            const tb1 = performance.now();
 
             // 2. Surgical: insert added nodes at top, delete removeNodeCount from bottom
+            const ts0 = performance.now();
             shiftViewportUp(editor, addedFragment, removeNodeCount);
+            const ts1 = performance.now();
 
             // 3. Record that same block's screen Y AFTER the transaction.
             //    After inserting addedFragment.childCount nodes at the top, the
             //    first surviving node has shifted to children[addedFragment.childCount].
+            //    getBoundingClientRect() after a DOM mutation forces a synchronous reflow.
             const survivorAfter = editorDom.children[addedFragment.childCount] as HTMLElement | undefined;
             const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
+            const tb2 = performance.now();
 
             // 4. Cancel the displacement: anchor moves by -(newY - oldY)
             const delta = newY - oldY;
@@ -436,10 +507,12 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             anchor.style.top = `${incrementalTranslateYRef.current}px`;
 
             console.log(
-              `[DEBUG] [PW] CASE B (upward) | addNodes=${addedFragment.childCount} removeNodes=${removeNodeCount}` +
-              ` (blocks: +${addedBlocks.length} -${oldEnd - endBlock})\n` +
-              `  oldY=${oldY.toFixed(1)} newY=${newY.toFixed(1)} delta=${delta.toFixed(1)}\n` +
-              `  anchorTop: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
+              `[DEBUG] [PW] CASE B | +${addedBlocks.length}blk -${oldEnd - endBlock}blk` +
+              ` +${addedFragment.childCount}nd -${removeNodeCount}nd\n` +
+              `  addParse=${(ta1 - ta0).toFixed(1)}ms probe=${(tp1 - tp0).toFixed(1)}ms` +
+              ` bcrBefore=${(tb1 - tb0).toFixed(1)}ms dispatch=${(ts1 - ts0).toFixed(1)}ms` +
+              ` bcrAfter=${(tb2 - ts1).toFixed(1)}ms\n` +
+              `  delta=${delta.toFixed(1)} anchor: ${oldAnchorTop.toFixed(0)} → ${incrementalTranslateYRef.current.toFixed(0)}`,
             );
           } catch (err) {
             console.warn('[WARN] [PW] CASE B surgical failed, falling back to setContent:', err);
@@ -456,6 +529,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
         }
 
         // Update tracking after all mutations.
+        prevBlocksRef.current = blocks;
         loadedRangeRef.current = { startBlock, endBlock };
         coordinator.setLoadedRange(startBlock, endBlock);
 
