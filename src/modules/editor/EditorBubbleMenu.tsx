@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Editor } from '@tiptap/core';
 import { posToDOMRect } from '@tiptap/core';
+import type { Transaction } from '@tiptap/pm/state';
 import { createPortal } from 'react-dom';
 import {
     Bold,
@@ -70,7 +71,14 @@ export const EditorBubbleMenu: React.FC<EditorBubbleMenuProps> = ({ editor }) =>
     }, [editor]);
 
     useEffect(() => {
-        const handleUpdate = () => updatePosition();
+        // Skip position updates during viewport-shift transactions — they are
+        // non-undoable structural changes that do not affect the user's selection.
+        // Firing posToDOMRect() + offsetWidth/offsetHeight during every dispatch
+        // forces synchronous reflows and is the main source of dispatch latency.
+        const handleUpdate = ({ transaction }: { transaction: Transaction }) => {
+            if (transaction.getMeta('viewportShift')) return;
+            updatePosition();
+        };
         const handleBlur = () => setVisible(false);
 
         editor.on('selectionUpdate', handleUpdate);

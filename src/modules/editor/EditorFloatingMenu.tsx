@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Editor } from '@tiptap/core';
 import { posToDOMRect } from '@tiptap/core';
+import type { Transaction } from '@tiptap/pm/state';
 import { createPortal } from 'react-dom';
 import {
     Plus,
@@ -70,9 +71,14 @@ export const EditorFloatingMenu: React.FC<EditorFloatingMenuProps> = ({ editor }
     }, [editor]);
 
     useEffect(() => {
-        const handleUpdate = () => {
+        // Skip position updates during viewport-shift transactions — they are
+        // non-undoable structural changes that do not affect the user's cursor.
+        // Firing posToDOMRect() + getBoundingClientRect() during every dispatch
+        // forces synchronous reflows and is the main source of dispatch latency.
+        const handleUpdate = ({ transaction }: { transaction: Transaction }) => {
+            if (transaction.getMeta('viewportShift')) return;
             computeVisibility();
-            setIsOpen(false); // close panel on any move
+            setIsOpen(false); // close panel on any cursor move
         };
         const handleBlur = () => {
             setVisible(false);
