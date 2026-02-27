@@ -227,16 +227,25 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
       return;
     }
 
-    // Skip fetch when the range exactly matches what's already loaded.
-    // This prevents the settle event (which fires after every scroll stop)
-    // from triggering a redundant IPC call + setContent when the user hasn't
-    // scrolled far enough to need new content.
-    //
-    // v5.5: do NOT overwrite anchor.style.top with the estimated translateY here.
-    // The incremental translateY in incrementalTranslateYRef is the source of truth;
-    // writing the estimated value would corrupt the incremental tracker.
+    // Skip fetch when the range exactly matches what's already loaded, UNLESS
+    // it's a 'settle' event and we drift too far, we might want to fix it.
+    // However, fixing the drift implies the DOM node shifts visual position, which 
+    // shouldn't happen while the user is actively viewing. We'll let it drift,
+    // and rely on CASE C (mode=settle) to correct it organically, but we shouldn't
+    // interrupt an idle view with a jitter.
     const loaded = loadedRangeRef.current;
-    if (startBlock === loaded.startBlock && endBlock === loaded.endBlock) {
+
+    // v5.6: If the range is the same BUT it is a 'settle' event, we should verify
+    // the drift and gently correct the position using fallback C.
+    const estTranslateY = viewportUpdate.translateY;
+    const currentAnchorTop = incrementalTranslateYRef.current;
+    const drift = Math.abs(currentAnchorTop - estTranslateY);
+
+    // We only trigger a reset (force fallback Case C) if we are in 'settle'
+    // mode AND the drift is severe (> 2000px, which is ~1 screen height).
+    const needsResync = mode === 'settle' && drift > 2000;
+
+    if (startBlock === loaded.startBlock && endBlock === loaded.endBlock && !needsResync) {
       console.log(`[DEBUG] [PW] SKIP (range unchanged [${startBlock},${endBlock}])`);
       return;
     }
@@ -288,33 +297,39 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           ` hasOverlap=${hasOverlap} isFirstLoad=${isFirstLoad}`,
         );
 
-        // ── CASE C: Non-overlapping or first load ──────────────────────────────
+        // ── CASE C: Non-overlapping, first load, or severe drift resync ────────
         //
         // The new range has no blocks in common with the old range (or this
-        // is the very first content fetch). We cannot measure incrementally.
-        // Fall back to the coordinator's estimated translateY and reset the
-        // incremental tracker to that value. From this point, incremental
-        // measurements resume using the reset baseline.
+        // is the very first content fetch, or the anchor has drifted too far).
+        // We cannot measure incrementally. Fall back to the coordinator's
+        // estimated translateY and reset the incremental tracker to that value.
         //
-        // This path is taken after flyover → settle jumps (when the user
-        // scrolled far enough that the old and new ranges do not overlap).
-        // The editor was hidden (opacity 0) during flyover, so the user did
-        // not see the old content — no visual discontinuity from using an
-        // estimated position.
-        if (!hasOverlap || isFirstLoad) {
+        // This path is taken after:
+        // 1. flyover → settle jumps
+        // 2. forced resyncs when drift > 2000px on a settle event
+        if (!hasOverlap || isFirstLoad || needsResync) {
           const estimatedTranslateY = viewportUpdate!.translateY;
           incrementalTranslateYRef.current = estimatedTranslateY;
           anchor.style.top = `${estimatedTranslateY}px`;
 
           // Suppress macroscopic asynchronous browser scroll events sparked by DOM changes
           coordinator.suppressScrollFor(150);
-          shiftContentNonUndoable(editor, markdown);
+
+          if (!hasOverlap || isFirstLoad) {
+            shiftContentNonUndoable(editor, markdown);
+          } else {
+            // If we're just resyncing but the content overlaps completely,
+            // we don't necessarily need to diff the DOM, replacing text is fine,
+            // because we're already idle/settled.
+            shiftContentNonUndoable(editor, markdown);
+          }
 
           console.log(
-            `[DEBUG] [PW] CASE C (non-overlapping/first) | estTranslateY=${estimatedTranslateY.toFixed(0)}` +
-            ` incrementalReset=${estimatedTranslateY.toFixed(0)}`,
+            `[DEBUG] [PW] CASE C (reset) | estTranslateY=${estimatedTranslateY.toFixed(0)}` +
+            ` incrementalReset=${estimatedTranslateY.toFixed(0)} isFallback=${!hasOverlap || isFirstLoad} isResync=${needsResync}`,
           );
 
+          // Update tracking
           prevBlocksRef.current = blocks;
           loadedRangeRef.current = { startBlock, endBlock };
           coordinator.setLoadedRange(startBlock, endBlock);
@@ -567,9 +582,12 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
         loadedRangeRef.current = { startBlock, endBlock };
         coordinator.setLoadedRange(startBlock, endBlock);
 
+        const estBase = coordinator.getCumulativeHeight(startBlock);
+        const discrepancy = incrementalTranslateYRef.current - estBase;
+
         const t2 = performance.now();
         console.log(
-          `[DEBUG] [PW] fetchAndLoad DONE | sync=${(t2 - t1).toFixed(1)}ms total=${(t2 - t0).toFixed(1)}ms`,
+          `[DEBUG] [PW] fetchAndLoad DONE | sync=${(t2 - t1).toFixed(1)}ms total=${(t2 - t0).toFixed(1)}ms | discrepancy=${discrepancy.toFixed(0)}`,
         );
       } catch (err) {
         console.error('[ERROR] [PersistentWindow] Failed to fetch blocks:', err);
@@ -622,6 +640,29 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
   const handleChange = useCallback((markdown: string) => {
     onWindowChangeRef.current(markdown, loadedRangeRef.current);
   }, []);
+
+  // ── Debug command ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    (window as any).__viewportDebug = () => {
+      const coordinator = coordinatorRef.current;
+      const loaded = loadedRangeRef.current;
+      const actualY = incrementalTranslateYRef.current;
+      const estY = coordinator?.getCumulativeHeight(loaded.startBlock) ?? 0;
+      const discrepancy = actualY - estY;
+
+      console.log('--- Viewport Debug ---');
+      console.log('ScrollTop:', scrollContainerRef.current?.scrollTop);
+      console.log('Anchor Actual Y:', actualY);
+      console.log('Anchor Est Y:', estY);
+      console.log('Discrepancy:', discrepancy);
+      console.log('Loaded Range:', loaded);
+      console.log('Buffer Update:', viewportUpdate);
+    };
+    return () => {
+      delete (window as any).__viewportDebug;
+    };
+  }, [viewportUpdate]);
 
   // ── Computed values ───────────────────────────────────────────────────────────
 
