@@ -12,8 +12,10 @@
 
 .markdown-content {
   max-width: var(--text-max-width);
-  min-width: 0;           /* Prevents flex/grid child from overflowing its container */
-  overflow-x: hidden;     /* Clips overflow at this boundary; pre and table-wrapper handle their own scroll */
+  min-width: 0;
+  /* Prevents flex/grid child from overflowing its container */
+  overflow-x: hidden;
+  /* Clips overflow at this boundary; pre and table-wrapper handle their own scroll */
   margin: 0 auto;
   padding: 1.5rem;
   line-height: 1.6;
@@ -163,7 +165,7 @@
   margin-bottom: 0.25rem;
 }
 
-.markdown-content li > p {
+.markdown-content li>p {
   margin-bottom: 0.5rem;
 }
 
@@ -202,7 +204,7 @@
   text-decoration: none;
   border-bottom: 1px solid rgba(224, 160, 31, 0.3);
   transition: color var(--anim-fast) var(--ease-out),
-              border-color var(--anim-fast) var(--ease-out);
+    border-color var(--anim-fast) var(--ease-out);
 }
 
 .markdown-content a:hover {
@@ -235,7 +237,7 @@
   margin-bottom: 0;
 }
 
-.markdown-content blockquote > blockquote {
+.markdown-content blockquote>blockquote {
   margin-top: 0.5rem;
 }
 
@@ -347,31 +349,112 @@
    highlight.js class → CSS variable mapping
    ======================================== */
 
-.markdown-content .hljs-keyword    { color: var(--code-keyword); }
-.markdown-content .hljs-string     { color: var(--code-string); }
-.markdown-content .hljs-number     { color: var(--code-number); }
-.markdown-content .hljs-comment    { color: var(--code-comment); font-style: italic; }
-.markdown-content .hljs-title      { color: var(--code-function); }
-.markdown-content .hljs-type       { color: var(--code-type); }
-.markdown-content .hljs-built_in   { color: var(--code-builtin); }
-.markdown-content .hljs-variable   { color: var(--code-variable); }
-.markdown-content .hljs-attr       { color: var(--code-attr); }
-.markdown-content .hljs-tag        { color: var(--code-tag); }
-.markdown-content .hljs-operator   { color: var(--code-operator); }
-.markdown-content .hljs-punctuation{ color: var(--code-punctuation); }
-.markdown-content .hljs-literal    { color: var(--code-number); }
-.markdown-content .hljs-meta       { color: var(--code-comment); }
-.markdown-content .hljs-subst      { color: var(--code-variable); }
-.markdown-content .hljs-section    { color: var(--code-function); font-weight: bold; }
-.markdown-content .hljs-symbol     { color: var(--code-string); }
-.markdown-content .hljs-name       { color: var(--code-tag); }
-.markdown-content .hljs-addition   { color: var(--code-string); }
-.markdown-content .hljs-deletion   { color: var(--code-attr); }
-.markdown-content .hljs-function   { color: var(--code-function); }
-.markdown-content .hljs-class      { color: var(--code-type); }
-.markdown-content .hljs-selector-tag     { color: var(--code-tag); }
-.markdown-content .hljs-selector-id      { color: var(--code-function); }
-.markdown-content .hljs-selector-class   { color: var(--code-type); }
-.markdown-content .hljs-params     { color: var(--code-variable); }
-.markdown-content .hljs-regexp     { color: var(--code-string); }
+.markdown-content .hljs-keyword {
+  color: var(--code-keyword);
+}
 
+.markdown-content .hljs-string {
+  color: var(--code-string);
+}
+
+.markdown-content .hljs-number {
+  color: var(--code-number);
+}
+
+.markdown-content .hljs-comment {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.markdown-content .hljs-title {
+  color: var(--code-function);
+}
+
+.markdown-content .hljs-type {
+  color: var(--code-type);
+}
+
+.markdown-content .hljs-built_in {
+  color: var(--code-builtin);
+}
+
+.markdown-content .hljs-variable {
+  color: var(--code-variable);
+}
+
+.markdown-content .hljs-attr {
+  color: var(--code-attr);
+}
+
+.markdown-content .hljs-tag {
+  color: var(--code-tag);
+}
+
+.markdown-content .hljs-operator {
+  color: var(--code-operator);
+}
+
+.markdown-content .hljs-punctuation {
+  color: var(--code-punctuation);
+}
+
+.markdown-content .hljs-literal {
+  color: var(--code-number);
+}
+
+.markdown-content .hljs-meta {
+  color: var(--code-comment);
+}
+
+.markdown-content .hljs-subst {
+  color: var(--code-variable);
+}
+
+.markdown-content .hljs-section {
+  color: var(--code-function);
+  font-weight: bold;
+}
+
+.markdown-content .hljs-symbol {
+  color: var(--code-string);
+}
+
+.markdown-content .hljs-name {
+  color: var(--code-tag);
+}
+
+.markdown-content .hljs-addition {
+  color: var(--code-string);
+}
+
+.markdown-content .hljs-deletion {
+  color: var(--code-attr);
+}
+
+.markdown-content .hljs-function {
+  color: var(--code-function);
+}
+
+.markdown-content .hljs-class {
+  color: var(--code-type);
+}
+
+.markdown-content .hljs-selector-tag {
+  color: var(--code-tag);
+}
+
+.markdown-content .hljs-selector-id {
+  color: var(--code-function);
+}
+
+.markdown-content .hljs-selector-class {
+  color: var(--code-type);
+}
+
+.markdown-content .hljs-params {
+  color: var(--code-variable);
+}
+
+.markdown-content .hljs-regexp {
+  color: var(--code-string);
+}

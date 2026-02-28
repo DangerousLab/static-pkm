@@ -178,6 +178,11 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
       editorAnchorRef.current.style.top = '0px';
     }
 
+    // Reset scroll position for the new document.
+    if (container) {
+      container.scrollTop = 0;
+    }
+
     const coordinator = new ViewportCoordinator(
       docHandle.blocks,
       viewportHeight,
@@ -320,6 +325,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
           // Suppress macroscopic asynchronous browser scroll events sparked by DOM changes
           coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS);
+          const preDispatchScrollTop = container.scrollTop;
 
           if (!hasOverlap || isFirstLoad) {
             shiftContentNonUndoable(editor, markdown);
@@ -328,6 +334,11 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             // we don't necessarily need to diff the DOM, replacing text is fine,
             // because we're already idle/settled.
             shiftContentNonUndoable(editor, markdown);
+          }
+
+          if (container.scrollTop !== preDispatchScrollTop) {
+            container.scrollTop = preDispatchScrollTop;
+            coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS); // renew suppression timer
           }
 
           console.log(
