@@ -19,8 +19,8 @@ import Color from '@tiptap/extension-color';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import FontFamily from '@tiptap/extension-font-family';
-// import InvisibleCharacters from '@tiptap/extension-invisible-characters';
-// import CharacterCount from '@tiptap/extension-character-count';
+import InvisibleCharacters from '@tiptap/extension-invisible-characters';
+import CharacterCount from '@tiptap/extension-character-count';
 import Focus from '@tiptap/extension-focus';
 // Custom extensions
 import { BackgroundColor } from './extensions/BackgroundColor';
