@@ -34,7 +34,7 @@ const MAX_LOADED_BLOCKS = 400;
  * With ~30 visible blocks at DEFAULT_BLOCK_HEIGHT, the loaded window is
  * ~330 blocks (150 + 30 + 150), well within MAX_LOADED_BLOCKS = 400.
  */
-const BUFFER_BLOCKS = 100;
+const BUFFER_BLOCKS = 30;
 
 /**
  * Hysteresis threshold (blocks).
@@ -49,7 +49,7 @@ const BUFFER_BLOCKS = 100;
  *
  * Tunable: increase to reduce fetch frequency (at the cost of a smaller safe zone).
  */
-const HYSTERESIS_BLOCKS = 70;
+const HYSTERESIS_BLOCKS = 25;
 
 /**
  * Cooldown (ms) after emitting a range shift.
@@ -66,7 +66,7 @@ const HYSTERESIS_BLOCKS = 70;
  *
  * Tunable: increase if rubber-banding persists, decrease if fetches feel sluggish.
  */
-const SHIFT_COOLDOWN_MS = 150;
+const SHIFT_COOLDOWN_MS = 80;
 
 /**
  * Fallback height used when a block's estimated height is 0.
