@@ -66,7 +66,7 @@ const HYSTERESIS_BLOCKS = 25;
  *
  * Tunable: increase if rubber-banding persists, decrease if fetches feel sluggish.
  */
-const SHIFT_COOLDOWN_MS = 80;
+const SHIFT_COOLDOWN_MS = 50;
 
 /**
  * Fallback height used when a block's estimated height is 0.
@@ -116,6 +116,8 @@ export class ViewportCoordinator {
   private rafId: number | null = null;
   /** Most recent scrollTop received — processed on the next RAF tick. */
   private pendingScrollTop: number | null = null;
+  /** The last processed scrollTop, used to calculate scroll distance deltas */
+  private lastProcessedScrollTop: number = 0;
 
   // ── Scroll suppression ─────────────────────────────────────────────────────
   /**
@@ -305,7 +307,8 @@ export class ViewportCoordinator {
 
     // Mode and hysteresis both use firstVisible — the actual block at the
     // top of the viewport — not startBlock/endBlock (which include ±buffer).
-    const mode = this.resolveMode(firstVisible);
+    const scrollDelta = Math.abs(scrollTop - this.lastProcessedScrollTop);
+    const mode = this.resolveMode(firstVisible, scrollDelta);
     const shouldEmit = this.shouldEmitRange(firstVisible, startBlock, endBlock);
 
     if (shouldEmit) {
@@ -313,6 +316,8 @@ export class ViewportCoordinator {
       this.lastEmitTime = Date.now();
       this.onChange({ startBlock, endBlock, mode, translateY });
     }
+
+    this.lastProcessedScrollTop = scrollTop;
 
     // Always reset the settle timer so it fires after the user stops scrolling.
     this.scheduleSettle(scrollTop);
@@ -351,7 +356,7 @@ export class ViewportCoordinator {
    * so it would perpetually overshoot the loaded range by 1-N blocks, causing
    * flyover to trigger on every single scroll tick.
    */
-  private resolveMode(firstVisible: number): ScrollMode {
+  private resolveMode(firstVisible: number, scrollDelta: number): ScrollMode {
     const { startBlock: loadedStart, endBlock: loadedEnd } = this.loadedRange;
     const blocksPerViewport = this.blocksPerViewport();
     const lastVisible = firstVisible + blocksPerViewport;
@@ -368,7 +373,17 @@ export class ViewportCoordinator {
     // The previous hysteresis check (100 blocks) triggers earlier to emit a fetch,
     // but flyover should only clamp down if that fetch fails to arrive before
     // the user outruns the visible buffer.
-    const mode: ScrollMode = (effectiveTopMargin > 0 && effectiveBottomMargin > 0) ? 'smooth' : 'flyover';
+
+    // Modification: Flyover mode causes the editor to dim and stops fetching until settle.
+    // For momentum trackpad scrolling, we want it to keep fetching ("smooth").
+    // We only trigger flyover if this was a massive jump (e.g., scrollbar drag),
+    // which we classify as a delta of > 3000px in a single RAF tick.
+    const isMassiveJump = scrollDelta > 3000;
+
+    let mode: ScrollMode = 'smooth';
+    if ((effectiveTopMargin <= 0 || effectiveBottomMargin <= 0) && isMassiveJump) {
+      mode = 'flyover';
+    }
 
     return mode;
   }

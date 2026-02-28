@@ -54,7 +54,7 @@ import { parseBlocksToFragment, shiftViewportDown, shiftViewportUp } from './sur
  * Duration (ms) to suppress `onScroll` processing during and immediately after
  * dispatching structural DOM shifts or re-anchoring the viewport.
  */
-const SCROLL_SUPPRESSION_MS = 80;
+const SCROLL_SUPPRESSION_MS = 30;
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
