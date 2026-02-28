@@ -50,6 +50,12 @@ import { ViewportCoordinator } from './ViewportCoordinator';
 import { TiptapEditor } from './TiptapEditor';
 import { parseBlocksToFragment, shiftViewportDown, shiftViewportUp } from './surgicalTransaction';
 
+/**
+ * Duration (ms) to suppress `onScroll` processing during and immediately after
+ * dispatching structural DOM shifts or re-anchoring the viewport.
+ */
+const SCROLL_SUPPRESSION_MS = 80;
+
 // ── Props ──────────────────────────────────────────────────────────────────────
 
 interface PersistentWindowProps {
@@ -313,7 +319,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           anchor.style.top = `${estimatedTranslateY}px`;
 
           // Suppress macroscopic asynchronous browser scroll events sparked by DOM changes
-          coordinator.suppressScrollFor(150);
+          coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS);
 
           if (!hasOverlap || isFirstLoad) {
             shiftContentNonUndoable(editor, markdown);
@@ -418,7 +424,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             // 2. Surgical: delete removeNodeCount nodes from top, insert added at bottom
             const ts0 = performance.now();
             const preDispatchScrollTop = container.scrollTop;
-            coordinator.suppressScrollFor(150);
+            coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS);
             shiftViewportDown(editor, removeNodeCount, addedFragment);
 
             // Safari/WebKit aggressively overrides `overflow-anchor: none` during synchronous DOM 
@@ -427,7 +433,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             // while permanently altering the semantic scroll position (causing oscillation).
             if (container.scrollTop !== preDispatchScrollTop) {
               container.scrollTop = preDispatchScrollTop;
-              coordinator.suppressScrollFor(150); // renew suppression timer
+              coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS); // renew suppression timer
             }
             const ts1 = performance.now();
 
@@ -463,7 +469,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             // is acceptable because setContent rebuilds the DOM from scratch.
             const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
             const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
-            coordinator.suppressScrollFor(150);
+            coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS);
             shiftContentNonUndoable(editor, markdown);
             const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
             const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
@@ -526,13 +532,13 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
             // 2. Surgical: insert added nodes at top, delete removeNodeCount from bottom
             const ts0 = performance.now();
             const preDispatchScrollTop = container.scrollTop;
-            coordinator.suppressScrollFor(150);
+            coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS);
             shiftViewportUp(editor, addedFragment, removeNodeCount);
 
             // Revert aggressive WebKit scroll anchoring (same as CASE A)
             if (container.scrollTop !== preDispatchScrollTop) {
               container.scrollTop = preDispatchScrollTop;
-              coordinator.suppressScrollFor(150); // renew suppression timer
+              coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS); // renew suppression timer
             }
             const ts1 = performance.now();
 
@@ -567,7 +573,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
             const survivorBefore = editorDom.children[0] as HTMLElement | undefined;
             const oldY = survivorBefore?.getBoundingClientRect().top ?? 0;
-            coordinator.suppressScrollFor(150);
+            coordinator.suppressScrollFor(SCROLL_SUPPRESSION_MS);
             shiftContentNonUndoable(editor, markdown);
             const survivorAfter = editorDom.children[0] as HTMLElement | undefined;
             const newY = survivorAfter?.getBoundingClientRect().top ?? 0;
