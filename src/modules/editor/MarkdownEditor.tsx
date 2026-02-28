@@ -225,7 +225,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     enterSourceMode();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usePW, isSourceMode]);
+  }, [usePW, isSourceMode, currentPath]);
 
   // When block store opens, mark clean so autoSave doesn't fire immediately
   useEffect(() => {
@@ -240,13 +240,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     if (prevNodeIdRef.current !== null && prevNodeIdRef.current !== node.id) {
       if (!isRenamingRef.current) {
         flushPendingSave();
+        setCurrentPath(absolutePath);
       }
       hasLoadedRef.current = false;
       isRenamingRef.current = false;
     }
     prevNodeIdRef.current = node.id;
     prevNodeTitleRef.current = node.title;
-  }, [node.id, flushPendingSave]);
+  }, [node.id, absolutePath, flushPendingSave]);
 
   // ── Unmount save (legacy path only) ──────────────────────────────────────
   const legacyContentRef = useRef(legacyContent);
