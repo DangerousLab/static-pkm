@@ -19,8 +19,8 @@ import Color from '@tiptap/extension-color';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import FontFamily from '@tiptap/extension-font-family';
-import InvisibleCharacters from '@tiptap/extension-invisible-characters';
-import CharacterCount from '@tiptap/extension-character-count';
+// import InvisibleCharacters from '@tiptap/extension-invisible-characters';
+// import CharacterCount from '@tiptap/extension-character-count';
 import Focus from '@tiptap/extension-focus';
 // Custom extensions
 import { BackgroundColor } from './extensions/BackgroundColor';
@@ -142,10 +142,8 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           FontSize,
           BackgroundColor,
           LineHeight,
-          InvisibleCharacters.configure({
-            injectCSS: false, // We provide custom styling
-          }),
-          CharacterCount,
+          // InvisibleCharacters.configure({ injectCSS: false }),
+          // CharacterCount,
           Focus.configure({
             className: 'is-focused',
             mode: 'all',

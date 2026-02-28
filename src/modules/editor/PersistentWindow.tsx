@@ -675,6 +675,24 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
   const totalHeight = coordinatorRef.current?.totalHeight ?? docHandle.totalEstimatedHeight;
   const scrollMode = viewportUpdate?.mode ?? 'settle';
 
+  // v5.7: Deferred Shiki Highlighting
+  // When scrolling settles, we ensure any code blocks that bypassed syntax 
+  // highlighting during the rapid scroll are forcibly evaluated.
+  useEffect(() => {
+    if (scrollMode === 'settle') {
+      const editor = editorInstanceRef.current;
+      if (editor && !editor.isDestroyed) {
+        // We use a brief timeout to let any pending React renders or 
+        // fetchAndLoad DOM mutations finish before freezing the thread with Shiki.
+        setTimeout(() => {
+          if (!editor.isDestroyed) {
+            editor.view.dispatch(editor.state.tr.setMeta('shikiPluginForceDecoration', true));
+          }
+        }, 50);
+      }
+    }
+  }, [scrollMode]);
+
   // Two modes: 'flyover' (full dim, outside loaded range) or 'pw-settle' (visible).
   // 'skeleton' mode has been removed — the editor is either fully visible or
   // fully hidden. The position-aware logic in ViewportCoordinator handles the

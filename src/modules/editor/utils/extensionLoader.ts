@@ -12,14 +12,19 @@ export async function loadExtensions(requirements: Set<string>): Promise<(Extens
         }));
     }
 
-    // 2. CodeBlock Lowlight
+    // 2. CodeBlock Shiki (Asynchronous highlight injection)
     if (requirements.has('code')) {
-        const [{ default: CodeBlockLowlight }, { common, createLowlight }] = await Promise.all([
-            import('@tiptap/extension-code-block-lowlight'),
-            import('lowlight')
-        ]);
-        const lowlight = createLowlight(common);
-        loaded.push(CodeBlockLowlight.configure({ lowlight }));
+        const { DeferredCodeBlockShiki } = await import('../extensions/DeferredCodeBlockShiki');
+
+        loaded.push(DeferredCodeBlockShiki.configure({
+            defaultTheme: 'github-dark', // Base generic fallback
+            themes: {
+                // These must map closely to the app's CSS theme variables
+                // Since our app uses explicit tokens, we can use clean shiki themes
+                light: 'github-light',
+                dark: 'github-dark',
+            },
+        }));
     }
 
     // 3. Tables

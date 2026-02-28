@@ -66,7 +66,7 @@ const HYSTERESIS_BLOCKS = 25;
  *
  * Tunable: increase if rubber-banding persists, decrease if fetches feel sluggish.
  */
-const SHIFT_COOLDOWN_MS = 50;
+const SHIFT_COOLDOWN_MS = 30;
 
 /**
  * Fallback height used when a block's estimated height is 0.
@@ -78,7 +78,7 @@ const SHIFT_COOLDOWN_MS = 50;
 const DEFAULT_BLOCK_HEIGHT = 28;
 
 /** Debounce (ms) before emitting a 'settle' event after scrolling stops. */
-const SETTLE_DEBOUNCE_MS = 200;
+const SETTLE_DEBOUNCE_MS = 100;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -183,6 +183,9 @@ export class ViewportCoordinator {
    * animation frame.
    */
   onScroll(scrollTop: number): void {
+    // Flag the engine as actively scrolling to bypass expensive operations
+    // like Shiki AST parsing until the viewport settles.
+    (window as any).unstablonScrollState = 'scrolling';
     // Ignore scroll events sparked asynchronously by layout reflows from DOM
     // mutations (surgical shift overlapping insertions/deletions).
     if (Date.now() < this.ignoreScrollUntil) {
@@ -336,6 +339,10 @@ export class ViewportCoordinator {
     }
     this.settleTimer = setTimeout(() => {
       this.settleTimer = null;
+
+      // Deflag the scrolling state so heavy parsers can resume
+      (window as any).unstablonScrollState = 'idle';
+
       const settled = this.computeBlockRange(scrollTop);
       this.lastEmittedRange = {
         startBlock: settled.startBlock,

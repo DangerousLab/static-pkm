@@ -200,117 +200,23 @@
   font-size: 0.875rem;
 }
 
-/* ── Syntax Highlighting ────────────────────────────────────────────────── */
-/* lowlight extension generates hljs-* classes */
+/* ── Syntax Highlighting (Shiki) ────────────────────────────────────────── */
 
-.tiptap-editor .tiptap .hljs-keyword {
-  color: var(--code-keyword);
+/* 
+  Shiki dynamically injects `--shiki-light` and `--shiki-dark` inline variables 
+  on the syntax nodes based on the dual themes specified in the JS configuration. 
+*/
+
+:root[data-theme="dark"] .tiptap-editor .tiptap .shiki,
+:root[data-theme="dark"] .tiptap-editor .tiptap .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
 }
 
-.tiptap-editor .tiptap .hljs-string {
-  color: var(--code-string);
-}
-
-.tiptap-editor .tiptap .hljs-number {
-  color: var(--code-number);
-}
-
-.tiptap-editor .tiptap .hljs-comment {
-  color: var(--code-comment);
-  font-style: italic;
-}
-
-.tiptap-editor .tiptap .hljs-title {
-  color: var(--code-function);
-}
-
-.tiptap-editor .tiptap .hljs-type {
-  color: var(--code-type);
-}
-
-.tiptap-editor .tiptap .hljs-built_in {
-  color: var(--code-builtin);
-}
-
-.tiptap-editor .tiptap .hljs-variable {
-  color: var(--code-variable);
-}
-
-.tiptap-editor .tiptap .hljs-attr {
-  color: var(--code-attr);
-}
-
-.tiptap-editor .tiptap .hljs-tag {
-  color: var(--code-tag);
-}
-
-.tiptap-editor .tiptap .hljs-operator {
-  color: var(--code-operator);
-}
-
-.tiptap-editor .tiptap .hljs-punctuation {
-  color: var(--code-punctuation);
-}
-
-.tiptap-editor .tiptap .hljs-literal {
-  color: var(--code-number);
-}
-
-.tiptap-editor .tiptap .hljs-meta {
-  color: var(--code-comment);
-}
-
-.tiptap-editor .tiptap .hljs-subst {
-  color: var(--code-variable);
-}
-
-.tiptap-editor .tiptap .hljs-section {
-  color: var(--code-function);
-  font-weight: bold;
-}
-
-.tiptap-editor .tiptap .hljs-symbol {
-  color: var(--code-string);
-}
-
-.tiptap-editor .tiptap .hljs-name {
-  color: var(--code-tag);
-}
-
-.tiptap-editor .tiptap .hljs-addition {
-  color: var(--code-string);
-}
-
-.tiptap-editor .tiptap .hljs-deletion {
-  color: var(--code-attr);
-}
-
-.tiptap-editor .tiptap .hljs-function {
-  color: var(--code-function);
-}
-
-.tiptap-editor .tiptap .hljs-class {
-  color: var(--code-type);
-}
-
-.tiptap-editor .tiptap .hljs-selector-tag {
-  color: var(--code-tag);
-}
-
-.tiptap-editor .tiptap .hljs-selector-id {
-  color: var(--code-function);
-}
-
-.tiptap-editor .tiptap .hljs-selector-class {
-  color: var(--code-type);
-}
-
-.tiptap-editor .tiptap .hljs-params {
-  color: var(--code-variable);
-}
-
-.tiptap-editor .tiptap .hljs-regexp {
-  color: var(--code-string);
+:root[data-theme="light"] .tiptap-editor .tiptap .shiki,
+:root[data-theme="light"] .tiptap-editor .tiptap .shiki span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
 }
 
 /* ── Task Lists (Checkboxes) ────────────────────────────────────────────── */
