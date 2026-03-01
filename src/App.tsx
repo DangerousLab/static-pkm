@@ -12,6 +12,8 @@ import { isTauriContext } from '@core/ipc/commands';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useNavigationStore } from '@core/state/navigationStore';
+import { useSidebarStore } from '@core/state/sidebarStore';
+import { useLayoutEngine } from '@hooks/useLayoutEngine';
 
 /**
  * Root application component
@@ -21,6 +23,16 @@ function App(): React.JSX.Element {
   const { loadNavigationTree, error } = useNavigation();
   const { initializeFromPersistedVault } = useVault();
   const pwaState = usePWA();
+
+  const sidebarWidth = useSidebarStore((state) => state.width);
+  const sidebarIsOpen = useSidebarStore((state) => state.isOpen);
+  
+  const { isReady: isLayoutReady } = useLayoutEngine({
+    sidebarWidth,
+    sidebarCollapsed: !sidebarIsOpen,
+    rightPanelOpen: false,
+    rightPanelWidth: 280,
+  });
 
   // Load FontAwesome icons (lazy - won't block render)
   useFontAwesome();

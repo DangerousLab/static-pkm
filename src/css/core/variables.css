@@ -18,6 +18,18 @@
  */
 
 :root {
+  /* ==================== LAYOUT ENGINE DEFAULTS ==================== */
+  /* These are fallbacks. The LayoutEngine will overwrite them via JS. */
+  --layout-header-height: 48px;
+  --layout-sidebar-width: 240px;
+  --layout-sidebar-collapsed: 0;
+  --layout-editor-left: 240px;
+  --layout-editor-width: calc(100vw - 240px);
+  --layout-right-panel-width: 0px;
+  --layout-safe-top: 48px;
+  --layout-safe-bottom: 24px;
+  --layout-status-bar-height: 24px;
+
   /* ==================== LAYOUT ==================== */
 
   /* App structure */

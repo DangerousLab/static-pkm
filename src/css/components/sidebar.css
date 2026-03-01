@@ -152,30 +152,10 @@
 /* ==================== SIDEBAR POSITIONING & SAFE AREAS ==================== */
 
 .sidebar {
-  top: var(--header-height);
-  height: calc(100vh - var(--header-height));
+  top: var(--layout-header-height);
+  height: calc(100vh - var(--layout-header-height));
   padding: 0 0.625rem 1rem;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(1rem, var(--layout-safe-bottom));
   padding-left: max(0.625rem, env(safe-area-inset-left, 0px));
-}
-
-@media (max-width: 600px) {
-  .sidebar {
-    top: calc(var(--header-height-mobile) + env(safe-area-inset-top, 0px)) !important;
-    height: calc(100vh - var(--header-height-mobile) - env(safe-area-inset-top, 0px)) !important;
-  }
-}
-
-@media (min-width: 841px) {
-  .sidebar {
-    width: var(--sidebar-base);
-    min-width: var(--sidebar-min-width);
-  }
-}
-
-@media (max-width: 840px) {
-  .sidebar {
-    width: 80vw;
-    max-width: var(--sidebar-max-width-mobile);
-  }
+  width: var(--layout-sidebar-width);
 }

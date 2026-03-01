@@ -132,6 +132,9 @@ pub fn run() {
             // Initialise the block store for the Persistent Window Architecture
             app.manage(blockstore::DocumentStore::new());
 
+            // Initialise Layout State
+            app.manage(commands::layout::LayoutState::default());
+
             info!("[INFO] [lib] Application setup complete");
 
             // Intercept OS window close button to allow frontend to handle unsaved changes
@@ -163,6 +166,9 @@ pub fn run() {
             commands::search::search_content,
             commands::search::index_content,
             commands::search::rebuild_index,
+            // Layout
+            commands::layout::get_platform_info,
+            commands::layout::set_platform_overrides,
             // Block store (Persistent Window Architecture)
             commands::blockstore::open_document,
             commands::blockstore::get_blocks,
