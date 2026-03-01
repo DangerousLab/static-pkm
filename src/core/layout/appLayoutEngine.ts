@@ -27,8 +27,10 @@ export function computeLayout(
   const rightPanelWidth = prefs.rightPanelOpen ? prefs.rightPanelWidth : 0;
 
   // 4. Compute safe areas
-  const safeTop = platform.safeAreaInsets.top + config.headerHeight;
-  const safeBottom = platform.safeAreaInsets.bottom + config.statusBarHeight;
+  // Symmetric aesthetic padding for the content area relative to the shell.
+  const aestheticGap = 8; // 0.5rem
+  const safeTop = aestheticGap;
+  const safeBottom = platform.safeAreaInsets.bottom + aestheticGap;
 
   // 5. Compute editor pane
   // MANDATE: Sidebar is an OVERLAY. editorLeft remains 0 so content doesn't shift.

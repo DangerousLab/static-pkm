@@ -2,9 +2,10 @@
 
 .main-content {
   grid-area: main;
-  padding: 0.5rem;    /* tighter outer padding (was: 1rem) */
+  padding: 0.5rem;    /* 8px outer padding */
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   overflow-y: auto;   /* make this the scroll container */
   overflow-x: clip;   /* Prevents wide content from causing body-level horizontal scroll without creating a scroll container */
   height: 100%;       /* explicit height for scroll calculation */
@@ -16,13 +17,18 @@
 /* OverlayScrollbars content wrapper — preserve flex centering */
 .main-content .os-content {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 .page-root {
   max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;  /* self-center within container */
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ==================== CARD COMPONENT ==================== */

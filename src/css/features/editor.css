@@ -32,11 +32,8 @@
   contain: style !important;     /* drop layout containment; keep style only    */
   display: flex;
   flex-direction: column;
-  /* Fixed height: 100svh minus header minus all outer vertical space.
-     Outer space breakdown (desktop, after content.css tightening):
-       main-content top+bottom: 0.5+0.5 = 1rem
-     100svh = small viewport height (excludes mobile browser chrome) = 100vh on desktop. */
-  height: calc(100svh - var(--header-height) - 1em);
+  /* Fills page-root exactly */
+  height: 100%;
 }
 
 /* ── Main editor container ────────────────────────────────────────────────────

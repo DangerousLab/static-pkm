@@ -19,10 +19,9 @@
     border-radius: var(--radius-md);
   }
 
-  /* Editor card on portrait mobile: subtract safe-area-inset-bottom in addition to
-     the fixed outer space (main-content now consumes it via padding-bottom). */
+  /* Editor card on portrait mobile uses global editor-card styles from editor.css */
   .editor-card {
-    height: calc(100svh - var(--header-height-mobile) - env(safe-area-inset-bottom, 0px) - 1rem) !important;
+    /* Height handled by editor.css */
   }
 
   .sidebar {
