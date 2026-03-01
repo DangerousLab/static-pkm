@@ -11,7 +11,7 @@ const LAYOUT_CONFIG = {
   defaultSidebarWidth: 240,
   minSidebarWidth: 180,
   maxSidebarWidth: 400,
-  headerHeight: 48,
+  headerHeight: 90,
   statusBarHeight: 24,
   rightPanelDefaultWidth: 280,
 };

@@ -9,7 +9,8 @@
   justify-content: center;
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border-medium);
-  height: var(--layout-header-height);
+  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(var(--layout-header-height) + env(safe-area-inset-top, 0px));
 }
 
 :root[data-theme="light"] .app-header {

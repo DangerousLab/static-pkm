@@ -10,7 +10,7 @@
   overflow-x: clip;   /* Prevents wide content from causing body-level horizontal scroll without creating a scroll container */
   height: 100%;       /* explicit height for scroll calculation */
   margin-left: var(--layout-editor-left);
-  padding-top: var(--layout-safe-top);
+  padding-top: 0.5rem; /* 8px aesthetic gap below header */
   padding-bottom: var(--layout-safe-bottom);
 }
 

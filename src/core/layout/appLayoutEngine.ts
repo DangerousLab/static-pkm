@@ -13,34 +13,38 @@ export function computeLayout(
   windowSize: { width: number; height: number },
   prefs: UserLayoutPrefs
 ): LayoutGeometry {
-  // 1. Apply font scale to sidebar width
+  const isMobile = windowSize.width <= 600;
+  const isLandscape = windowSize.width > windowSize.height && windowSize.height <= 600;
+
+  // 1. Header height is the raw height of the app header element
+  const headerHeight = isLandscape ? 0 : (isMobile ? 60 : config.headerHeight);
+  
+  // 2. Resolve actual sidebar width
   const scaledSidebarWidth = prefs.sidebarWidth * platform.fontScale;
   const clampedSidebarWidth = Math.min(
     Math.max(scaledSidebarWidth, config.minSidebarWidth),
     config.maxSidebarWidth
   );
-
-  // 2. Resolve actual sidebar width
   const sidebarWidth = prefs.sidebarCollapsed ? 0 : clampedSidebarWidth;
 
   // 3. Resolve right panel
-  const rightPanelWidth = prefs.rightPanelOpen ? prefs.rightPanelWidth : 0;
+  const rightPanelWidth = (isMobile || isLandscape) ? 0 : (prefs.rightPanelOpen ? prefs.rightPanelWidth : 0);
 
   // 4. Compute safe areas
-  // Symmetric aesthetic padding for the content area relative to the shell.
-  const aestheticGap = 8; // 0.5rem
-  const safeTop = aestheticGap;
+  // safeTop is the Y-coordinate where the content area (and sidebar) begins.
+  const safeTop = headerHeight + platform.safeAreaInsets.top;
+  
+  const aestheticGap = 8;
   const safeBottom = platform.safeAreaInsets.bottom + aestheticGap;
 
   // 5. Compute editor pane
-  // MANDATE: Sidebar is an OVERLAY. editorLeft remains 0 so content doesn't shift.
   const editorLeft = 0;
   const editorWidth = Math.max(windowSize.width - editorLeft - rightPanelWidth, 320);
 
   // 6. Build cssVariables map
   const prefix = '--layout';
   const cssVariables: Record<string, string> = {
-    [`${prefix}-header-height`]: `${config.headerHeight}px`,
+    [`${prefix}-header-height`]: `${headerHeight}px`,
     [`${prefix}-sidebar-width`]: `${sidebarWidth}px`,
     [`${prefix}-sidebar-collapsed`]: prefs.sidebarCollapsed ? '1' : '0',
     [`${prefix}-editor-left`]: `${editorLeft}px`,
@@ -49,11 +53,13 @@ export function computeLayout(
     [`${prefix}-safe-top`]: `${safeTop}px`,
     [`${prefix}-safe-bottom`]: `${safeBottom}px`,
     [`${prefix}-status-bar-height`]: `${config.statusBarHeight}px`,
+    [`${prefix}-is-mobile`]: isMobile ? '1' : '0',
+    [`${prefix}-is-landscape`]: isLandscape ? '1' : '0',
   };
 
   // 7. Return LayoutGeometry
   return {
-    headerHeight: config.headerHeight,
+    headerHeight,
     sidebarWidth,
     sidebarCollapsed: prefs.sidebarCollapsed,
     editorLeft,
