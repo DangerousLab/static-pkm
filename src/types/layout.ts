@@ -55,11 +55,14 @@ export interface LayoutGeometry {
   headerHeight: number
   sidebarWidth: number         // 0 if collapsed
   sidebarCollapsed: boolean
-  editorLeft: number           // = sidebarWidth
-  editorWidth: number          // = windowWidth - editorLeft - rightPanelWidth
+  editorLeft: number           // starting X coordinate of editor area
+  editorWidth: number          // width of the editor/content area
   rightPanelWidth: number      // backlinks/properties panel, 0 if closed
+  landscapeLeftBarWidth: number // width of the landscape left bar (mobile landscape)
+  isMobile: boolean            // responsive state flag
+  isLandscape: boolean         // orientation state flag
   safeTop: number              // headerHeight + OS safe area top
-  safeBottom: number           // statusBarHeight + OS safe area bottom
+  safeBottom: number           // bottom aesthetic gap + OS safe area bottom
   statusBarHeight: number
   cssVariables: Record<string, string>   // '--layout-*' → 'Npx'
 }

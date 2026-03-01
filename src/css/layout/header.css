@@ -47,16 +47,9 @@
   white-space: nowrap;
 }
 
-@media (max-width: 600px) {
-  .sidebar-toggle-label {
-    display: none;
-  }
-}
-
-@media (min-width: 601px) {
-  .sidebar-toggle-label {
-    display: inline;
-  }
+/* Driven by Layout Engine flag */
+:root[data-layout-is-mobile="1"] .sidebar-toggle-label {
+  display: none;
 }
 
 .header-center {
@@ -86,6 +79,11 @@
   flex-shrink: 0;
 }
 
+/* Responsive logo height driven by Layout Engine */
+:root[data-layout-is-mobile="1"] .header-logo-wrap {
+  height: var(--header-logo-height-mobile);
+}
+
 .header-logo-img {
   max-height: 100%;
   height: var(--header-logo-height);
@@ -93,6 +91,10 @@
   display: block;
   flex-shrink: 0;
   object-fit: contain;
+}
+
+:root[data-layout-is-mobile="1"] .header-logo-img {
+  height: var(--header-logo-height-mobile);
 }
 
 .header-banner-wrap {

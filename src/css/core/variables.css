@@ -20,14 +20,17 @@
 :root {
   /* ==================== LAYOUT ENGINE DEFAULTS ==================== */
   /* These are fallbacks. The LayoutEngine will overwrite them via JS. */
-  --layout-header-height: 48px;
+  --layout-header-height: 90px;
   --layout-sidebar-width: 240px;
   --layout-sidebar-collapsed: 0;
-  --layout-editor-left: 240px;
-  --layout-editor-width: calc(100vw - 240px);
+  --layout-editor-left: 0px;
+  --layout-editor-width: 100vw;
   --layout-right-panel-width: 0px;
-  --layout-safe-top: 48px;
-  --layout-safe-bottom: 24px;
+  --layout-landscape-leftbar-width: 0px;
+  --layout-is-mobile: 0;
+  --layout-is-landscape: 0;
+  --layout-safe-top: 90px;
+  --layout-safe-bottom: 8px;
   --layout-status-bar-height: 24px;
 
   /* ==================== LAYOUT ==================== */

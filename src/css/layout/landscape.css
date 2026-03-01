@@ -4,195 +4,159 @@
   display: none;
 }
 
-@media (max-height: 600px) and (orientation: landscape) {
-  html, body {
-    overflow: hidden;
-    width: 100vw;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-  }
+:root[data-layout-is-landscape="1"] html, 
+:root[data-layout-is-landscape="1"] body {
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
 
-  body {
-    background: var(--gradient-bg) !important;
-  }
+:root[data-layout-is-landscape="1"] body {
+  background: var(--gradient-bg) !important;
+}
 
-  .app-shell {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    position: relative;
-  }
+:root[data-layout-is-landscape="1"] .app-shell {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
 
-  /* Notch area blocker */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: env(safe-area-inset-left, 0px);
-    height: 100vh;
-    background: var(--bg-deep);
-    z-index: 30;
-    pointer-events: none;
-  }
+/* Notch area blocker - uses CSS env() directly as it's a browser-specific visual fill */
+:root[data-layout-is-landscape="1"] body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: env(safe-area-inset-left, 0px);
+  height: 100vh;
+  background: var(--bg-deep);
+  z-index: 30;
+  pointer-events: none;
+}
 
-  :root[data-notch-side="right"] body::before {
-    left: auto;
-    right: 0;
-    width: env(safe-area-inset-right, 0px);
-  }
+:root[data-layout-is-landscape="1"][data-notch-side="right"] body::before {
+  left: auto;
+  right: 0;
+  width: env(safe-area-inset-right, 0px);
+}
 
-  :root[data-notch-side="none"] body::before {
-    display: none;
-  }
+:root[data-layout-is-landscape="1"][data-notch-side="none"] body::before {
+  display: none;
+}
 
-  .landscape-leftbar {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: env(safe-area-inset-left, 0px);
-    width: var(--landscape-leftbar-width);
-    height: calc(100vh - env(safe-area-inset-top, 0px));
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.25rem 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--bg-deep);
-    border-right: 1px solid var(--border-medium);
-  }
+:root[data-layout-is-landscape="1"] .landscape-leftbar {
+  position: fixed;
+  top: var(--layout-safe-top);
+  left: env(safe-area-inset-left, 0px);
+  width: var(--layout-landscape-leftbar-width);
+  height: calc(100vh - var(--layout-safe-top));
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg-deep);
+  border-right: 1px solid var(--border-medium);
+}
 
-  :root[data-notch-side="right"] .landscape-leftbar,
-  :root[data-notch-side="none"] .landscape-leftbar {
-    left: 0;
-  }
+:root[data-layout-is-landscape="1"][data-notch-side="right"] .landscape-leftbar,
+:root[data-layout-is-landscape="1"][data-notch-side="none"] .landscape-leftbar {
+  left: 0;
+}
 
-  .landscape-leftbar-toggle {
-    width: var(--landscape-leftbar-width);
-    height: var(--landscape-leftbar-width);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    color: var(--text-main);
-    flex-shrink: 0;
-  }
+:root[data-layout-is-landscape="1"] .landscape-leftbar-toggle {
+  width: var(--layout-landscape-leftbar-width);
+  height: var(--layout-landscape-leftbar-width);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  color: var(--text-main);
+  flex-shrink: 0;
+}
 
-  .landscape-leftbar-logo {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.125rem;
-    width: 100%;
-    overflow: hidden;
-  }
+:root[data-layout-is-landscape="1"] .landscape-leftbar-logo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem;
+  width: 100%;
+  overflow: hidden;
+}
 
-  .landscape-leftbar-logo img {
-    max-width: var(--landscape-logo-size);
-    max-height: var(--landscape-logo-size);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    animation: slideUpFade var(--anim-slow) var(--ease-out);
-    animation-delay: 0s;
-    animation-fill-mode: both;
-  }
+:root[data-layout-is-landscape="1"] .app-header {
+  display: none !important;
+}
 
-  .landscape-leftbar-logo img.animate {
-    animation: slideUpFade var(--anim-slow) var(--ease-out);
-    animation-delay: 0s;
-    animation-fill-mode: both;
-  }
+:root[data-layout-is-landscape="1"] .sidebar {
+  position: fixed !important;
+  top: var(--layout-safe-top) !important;
+  left: var(--layout-editor-left) !important;
+  height: calc(100vh - var(--layout-safe-top)) !important;
+  width: var(--layout-sidebar-width) !important;
+  padding-bottom: var(--layout-safe-bottom) !important;
+  padding-left: 0.625rem !important;
+  padding-right: 0.625rem !important;
+  transform: translateX(-100%) !important;
+  z-index: 20 !important;
+  overflow: hidden !important;
+}
 
-  .landscape-leftbar .theme-toggle {
-    width: var(--toggle-size-sm);
-    height: var(--toggle-size-sm);
-    min-width: var(--toggle-size-sm);
-    min-height: var(--toggle-size-sm);
-    flex-shrink: 0;
-  }
+:root[data-layout-is-landscape="1"][data-notch-side="right"] .sidebar,
+:root[data-layout-is-landscape="1"][data-notch-side="none"] .sidebar {
+  left: var(--layout-landscape-leftbar-width) !important;
+}
 
-  .landscape-leftbar .theme-toggle span {
-    font-size: 0.9rem;
-  }
+:root[data-layout-is-landscape="1"] .sidebar[data-open="true"] {
+  transform: translateX(0) !important;
+}
 
-  .app-header {
-    display: none !important;
-  }
+:root[data-layout-is-landscape="1"] .main-content {
+  position: fixed !important;
+  top: var(--layout-safe-top) !important;
+  left: var(--layout-editor-left) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: var(--layout-editor-width) !important;
+  margin: 0 !important;
+  padding: 0.5rem !important;
+  padding-bottom: var(--layout-safe-bottom) !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: transparent !important;
+}
 
-  .sidebar {
-    position: fixed !important;
-    top: env(safe-area-inset-top, 0px) !important;
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
-    height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
-    width: 80vw !important;
-    max-width: var(--sidebar-max-width-mobile) !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-    padding-left: 0.625rem !important;
-    padding-right: 0.625rem !important;
-    transform: translateX(-100%) !important;
-    z-index: 20 !important;
-    overflow: hidden !important;
-  }
+:root[data-layout-is-landscape="1"][data-notch-side="right"] .main-content {
+  left: var(--layout-editor-left) !important;
+  right: env(safe-area-inset-right, 0px) !important;
+}
 
-  :root[data-notch-side="right"] .sidebar,
-  :root[data-notch-side="none"] .sidebar {
-    left: var(--landscape-leftbar-width) !important;
-  }
+:root[data-layout-is-landscape="1"][data-notch-side="none"] .main-content {
+  left: var(--layout-editor-left) !important;
+  right: 0 !important;
+}
 
-  .sidebar[data-open="true"] {
-    transform: translateX(0) !important;
-  }
+:root[data-layout-is-landscape="1"] .main-content .page-root {
+  padding: 0rem !important;
+  max-width: 100%;
+  background: transparent !important;
+}
 
-  .main-content {
-    position: fixed !important;
-    top: env(safe-area-inset-top, 0px) !important;
-    left: calc(var(--landscape-leftbar-width) + env(safe-area-inset-left, 0px)) !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: auto !important;
-    margin: 0 !important;
-    padding: 0.5rem !important;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
-    overflow-y: auto;
-    overflow-x: hidden;
-    background: transparent !important;
-  }
+:root[data-layout-is-landscape="1"] .page-root .card {
+  border-radius: var(--radius-md) !important;
+  max-width: 100%;
+}
 
-  :root[data-notch-side="right"] .main-content {
-    left: var(--landscape-leftbar-width) !important;
-    right: env(safe-area-inset-right, 0px) !important;
-  }
-
-  :root[data-notch-side="none"] .main-content {
-    left: var(--landscape-leftbar-width) !important;
-    right: 0 !important;
-  }
-
-  .main-content .page-root {
-    padding: 0rem !important;  /* uniform padding all sides */
-    max-width: 100%;
-    background: transparent !important;
-  }
-
-  .page-root .card {
-    border-radius: var(--radius-md) !important;
-    max-width: 100%;
-  }
-
-  /* Editor card in landscape uses global editor-card styles from editor.css */
-  .editor-card {
-    /* Height handled by editor.css */
-  }
-
-  .card .content-header,
-  .card .calculator-header {
-    margin-bottom: 0.75rem !important;
-  }
+:root[data-layout-is-landscape="1"] .card .content-header,
+:root[data-layout-is-landscape="1"] .card .calculator-header {
+  margin-bottom: 0.75rem !important;
 }

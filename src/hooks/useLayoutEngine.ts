@@ -14,17 +14,21 @@ const LAYOUT_CONFIG = {
   headerHeight: 90,
   statusBarHeight: 24,
   rightPanelDefaultWidth: 280,
+  landscapeLeftBarWidth: 44,
 };
 
 const DEFAULT_GEOMETRY: LayoutGeometry = {
-  headerHeight: 48,
+  headerHeight: 90,
   sidebarWidth: 240,
   sidebarCollapsed: false,
-  editorLeft: 240,
-  editorWidth: typeof window !== 'undefined' ? window.innerWidth - 240 : 800,
+  editorLeft: 0,
+  editorWidth: typeof window !== 'undefined' ? window.innerWidth : 800,
   rightPanelWidth: 0,
-  safeTop: 48,
-  safeBottom: 24,
+  landscapeLeftBarWidth: 0,
+  isMobile: false,
+  isLandscape: false,
+  safeTop: 90,
+  safeBottom: 8,
   statusBarHeight: 24,
   cssVariables: {},
 };

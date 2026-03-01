@@ -25,6 +25,14 @@ export function applyLayoutGeometry(geometry: LayoutGeometry): void {
   // Apply to DOM
   for (const [key, value] of Object.entries(geometry.cssVariables)) {
     document.documentElement.style.setProperty(key, value);
+    
+    // Also sync state flags to data attributes for easier CSS selection
+    if (key === '--layout-is-mobile') {
+      document.documentElement.setAttribute('data-layout-is-mobile', value);
+    }
+    if (key === '--layout-is-landscape') {
+      document.documentElement.setAttribute('data-layout-is-landscape', value);
+    }
   }
 
   lastApplied = { ...geometry.cssVariables };
