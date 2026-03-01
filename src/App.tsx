@@ -159,6 +159,15 @@ function App(): React.JSX.Element {
     );
   }
 
+  // Show loading skeleton until layout engine is ready to prevent layout flash
+  if (!isLayoutReady) {
+    return (
+      <div className="min-h-screen bg-bg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Initializing layout...</div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Show cache progress overlay during PWA first install */}
