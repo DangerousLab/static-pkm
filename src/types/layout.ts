@@ -57,6 +57,7 @@ export interface LayoutGeometry {
   sidebarCollapsed: boolean
   editorLeft: number           // starting X coordinate of editor area
   editorWidth: number          // width of the editor/content area
+  contentMaxWidth: number      // maximum width of the content area (page-root)
   rightPanelWidth: number      // backlinks/properties panel, 0 if closed
   landscapeLeftBarWidth: number // width of the landscape left bar (mobile landscape)
   isMobile: boolean            // responsive state flag

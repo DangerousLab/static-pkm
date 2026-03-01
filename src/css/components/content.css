@@ -28,7 +28,7 @@
 }
 
 .page-root {
-  max-width: var(--content-max-width);
+  max-width: var(--layout-content-max-width);
   width: 100%;
   margin: 0 auto;  /* self-center within container */
 }

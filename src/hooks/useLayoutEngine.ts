@@ -15,6 +15,7 @@ const LAYOUT_CONFIG = {
   statusBarHeight: 24,
   rightPanelDefaultWidth: 280,
   landscapeLeftBarWidth: 44,
+  contentMaxWidth: 900,
 };
 
 const DEFAULT_GEOMETRY: LayoutGeometry = {
@@ -23,6 +24,7 @@ const DEFAULT_GEOMETRY: LayoutGeometry = {
   sidebarCollapsed: false,
   editorLeft: 0,
   editorWidth: typeof window !== 'undefined' ? window.innerWidth : 800,
+  contentMaxWidth: 900,
   rightPanelWidth: 0,
   landscapeLeftBarWidth: 0,
   isMobile: false,

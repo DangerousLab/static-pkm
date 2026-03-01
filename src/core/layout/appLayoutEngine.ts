@@ -9,7 +9,7 @@ export function computeLayout(
     headerHeight: number;
     statusBarHeight: number;
     rightPanelDefaultWidth: number;
-    landscapeLeftBarWidth: number;
+    contentMaxWidth: number;
   },
   windowSize: { width: number; height: number },
   prefs: UserLayoutPrefs
@@ -18,13 +18,9 @@ export function computeLayout(
   const isLandscape = windowSize.height <= 600 && windowSize.width > windowSize.height;
 
   // 1. Header height is the raw height of the app header element (excluding safe area)
-  // In landscape, the header is hidden (height 0).
   const headerHeight = isLandscape ? 0 : (isMobile ? 60 : config.headerHeight);
   
-  // 2. Landscape Left Bar
-  const landscapeLeftBarWidth = isLandscape ? config.landscapeLeftBarWidth : 0;
-
-  // 3. Resolve actual sidebar width
+  // 2. Resolve actual sidebar width
   const scaledSidebarWidth = prefs.sidebarWidth * platform.fontScale;
   const clampedSidebarWidth = Math.min(
     Math.max(scaledSidebarWidth, config.minSidebarWidth),
@@ -32,28 +28,22 @@ export function computeLayout(
   );
   const sidebarWidth = prefs.sidebarCollapsed ? 0 : clampedSidebarWidth;
 
-  // 4. Resolve right panel
+  // 3. Resolve right panel
   const rightPanelWidth = (isMobile || isLandscape) ? 0 : (prefs.rightPanelOpen ? prefs.rightPanelWidth : 0);
 
-  // 5. Compute safe areas
-  // safeTop is the Y-coordinate where the content area (and sidebar) begins.
-  // In landscape, it's just the OS top inset (notch).
+  // 4. Compute safe areas
   const safeTop = headerHeight + platform.safeAreaInsets.top;
-  
   const aestheticGap = 8;
   const safeBottom = platform.safeAreaInsets.bottom + aestheticGap;
 
-  // 6. Compute editor pane
-  // In landscape, content starts after the landscape left bar and safe area left (notch).
-  const editorLeft = isLandscape ? (landscapeLeftBarWidth + platform.safeAreaInsets.left) : 0;
+  // 5. Compute editor pane
+  const editorLeft = 0;
+  const availableWidth = windowSize.width - editorLeft - rightPanelWidth - (isLandscape ? (platform.safeAreaInsets.left + platform.safeAreaInsets.right) : 0);
   
-  // editorWidth is total width minus horizontal safe areas and panels.
-  const editorWidth = Math.max(
-    windowSize.width - editorLeft - rightPanelWidth - (isLandscape ? platform.safeAreaInsets.right : 0),
-    320
-  );
+  // MANDATE: editorWidth MUST reflect the actual text-wrap width (page-root max-width)
+  const editorWidth = Math.min(Math.max(availableWidth, 320), config.contentMaxWidth);
 
-  // 7. Build cssVariables map
+  // 6. Build cssVariables map
   const prefix = '--layout';
   const cssVariables: Record<string, string> = {
     [`${prefix}-header-height`]: `${headerHeight}px`,
@@ -61,8 +51,8 @@ export function computeLayout(
     [`${prefix}-sidebar-collapsed`]: prefs.sidebarCollapsed ? '1' : '0',
     [`${prefix}-editor-left`]: `${editorLeft}px`,
     [`${prefix}-editor-width`]: `${editorWidth}px`,
+    [`${prefix}-content-max-width`]: `${config.contentMaxWidth}px`,
     [`${prefix}-right-panel-width`]: `${rightPanelWidth}px`,
-    [`${prefix}-landscape-leftbar-width`]: `${landscapeLeftBarWidth}px`,
     [`${prefix}-safe-top`]: `${safeTop}px`,
     [`${prefix}-safe-bottom`]: `${safeBottom}px`,
     [`${prefix}-status-bar-height`]: `${config.statusBarHeight}px`,
@@ -70,15 +60,16 @@ export function computeLayout(
     [`${prefix}-is-landscape`]: isLandscape ? '1' : '0',
   };
 
-  // 8. Return LayoutGeometry
+  // 7. Return LayoutGeometry
   return {
     headerHeight,
     sidebarWidth,
     sidebarCollapsed: prefs.sidebarCollapsed,
     editorLeft,
     editorWidth,
+    contentMaxWidth: config.contentMaxWidth,
     rightPanelWidth,
-    landscapeLeftBarWidth,
+    landscapeLeftBarWidth: isLandscape ? 44 : 0,
     isMobile,
     isLandscape,
     safeTop,
