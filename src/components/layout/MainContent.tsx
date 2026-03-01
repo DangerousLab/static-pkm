@@ -42,7 +42,7 @@ function MainContent(): React.JSX.Element {
 
   return (
     <main className="main-content" onClick={handleContentClick}>
-      <div className="page-root">
+      <div className={['page-root', activeNode?.type === 'document' ? 'has-editor' : ''].filter(Boolean).join(' ')}>
         <section
           id="contentCard"
           className={[

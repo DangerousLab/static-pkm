@@ -25,6 +25,10 @@
   max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;  /* self-center within container */
+}
+
+/* Fixed-height constraint only applied when editor is active */
+.page-root.has-editor {
   flex: 1;
   min-height: 0;
   display: flex;
