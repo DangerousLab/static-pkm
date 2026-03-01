@@ -31,8 +31,9 @@ export function computeLayout(
   const safeBottom = platform.safeAreaInsets.bottom + config.statusBarHeight;
 
   // 5. Compute editor pane
-  const editorLeft = sidebarWidth;
-  const editorWidth = Math.max(windowSize.width - sidebarWidth - rightPanelWidth, 320);
+  // MANDATE: Sidebar is an OVERLAY. editorLeft remains 0 so content doesn't shift.
+  const editorLeft = 0;
+  const editorWidth = Math.max(windowSize.width - editorLeft - rightPanelWidth, 320);
 
   // 6. Build cssVariables map
   const prefix = '--layout';
