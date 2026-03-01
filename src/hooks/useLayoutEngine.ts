@@ -3,9 +3,15 @@ import type { LayoutGeometry, UserLayoutPrefs, PlatformInfo } from '../types/lay
 import { getPlatformInfo, setPlatformOverrides, getCachedPlatformInfo } from '../core/layout/platformAdapter';
 import { computeLayout } from '../core/layout/appLayoutEngine';
 import { applyLayoutGeometry } from '../core/layout/cssPropertyBridge';
+import { invalidateOracle, computeAll } from '../core/layout/layoutOracle';
+import { getCurrentNoteManifests } from '../core/layout/oracleCoordinator';
 
 // Module-level geometry cache
 let cachedGeometry: LayoutGeometry | null = null;
+
+export function getCachedGeometry(): LayoutGeometry | null {
+  return cachedGeometry;
+}
 
 const LAYOUT_CONFIG = {
   defaultSidebarWidth: 240,
@@ -119,7 +125,14 @@ export function useLayoutEngine(prefs: UserLayoutPrefs): {
         cachedGeometry = geo;
         setGeometry(geo);
         
-        // Part 2 integration point: call layoutOracle invalidate here
+        // Phase 2 integration point: Re-measure block heights if width changed
+        invalidateOracle();
+        const manifests = getCurrentNoteManifests();
+        if (manifests.length > 0) {
+          computeAll(manifests, geo.editorWidth);
+          // Note: Virtual scroll layers will automatically read the updated
+          // heights from the Layout Oracle during their next render cycle.
+        }
       }, 50);
     };
 
@@ -142,7 +155,12 @@ export function useLayoutEngine(prefs: UserLayoutPrefs): {
     cachedGeometry = geo;
     setGeometry(geo);
     
-    // Part 2 integration point: call layoutOracle invalidate here
+    // Phase 2 integration point: Re-measure block heights
+    invalidateOracle();
+    const manifests = getCurrentNoteManifests();
+    if (manifests.length > 0) {
+      computeAll(manifests, geo.editorWidth);
+    }
   }, [prefs.sidebarWidth, prefs.sidebarCollapsed, prefs.rightPanelOpen, prefs.rightPanelWidth, isReady]);
 
   return { geometry, isReady };

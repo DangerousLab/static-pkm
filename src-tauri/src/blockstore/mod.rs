@@ -12,7 +12,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use scanner::{estimate_height, fnv1a_hash, reassemble, scan, Block, BlockType};
+use scanner::{fnv1a_hash, reassemble, scan, Block, BlockType};
 
 // ── IPC-serialisable data types ────────────────────────────────────────────────
 
@@ -23,11 +23,14 @@ pub struct BlockMeta {
     pub id: usize,
     pub start_line: usize,
     pub end_line: usize,
-    pub estimated_height: f64,
     /// Hex-encoded FNV-1a hash for change detection.
     pub content_hash: String,
-    /// Semantic block type — used for rendering hints and height estimation.
+    /// Semantic block type — used for rendering hints.
     pub block_type: BlockType,
+    pub line_count: u32,
+    pub row_count: Option<u32>,
+    pub col_count: Option<u32>,
+    pub text_content: String,
 }
 
 impl BlockMeta {
@@ -36,9 +39,12 @@ impl BlockMeta {
             id: b.id,
             start_line: b.start_line,
             end_line: b.end_line,
-            estimated_height: b.estimated_height,
             content_hash: format!("{:x}", b.content_hash),
             block_type: b.block_type,
+            line_count: b.line_count,
+            row_count: b.row_count,
+            col_count: b.col_count,
+            text_content: b.markdown.clone(),
         }
     }
 }
@@ -50,7 +56,6 @@ pub struct DocumentHandle {
     pub doc_id: String,
     pub path: String,
     pub total_blocks: usize,
-    pub total_estimated_height: f64,
     pub blocks: Vec<BlockMeta>,
 }
 
@@ -75,7 +80,6 @@ pub struct BlockUpdate {
 #[serde(rename_all = "camelCase")]
 pub struct WindowUpdateResult {
     pub new_total_blocks: usize,
-    pub new_total_height: f64,
     pub blocks: Vec<BlockMeta>,
 }
 
@@ -94,12 +98,6 @@ struct DocumentData {
     path: String,
     blocks: Vec<Block>,
     dirty: bool,
-}
-
-impl DocumentData {
-    fn total_estimated_height(&self) -> f64 {
-        self.blocks.iter().map(|b| b.estimated_height).sum()
-    }
 }
 
 // ── DocumentStore ──────────────────────────────────────────────────────────────
@@ -130,7 +128,6 @@ impl DocumentStore {
 
         let blocks = scan(&content);
         let total_blocks = blocks.len();
-        let total_height: f64 = blocks.iter().map(|b| b.estimated_height).sum();
         let block_metas: Vec<BlockMeta> = blocks.iter().map(BlockMeta::from_block).collect();
 
         let doc_id = normalize_doc_id(path);
@@ -147,15 +144,14 @@ impl DocumentStore {
             .insert(doc_id.clone(), data);
 
         info!(
-            "[INFO] [blockstore] Opened '{}' ({} blocks, {:.0}px estimated)",
-            doc_id, total_blocks, total_height
+            "[INFO] [blockstore] Opened '{}' ({} blocks)",
+            doc_id, total_blocks
         );
 
         Ok(DocumentHandle {
             doc_id,
             path: path.to_string(),
             total_blocks,
-            total_estimated_height: total_height,
             blocks: block_metas,
         })
     }
@@ -221,10 +217,7 @@ impl DocumentStore {
         for upd in updates {
             if let Some(block) = doc.blocks.get_mut(upd.id) {
                 block.markdown = upd.markdown.clone();
-                block.estimated_height = estimate_height(
-                    block.markdown.lines().count().max(1),
-                    block.block_type,
-                );
+                block.line_count = block.markdown.lines().count() as u32;
                 block.content_hash = fnv1a_hash(&block.markdown);
                 doc.dirty = true;
             } else {
@@ -279,7 +272,6 @@ impl DocumentStore {
         doc.dirty = true;
 
         let new_total_blocks = doc.blocks.len();
-        let new_total_height = doc.total_estimated_height();
         let block_metas: Vec<BlockMeta> = doc.blocks.iter().map(BlockMeta::from_block).collect();
 
         info!(
@@ -289,33 +281,11 @@ impl DocumentStore {
 
         Ok(WindowUpdateResult {
             new_total_blocks,
-            new_total_height,
             blocks: block_metas,
         })
     }
 
     /// Refine the estimated render height for a single block from a DOM measurement.
-    pub fn update_block_height(
-        &self,
-        doc_id: &str,
-        block_id: usize,
-        height: f64,
-    ) -> Result<(), String> {
-        let mut docs = self
-            .documents
-            .lock()
-            .map_err(|e| format!("Lock error: {}", e))?;
-
-        let doc = docs
-            .get_mut(doc_id)
-            .ok_or_else(|| format!("Document not found: {}", doc_id))?;
-
-        if let Some(block) = doc.blocks.get_mut(block_id) {
-            block.estimated_height = height;
-        }
-
-        Ok(())
-    }
 
     // ── save ──────────────────────────────────────────────────────────────────
 
@@ -414,22 +384,6 @@ impl DocumentStore {
         }
 
         Ok(matches)
-    }
-
-    // ── utilities ─────────────────────────────────────────────────────────────
-
-    /// Return the current total estimated height (after height refinements).
-    pub fn get_total_height(&self, doc_id: &str) -> Result<f64, String> {
-        let docs = self
-            .documents
-            .lock()
-            .map_err(|e| format!("Lock error: {}", e))?;
-
-        let doc = docs
-            .get(doc_id)
-            .ok_or_else(|| format!("Document not found: {}", doc_id))?;
-
-        Ok(doc.total_estimated_height())
     }
 }
 

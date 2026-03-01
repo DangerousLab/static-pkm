@@ -87,3 +87,179 @@ pub async fn set_platform_overrides(
 
     Ok(())
 }
+
+// ── Phase 2: Layout Oracle Commands ──────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeManifest {
+    pub node_id: String,
+    pub node_type: String,
+    pub text_content: String,
+    pub level: Option<u8>,
+    pub line_count: Option<u32>,
+    pub row_count: Option<u32>,
+    pub col_count: Option<u32>,
+    pub image_dimensions: Option<(u32, u32)>,
+    pub font_override: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HeightCacheEntry {
+    pub node_id: String,
+    pub height: f64,
+    pub source: String,
+    pub timestamp: u64,
+}
+
+#[tauri::command]
+pub async fn get_node_manifest(
+    note_id: String,
+    db_state: tauri::State<'_, crate::db::DbState>,
+) -> Result<Vec<NodeManifest>, String> {
+    let db = &db_state.0;
+    db.execute(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT node_id, node_type, text_content, level, line_count, row_count, col_count, img_width, img_height, font_override 
+             FROM node_manifest 
+             WHERE note_id = ?1 
+             ORDER BY position ASC"
+        )?;
+
+        let rows = stmt.query_map(rusqlite::params![note_id], |row| {
+            let img_width: Option<u32> = row.get(7)?;
+            let img_height: Option<u32> = row.get(8)?;
+            let image_dimensions = match (img_width, img_height) {
+                (Some(w), Some(h)) => Some((w, h)),
+                _ => None,
+            };
+
+            Ok(NodeManifest {
+                node_id: row.get(0)?,
+                node_type: row.get(1)?,
+                text_content: row.get(2)?,
+                level: row.get(3)?,
+                line_count: row.get(4)?,
+                row_count: row.get(5)?,
+                col_count: row.get(6)?,
+                image_dimensions,
+                font_override: row.get(9)?,
+            })
+        })?;
+
+        let mut manifests = Vec::new();
+        for row in rows {
+            manifests.push(row.map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?);
+        }
+        Ok(manifests)
+    })
+}
+
+#[tauri::command]
+pub async fn set_node_manifest(
+    note_id: String,
+    manifest: Vec<NodeManifest>,
+    db_state: tauri::State<'_, crate::db::DbState>,
+) -> Result<(), String> {
+    let db = &db_state.0;
+    db.execute_mut(|conn| {
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM node_manifest WHERE note_id = ?1", rusqlite::params![note_id])?;
+
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO node_manifest (
+                    note_id, node_id, node_type, text_content, level, line_count, 
+                    row_count, col_count, img_width, img_height, font_override, position
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"
+            )?;
+
+            for (i, node) in manifest.iter().enumerate() {
+                let img_width = node.image_dimensions.map(|d| d.0);
+                let img_height = node.image_dimensions.map(|d| d.1);
+                
+                stmt.execute(rusqlite::params![
+                    note_id,
+                    node.node_id,
+                    node.node_type,
+                    node.text_content,
+                    node.level,
+                    node.line_count,
+                    node.row_count,
+                    node.col_count,
+                    img_width,
+                    img_height,
+                    node.font_override,
+                    i as i64
+                ])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub async fn get_height_cache(
+    note_id: String,
+    db_state: tauri::State<'_, crate::db::DbState>,
+) -> Result<Vec<HeightCacheEntry>, String> {
+    let db = &db_state.0;
+    db.execute(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT hc.node_id, hc.height, hc.source, hc.timestamp 
+             FROM height_cache hc
+             INNER JOIN node_manifest nm ON nm.node_id = hc.node_id
+             WHERE nm.note_id = ?1"
+        )?;
+
+        let rows = stmt.query_map(rusqlite::params![note_id], |row| {
+            Ok(HeightCacheEntry {
+                node_id: row.get(0)?,
+                height: row.get(1)?,
+                source: row.get(2)?,
+                timestamp: row.get(3)?,
+            })
+        })?;
+
+        let mut entries = Vec::new();
+        for row in rows {
+            entries.push(row.map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?);
+        }
+        Ok(entries)
+    })
+}
+
+#[tauri::command]
+pub async fn update_height_cache(
+    entries: Vec<HeightCacheEntry>,
+    db_state: tauri::State<'_, crate::db::DbState>,
+) -> Result<(), String> {
+    let db = &db_state.0;
+    db.execute_mut(|conn| {
+        let tx = conn.transaction()?;
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO height_cache (node_id, height, source, timestamp)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(node_id) DO UPDATE SET
+                 height = excluded.height,
+                 source = excluded.source,
+                 timestamp = excluded.timestamp
+                 WHERE height_cache.source != 'dom' OR excluded.source = 'dom'"
+            )?;
+
+            for entry in entries {
+                stmt.execute(rusqlite::params![
+                    entry.node_id,
+                    entry.height,
+                    entry.source,
+                    entry.timestamp as i64
+                ])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    })
+}

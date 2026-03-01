@@ -12,6 +12,7 @@ export type NodeType =
   | 'computeEmbed'    // Unstablon-specific: embed calc.js syntax
   | 'horizontalRule'
   | 'mathBlock'       // Unstablon-specific: LaTeX block via MathJax
+  | 'frontmatter'
 
 export interface NodeManifest {
   nodeId: string           // stable ID — from SQLite content table

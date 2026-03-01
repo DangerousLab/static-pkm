@@ -76,17 +76,6 @@ pub async fn update_visible_window(
     store.update_visible_window(&doc_id, start_block, end_block, &window_markdown)
 }
 
-/// Refine the estimated height of a single block from a DOM measurement.
-#[tauri::command]
-pub async fn update_block_height(
-    doc_id: String,
-    block_id: usize,
-    height: f64,
-    store: State<'_, DocumentStore>,
-) -> Result<(), String> {
-    store.update_block_height(&doc_id, block_id, height)
-}
-
 /// Reassemble all blocks and write the document to disk.
 #[tauri::command]
 pub async fn save_document(

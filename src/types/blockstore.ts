@@ -44,12 +44,17 @@ export interface BlockMeta {
   startLine: number;
   /** Last line number of this block in the source file (inclusive, zero-based). */
   endLine: number;
-  /** Estimated render height in pixels (refined later by DOM measurement). */
-  estimatedHeight: number;
   /** Hex-encoded FNV-1a hash of the block content for change detection. */
   contentHash: string;
   /** Semantic block type — used for rendering hints and height estimation. */
   blockType: BlockType;
+  
+  // Oracle hint fields
+  lineCount: number;
+  rowCount: number | null;
+  colCount: number | null;
+  textContent: string;
+  estimatedHeight?: number;
 }
 
 // ── Document handle ────────────────────────────────────────────────────────────
@@ -66,8 +71,6 @@ export interface DocumentHandle {
   path: string;
   /** Total number of blocks in the document. */
   totalBlocks: number;
-  /** Sum of all `estimatedHeight` values — used as the spacer div height. */
-  totalEstimatedHeight: number;
   /** Metadata for every block in document order. */
   blocks: BlockMeta[];
 }
@@ -86,8 +89,6 @@ export interface BlockContent {
 export interface WindowUpdateResult {
   /** New total block count after potential splits/merges. */
   newTotalBlocks: number;
-  /** New total estimated height. */
-  newTotalHeight: number;
   /** Updated block metadata (full document, for scrollbar recalibration). */
   blocks: BlockMeta[];
 }

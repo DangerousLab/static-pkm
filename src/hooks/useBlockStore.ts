@@ -9,7 +9,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { openDocument, closeDocument } from '@core/ipc/blockstore';
-import type { DocumentHandle } from '@/types/blockstore';
+import type { DocumentHandle, BlockMeta } from '@/types/blockstore';
+import type { NodeManifest, HeightCacheEntry } from '@/types/layout';
+import { computeAll, applyDomCorrection, initLayoutOracle } from '@core/layout/layoutOracle';
+import { setCurrentManifests, clearCurrentManifests } from '@core/layout/oracleCoordinator';
+import { getCachedGeometry } from '@hooks/useLayoutEngine';
+import { invoke } from '@tauri-apps/api/core';
+import { isTauriContext } from '@core/ipc/commands';
 
 interface UseBlockStoreResult {
   /** Full document metadata (block count, estimated heights) after loading. */
@@ -18,6 +24,18 @@ interface UseBlockStoreResult {
   error: string | null;
   /** Imperatively close the document (e.g. before switching to source mode). */
   closeDoc: () => Promise<void>;
+}
+
+// Convert backend BlockMeta to Oracle NodeManifest
+function blockMetaToManifest(block: BlockMeta): NodeManifest {
+  return {
+    nodeId: String(block.id),
+    nodeType: block.blockType as any, // Simple cast for now
+    textContent: block.textContent || '',
+    lineCount: block.lineCount,
+    rowCount: block.rowCount || undefined,
+    colCount: block.colCount || undefined,
+  };
 }
 
 /**
@@ -44,9 +62,40 @@ export function useBlockStore(absolutePath: string | null): UseBlockStoreResult 
       setError(null);
       setDocHandle(null);
 
+      // Ensure Oracle is initialized (idempotent)
+      initLayoutOracle();
+
       try {
         const handle = await openDocument(absolutePath!);
         if (!cancelled) {
+          // 1. Get container width
+          const containerWidth = getCachedGeometry()?.editorWidth ?? window.innerWidth - 240;
+
+          // 2. Convert to manifests and store in coordinator
+          const manifests = handle.blocks.map(b => blockMetaToManifest(b));
+          setCurrentManifests(manifests);
+
+          // 3. Compute base heights with Oracle
+          const heightMap = computeAll(manifests, containerWidth);
+
+          // 4. Try loading cached DOM corrections from SQLite
+          if (isTauriContext()) {
+            try {
+              const cached = await invoke<HeightCacheEntry[]>('get_height_cache', { noteId: handle.docId });
+              for (const entry of cached) {
+                applyDomCorrection(entry.nodeId, entry.height);
+                heightMap.set(entry.nodeId, entry.height);
+              }
+            } catch (e) {
+              console.warn('[WARN] [useBlockStore] Failed to load height cache:', e);
+            }
+          }
+
+          // 5. Enrich BlockMeta with calculated heights
+          for (const block of handle.blocks) {
+            block.estimatedHeight = heightMap.get(String(block.id)) ?? 28;
+          }
+
           openDocIdRef.current = handle.docId;
           setDocHandle(handle);
           console.log(
@@ -72,6 +121,7 @@ export function useBlockStore(absolutePath: string | null): UseBlockStoreResult 
 
     return () => {
       cancelled = true;
+      clearCurrentManifests();
       // Close using the ref so we always have the correct docId, even if
       // state hasn't re-rendered yet.
       const docId = openDocIdRef.current;

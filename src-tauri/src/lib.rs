@@ -169,12 +169,15 @@ pub fn run() {
             // Layout
             commands::layout::get_platform_info,
             commands::layout::set_platform_overrides,
+            commands::layout::get_node_manifest,
+            commands::layout::set_node_manifest,
+            commands::layout::get_height_cache,
+            commands::layout::update_height_cache,
             // Block store (Persistent Window Architecture)
             commands::blockstore::open_document,
             commands::blockstore::get_blocks,
             commands::blockstore::update_blocks,
             commands::blockstore::update_visible_window,
-            commands::blockstore::update_block_height,
             commands::blockstore::save_document,
             commands::blockstore::close_document,
             commands::blockstore::search_blocks,

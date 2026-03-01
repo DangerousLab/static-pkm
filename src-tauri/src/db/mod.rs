@@ -41,6 +41,16 @@ impl Database {
         f(&conn).map_err(|e| format!("Database error: {}", e))
     }
 
+    /// Execute a query that requires a mutable connection (e.g. transactions)
+    pub fn execute_mut<F, T>(&self, f: F) -> Result<T, String>
+    where
+        F: FnOnce(&mut Connection) -> Result<T, rusqlite::Error>,
+    {
+        let mut conn = self.conn.lock()
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+        f(&mut conn).map_err(|e| format!("Database error: {}", e))
+    }
+
     /// Index a content entry
     pub fn index_content(&self, entry: &ContentIndexEntry) -> Result<(), String> {
         self.execute(|conn| {
@@ -172,6 +182,37 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
         [],
     )?;
 
+    // Node Manifest table (Phase 2 Layout Oracle)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS node_manifest (
+            note_id       TEXT NOT NULL,
+            node_id       TEXT NOT NULL,
+            node_type     TEXT NOT NULL,
+            text_content  TEXT NOT NULL DEFAULT '',
+            level         INTEGER,
+            line_count    INTEGER,
+            row_count     INTEGER,
+            col_count     INTEGER,
+            img_width     INTEGER,
+            img_height    INTEGER,
+            font_override TEXT,
+            position      INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (note_id, node_id)
+        )",
+        [],
+    )?;
+
+    // Height Cache table (Phase 2 Layout Oracle)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS height_cache (
+            node_id   TEXT PRIMARY KEY,
+            height    REAL NOT NULL,
+            source    TEXT NOT NULL DEFAULT 'estimated',
+            timestamp INTEGER NOT NULL
+        )",
+        [],
+    )?;
+
     // Links table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS links (
@@ -199,6 +240,11 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
     // Create indexes
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_content_path ON content(path)",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_node_manifest_note ON node_manifest(note_id)",
         [],
     )?;
 
