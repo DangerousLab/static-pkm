@@ -30,19 +30,37 @@ export interface HeightCacheEntry {
   noteId: string
   nodeId: string
   height: number
-  source: 'estimated' | 'oracle' | 'dom'   // dom = highest authority
+  source: 'estimated' | 'dictator' | 'dom'   // dom = highest authority
   timestamp: number                          // unix ms
 }
 
-export interface LayoutOracleConfig {
-  defaultFont: string        // e.g. 'Inter, system-ui, sans-serif'
-  baseFontSize: number       // px (match editor CSS, default 16)
-  baseLineHeight: number     // multiplier (default 1.6)
-  containerPadding: number   // horizontal padding inside editor container (px)
-  codeFont: string           // e.g. 'JetBrains Mono, monospace'
-  codeLineHeight: number     // multiplier for code blocks (default 1.5)
-  headingScales: [number, number, number, number, number, number]
-                             // H1–H6 font-size multipliers (e.g. [2.25,1.875,1.5,1.25,1.125,1])
+export interface BlockTypography {
+  fontSize: number;      // px
+  lineHeight: number;    // px
+  marginTop: number;     // px
+  marginBottom: number;  // px
+  paddingTop?: number;   // px
+  paddingBottom?: number;// px
+  borderWidth?: number;  // px
+}
+
+export interface LayoutDictatorConfig {
+  defaultFont: string;       // e.g. 'system-ui, sans-serif'
+  codeFont: string;          // e.g. 'monospace'
+  containerPadding: number;  // horizontal padding inside editor container (px)
+  
+  // Exact pixel dimensions for every block type
+  paragraph: BlockTypography;
+  heading1: BlockTypography;
+  heading2: BlockTypography;
+  heading3: BlockTypography;
+  heading4: BlockTypography;
+  heading5: BlockTypography;
+  heading6: BlockTypography;
+  codeBlock: BlockTypography;
+  blockquote: BlockTypography;
+  list: BlockTypography;
+  table: { rowHeight: number; margins: number };
 }
 
 export interface PlatformInfo {

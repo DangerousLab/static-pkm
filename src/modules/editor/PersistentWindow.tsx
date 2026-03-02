@@ -123,6 +123,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
         
         coordinator.suppressScrollFor(150); // Generous suppression window for reflow
 
+        // Apply exactly what the Layout Dictator says.
         anchor.style.top = `${translateY}px`;
         shiftContentNonUndoable(editor, markdown);
 

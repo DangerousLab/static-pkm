@@ -2,10 +2,10 @@
  * fontMetricsCache.ts
  *
  * Measures and caches character widths using an off-screen canvas context.
- * Used by the Layout Oracle to compute text-wrapping synchronously.
+ * Used by the Layout Dictator to compute text-wrapping synchronously.
  *
  * This is a pure utility module. It does NOT own the canvas element
- * (the Oracle passes the context in) and it does NOT cache per-node data.
+ * (the Dictator passes the context in) and it does NOT cache per-node data.
  * It caches per-font and per-character data for extreme speed.
  */
 

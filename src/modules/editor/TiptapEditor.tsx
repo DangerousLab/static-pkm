@@ -12,6 +12,7 @@ import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Paragraph from '@tiptap/extension-paragraph';
 import CodeBlock from '@tiptap/extension-code-block';
+import Heading from '@tiptap/extension-heading';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import TextAlign from '@tiptap/extension-text-align';
@@ -125,6 +126,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           StarterKit.configure({
             paragraph: false, // Use our extended version below
             codeBlock: false, // Disable default to use extended version
+            heading: false,   // Use our extended version below
             dropcursor: {
               color: 'var(--accent)',
               width: 2,
@@ -136,6 +138,11 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
             },
           }),
           CodeBlock.extend({
+            addNodeView() {
+              return createBlockNodeView(docId) as any;
+            },
+          }),
+          Heading.extend({
             addNodeView() {
               return createBlockNodeView(docId) as any;
             },

@@ -3,8 +3,8 @@ import type { LayoutGeometry, UserLayoutPrefs, PlatformInfo } from '../types/lay
 import { getPlatformInfo, setPlatformOverrides, getCachedPlatformInfo } from '../core/layout/platformAdapter';
 import { computeLayout } from '../core/layout/appLayoutEngine';
 import { applyLayoutGeometry } from '../core/layout/cssPropertyBridge';
-import { invalidateOracle, computeAll } from '../core/layout/layoutOracle';
-import { getCurrentNoteManifests, getCurrentNoteId } from '../core/layout/oracleCoordinator';
+import { invalidateDictator, computeAll } from '../core/layout/layoutDictator';
+import { getCurrentNoteManifests, getCurrentNoteId } from '../core/layout/dictatorCoordinator';
 
 // Module-level geometry cache
 let cachedGeometry: LayoutGeometry | null = null;
@@ -126,13 +126,13 @@ export function useLayoutEngine(prefs: UserLayoutPrefs): {
         setGeometry(geo);
         
         // Phase 2 integration point: Re-measure block heights if width changed
-        invalidateOracle();
+        invalidateDictator();
         const manifests = getCurrentNoteManifests();
         const noteId = getCurrentNoteId();
         if (manifests.length > 0 && noteId) {
           computeAll(manifests, geo.editorWidth, noteId);
           // Note: Virtual scroll layers will automatically read the updated
-          // heights from the Layout Oracle during their next render cycle.
+          // heights from the Layout Dictator during their next render cycle.
         }
       }, 50);
     };
@@ -157,7 +157,7 @@ export function useLayoutEngine(prefs: UserLayoutPrefs): {
     setGeometry(geo);
     
     // Phase 2 integration point: Re-measure block heights
-    invalidateOracle();
+    invalidateDictator();
     const manifests = getCurrentNoteManifests();
     const noteId = getCurrentNoteId();
     if (manifests.length > 0 && noteId) {

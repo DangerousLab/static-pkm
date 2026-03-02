@@ -9,7 +9,7 @@
  */
 
 import type { BlockMeta, ScrollMode, ViewportUpdate } from '@/types/blockstore';
-import { getHeight } from '../../core/layout/layoutOracle';
+import { getHeight } from '../../core/layout/layoutDictator';
 
 const MAX_LOADED_BLOCKS = 400;
 const BUFFER_BLOCKS = 30;

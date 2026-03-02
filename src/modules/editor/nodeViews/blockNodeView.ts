@@ -1,6 +1,6 @@
 import { Node as ProseMirrorNode } from 'prosemirror-model';
 import { EditorView, NodeView } from 'prosemirror-view';
-import { applyDomCorrection, getHeight } from '../../../core/layout/layoutOracle';
+import { applyDomCorrection, getHeight } from '../../../core/layout/layoutDictator';
 
 /**
  * BlockNodeView
@@ -22,30 +22,43 @@ export class BlockNodeView implements NodeView {
     this.dom = document.createElement('div');
     this.dom.className = `block-node block-node-${node.type.name}`;
     
-    // The contentDOM is where ProseMirror will render the actual content of the node
-    this.contentDOM = document.createElement(node.type.name === 'paragraph' ? 'p' : 'pre');
+    // 2. Resolve the correct semantic tag
+    let tagName = 'div';
+    if (node.type.name === 'paragraph') {
+      tagName = 'p';
+    } else if (node.type.name === 'codeBlock') {
+      tagName = 'pre';
+    } else if (node.type.name === 'heading') {
+      const level = node.attrs.level || 1;
+      tagName = `h${level}`;
+    }
+    
+    this.contentDOM = document.createElement(tagName);
     this.dom.appendChild(this.contentDOM);
 
-    // 2. Identify the nodeId (top-level index correlation)
+    // 3. Identify the nodeId (top-level index correlation)
     const pos = getPos();
     const nodeIndex = typeof pos === 'number' ? view.state.doc.content.cut(0, pos).childCount : 0;
     this.nodeId = String(nodeIndex);
 
-    // 3. Apply initial height from Oracle
+    // 4. Apply initial height from Dictator
     const initialHeight = getHeight(this.nodeId);
     if (initialHeight) {
-      this.dom.style.minHeight = `${initialHeight}px`;
+      // The Dictator dictates exact geometry. We do not use min-height for
+      // text blocks, because the Canvas measurement is absolute.
+      this.dom.style.height = `${initialHeight}px`;
+      this.dom.style.overflow = 'hidden'; // Ensure content doesn't break out
     }
 
-    // 4. Setup ResizeObserver for self-correction
+    // 5. Setup ResizeObserver for self-correction
     this.ro = new ResizeObserver(([entry]) => {
       if (!entry) return;
       
       const actualHeight = entry.contentRect.height;
-      const oracleHeight = getHeight(this.nodeId) ?? 0;
+      const dictatorHeight = getHeight(this.nodeId) ?? 0;
 
-      if (Math.abs(actualHeight - oracleHeight) > 2) {
-        console.log(`[TELEMETRY] [VanillaNodeView] CORRECTION | noteId=${this.noteId} nodeId=${this.nodeId} type=${node.type.name} oracle=${oracleHeight.toFixed(1)} actual=${actualHeight.toFixed(1)}`);
+      if (Math.abs(actualHeight - dictatorHeight) > 2) {
+        console.log(`[TELEMETRY] [VanillaNodeView] CORRECTION | noteId=${this.noteId} nodeId=${this.nodeId} type=${node.type.name} dictator=${dictatorHeight.toFixed(1)} actual=${actualHeight.toFixed(1)}`);
         applyDomCorrection(this.noteId, this.nodeId, actualHeight);
       }
     });
@@ -54,9 +67,18 @@ export class BlockNodeView implements NodeView {
   }
 
   update(node: ProseMirrorNode) {
-    return node.type.name === this.contentDOM.nodeName.toLowerCase() || 
-           (node.type.name === 'paragraph' && this.contentDOM.nodeName === 'P') ||
-           (node.type.name === 'codeBlock' && this.contentDOM.nodeName === 'PRE');
+    // Check if the node type or heading level has changed
+    let expectedTag = 'DIV';
+    if (node.type.name === 'paragraph') expectedTag = 'P';
+    else if (node.type.name === 'codeBlock') expectedTag = 'PRE';
+    else if (node.type.name === 'heading') expectedTag = `H${node.attrs.level || 1}`;
+
+    if (node.type.name !== this.dom.className.replace('block-node block-node-', '') || 
+        this.contentDOM.tagName !== expectedTag) {
+      return false; // Force re-mount if structure changed
+    }
+    
+    return true; 
   }
 
   destroy() {

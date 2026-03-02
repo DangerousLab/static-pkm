@@ -11,8 +11,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { openDocument, closeDocument } from '@core/ipc/blockstore';
 import type { DocumentHandle, BlockMeta } from '@/types/blockstore';
 import type { NodeManifest, HeightCacheEntry } from '@/types/layout';
-import { computeAll, applyDomCorrection, initLayoutOracle } from '@core/layout/layoutOracle';
-import { setCurrentNoteContext, clearCurrentManifests } from '@core/layout/oracleCoordinator';
+import { computeAll, applyDomCorrection, initLayoutDictator } from '@core/layout/layoutDictator';
+import { setCurrentNoteContext, clearCurrentManifests } from '@core/layout/dictatorCoordinator';
 import { getCachedGeometry } from '@hooks/useLayoutEngine';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauriContext } from '@core/ipc/commands';
@@ -26,7 +26,7 @@ interface UseBlockStoreResult {
   closeDoc: () => Promise<void>;
 }
 
-// Convert backend BlockMeta to Oracle NodeManifest
+// Convert backend BlockMeta to Dictator NodeManifest
 function blockMetaToManifest(block: BlockMeta): NodeManifest {
   return {
     nodeId: String(block.id),
@@ -62,8 +62,8 @@ export function useBlockStore(absolutePath: string | null): UseBlockStoreResult 
       setError(null);
       setDocHandle(null);
 
-      // Ensure Oracle is initialized (idempotent)
-      initLayoutOracle();
+      // Ensure Dictator is initialized (idempotent)
+      initLayoutDictator();
 
       try {
         const handle = await openDocument(absolutePath!);
@@ -75,7 +75,7 @@ export function useBlockStore(absolutePath: string | null): UseBlockStoreResult 
           const manifests = handle.blocks.map(b => blockMetaToManifest(b));
           setCurrentNoteContext(handle.docId, manifests);
 
-          // 3. Compute base heights with Oracle
+          // 3. Compute base heights with Dictator
           const heightMap = computeAll(manifests, containerWidth, handle.docId);
 
           // 4. Try loading cached DOM corrections from SQLite

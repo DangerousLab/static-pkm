@@ -49,7 +49,7 @@ export interface BlockMeta {
   /** Semantic block type — used for rendering hints and height estimation. */
   blockType: BlockType;
   
-  // Oracle hint fields
+  // Dictator hint fields
   lineCount: number;
   rowCount: number | null;
   colCount: number | null;
