@@ -28,12 +28,11 @@
 
 .editor-card {
   padding: 0 !important;
-  overflow: clip !important;     /* clips corners without scroll context         */
-  contain: style !important;     /* drop layout containment; keep style only    */
+  overflow: hidden !important;
   display: flex;
   flex-direction: column;
-  /* Fills page-root exactly */
   height: 100%;
+  width: 100%;
 }
 
 /* ── Main editor container ────────────────────────────────────────────────────

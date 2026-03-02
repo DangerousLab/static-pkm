@@ -14,6 +14,7 @@ import type { NodeManifest } from '../../types/layout';
 
 let currentManifests: NodeManifest[] = [];
 let currentNoteId: string | null = null;
+let windowStartBlock: number = 0;
 
 /**
  * Set the current manifests and noteId.
@@ -43,4 +44,19 @@ export function getCurrentNoteId(): string | null {
 export function clearCurrentManifests(): void {
   currentManifests = [];
   currentNoteId = null;
+  windowStartBlock = 0;
+}
+
+/**
+ * Set the global index offset for the current viewport chunk.
+ */
+export function setWindowStartBlock(startBlock: number): void {
+  windowStartBlock = startBlock;
+}
+
+/**
+ * Get the global index offset for the current viewport chunk.
+ */
+export function getWindowStartBlock(): number {
+  return windowStartBlock;
 }

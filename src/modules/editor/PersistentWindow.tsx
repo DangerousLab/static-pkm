@@ -10,6 +10,7 @@ import type { DocumentHandle, ViewportUpdate, VisibleRange } from '@/types/block
 import { getBlocks } from '@core/ipc/blockstore';
 import { ViewportCoordinator } from './ViewportCoordinator';
 import { TiptapEditor } from './TiptapEditor';
+import { setWindowStartBlock } from '../../core/layout/dictatorCoordinator';
 
 interface PersistentWindowProps {
   docHandle: DocumentHandle;
@@ -125,6 +126,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
 
         // Apply exactly what the Layout Dictator says.
         anchor.style.top = `${translateY}px`;
+        setWindowStartBlock(startBlock);
         shiftContentNonUndoable(editor, markdown);
 
         // Force scrollTop consistency

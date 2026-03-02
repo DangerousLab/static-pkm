@@ -90,6 +90,9 @@ function injectTypographyVariables(config: LayoutDictatorConfig) {
     if (block.lineHeight) root.style.setProperty(`${prefix}-${key}-lh`, `${block.lineHeight}px`);
     if (block.marginTop !== undefined) root.style.setProperty(`${prefix}-${key}-mt`, `${block.marginTop}px`);
     if (block.marginBottom !== undefined) root.style.setProperty(`${prefix}-${key}-mb`, `${block.marginBottom}px`);
+    if (block.paddingTop !== undefined) root.style.setProperty(`${prefix}-${key}-pt`, `${block.paddingTop}px`);
+    if (block.paddingBottom !== undefined) root.style.setProperty(`${prefix}-${key}-pb`, `${block.paddingBottom}px`);
+    if (block.borderWidth !== undefined) root.style.setProperty(`${prefix}-${key}-bw`, `${block.borderWidth}px`);
   };
 
   inject('p', config.paragraph);
@@ -102,6 +105,8 @@ function injectTypographyVariables(config: LayoutDictatorConfig) {
   inject('code', config.codeBlock);
   inject('quote', config.blockquote);
   inject('list', config.list);
+  
+  console.log('[DEBUG] [LayoutDictator] Geometric constants injected to CSS variables');
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────

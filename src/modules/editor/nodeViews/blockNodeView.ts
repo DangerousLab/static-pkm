@@ -1,6 +1,7 @@
 import { Node as ProseMirrorNode } from 'prosemirror-model';
 import { EditorView, NodeView } from 'prosemirror-view';
 import { applyDomCorrection, getHeight } from '../../../core/layout/layoutDictator';
+import { getWindowStartBlock } from '../../../core/layout/dictatorCoordinator';
 
 /**
  * BlockNodeView
@@ -22,15 +23,31 @@ export class BlockNodeView implements NodeView {
     this.dom = document.createElement('div');
     this.dom.className = `block-node block-node-${node.type.name}`;
     
-    // 2. Resolve the correct semantic tag
+    // 2. Resolve the correct semantic tag and metrics
     let tagName = 'div';
+    let mt = 0;
+    let mb = 0;
+
     if (node.type.name === 'paragraph') {
       tagName = 'p';
+      mt = 0; mb = 0;
     } else if (node.type.name === 'codeBlock') {
       tagName = 'pre';
+      mt = 16; mb = 16; // Match dictatorConfig defaults
     } else if (node.type.name === 'heading') {
       const level = node.attrs.level || 1;
       tagName = `h${level}`;
+      // Map levels to dictator margins
+      const margins = [
+        { mt: 48, mb: 16 }, // H1
+        { mt: 36, mb: 12 }, // H2
+        { mt: 30, mb: 10 }, // H3
+        { mt: 24, mb: 8 },  // H4
+        { mt: 20, mb: 6 },  // H5
+        { mt: 20, mb: 6 },  // H6
+      ];
+      const m = margins[Math.min(level - 1, 5)];
+      if (m) { mt = m.mt; mb = m.mb; }
     }
     
     this.contentDOM = document.createElement(tagName);
@@ -39,22 +56,36 @@ export class BlockNodeView implements NodeView {
     // 3. Identify the nodeId (top-level index correlation)
     const pos = getPos();
     const nodeIndex = typeof pos === 'number' ? view.state.doc.content.cut(0, pos).childCount : 0;
-    this.nodeId = String(nodeIndex);
+    this.nodeId = String(getWindowStartBlock() + nodeIndex);
+
+    this.dom.style.boxSizing = 'border-box';
+    this.dom.style.paddingTop = `${mt}px`;
+    this.dom.style.paddingBottom = `${mb}px`;
 
     // 4. Apply initial height from Dictator
     const initialHeight = getHeight(this.nodeId);
+    
+    console.log(`[TELEMETRY] [NodeView] MOUNT | index=${nodeIndex} type=${node.type.name} height=${initialHeight}px`);
+
     if (initialHeight) {
-      // The Dictator dictates exact geometry. We do not use min-height for
-      // text blocks, because the Canvas measurement is absolute.
-      this.dom.style.height = `${initialHeight}px`;
-      this.dom.style.overflow = 'hidden'; // Ensure content doesn't break out
+      // The Dictator dictates exact geometry. We use min-height to allow
+      // the ResizeObserver to detect if we need growth, but we keep the
+      // container strictly managed.
+      this.dom.style.minHeight = `${initialHeight}px`;
+      this.dom.style.display = 'block';
     }
 
     // 5. Setup ResizeObserver for self-correction
     this.ro = new ResizeObserver(([entry]) => {
       if (!entry) return;
       
-      const actualHeight = entry.contentRect.height;
+      let actualHeight = 0;
+      if (entry.borderBoxSize && entry.borderBoxSize.length > 0) {
+        actualHeight = entry.borderBoxSize[0].blockSize;
+      } else {
+        actualHeight = entry.target.getBoundingClientRect().height;
+      }
+
       const dictatorHeight = getHeight(this.nodeId) ?? 0;
 
       if (Math.abs(actualHeight - dictatorHeight) > 2) {
