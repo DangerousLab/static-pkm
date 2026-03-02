@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
 import { execSync } from 'child_process';
 
@@ -24,7 +23,7 @@ const generateBuildArtifacts = () => ({
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [generateBuildArtifacts(), tailwindcss(), react()],
+  plugins: [generateBuildArtifacts(), react()],
 
   // Vite options for Tauri
   // - Prevents vite from obscuring rust errors

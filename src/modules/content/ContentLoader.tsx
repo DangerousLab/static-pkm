@@ -24,7 +24,7 @@ function ContentLoader(): React.JSX.Element {
 
   if (!activeNode) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[200px] text-text-muted">
+      <div className="ui-loading-overlay">
         <p>Select a module from the sidebar to begin</p>
       </div>
     );
@@ -32,11 +32,11 @@ function ContentLoader(): React.JSX.Element {
 
   if (error) {
     return (
-      <div className="p-4 rounded-sm bg-danger/10 border border-danger/20">
-        <h3 className="text-danger font-medium mb-2">
+      <div className="ui-status-text is-deleted" style={{ padding: '1rem' }}>
+        <h3 className="font-medium mb-2">
           Error Loading Content
         </h3>
-        <p className="text-text-muted text-sm">{error}</p>
+        <p className="text-sm">{error}</p>
       </div>
     );
   }
@@ -155,7 +155,7 @@ function PageViewer({ node, onError }: ViewerProps): React.JSX.Element {
   }, [isLoading, mathJaxLoaded, content, typeset]);
 
   if (isLoading) {
-    return <div className="text-text-muted">Loading page...</div>;
+    return <div className="ui-loading-overlay">Loading page...</div>;
   }
 
   return (

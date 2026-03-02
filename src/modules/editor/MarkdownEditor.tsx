@@ -86,6 +86,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const editorToolbarRef = useRef<HTMLDivElement | null>(null);
+  const formatToolbarRef = useRef<HTMLDivElement | null>(null);
 
   // Visible window state (PersistentWindow reports this on every edit)
   const visibleWindowMarkdownRef = useRef<string>('');
@@ -99,6 +101,29 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
   const hasLoadedRef = useRef(false);
   const isRenamingRef = useRef(false);
+
+  // ── Dynamic Layout Measurement ──────────────────────────────────────────
+  useEffect(() => {
+    const container = editorContainerRef.current;
+    if (!container) return;
+
+    const measure = () => {
+      const h1 = editorToolbarRef.current?.offsetHeight ?? 0;
+      const h2 = formatToolbarRef.current?.offsetHeight ?? 0;
+      const total = h1 + h2;
+      container.style.setProperty('--layout-editor-ui-offset', `${total}px`);
+      console.log(`[DEBUG] [MarkdownEditor] UI Offset measured: ${total}px (Toolbar: ${h1}px, Format: ${h2}px)`);
+    };
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(container);
+    if (editorToolbarRef.current) ro.observe(editorToolbarRef.current);
+    if (formatToolbarRef.current) ro.observe(formatToolbarRef.current);
+
+    measure(); // Initial measurement
+
+    return () => ro.disconnect();
+  }, [isEditMode, tiptapEditor]); // Re-run when toolbars mount/unmount
 
   // ── Title update ──────────────────────────────────────────────────────────
   const updateTitle = useCallback((savedPath: string, savedContent: string) => {
@@ -380,7 +405,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   if (loadError) {
     return (
       <div className="editor-container">
-        <div className="p-4 text-sm text-red-600 dark:text-red-400">
+        <div className="ui-status-text is-deleted ui-p-md">
           Error loading document: {loadError}
         </div>
       </div>
@@ -391,9 +416,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   return (
     <>
       <div className="editor-container" ref={editorContainerRef}>
-        <EditorToolbar isSaving={isSaving} isDeleted={isDeleted} />
+        <div ref={editorToolbarRef}>
+          <EditorToolbar isSaving={isSaving} isDeleted={isDeleted} />
+        </div>
 
-        {isEditMode && tiptapEditor && <FormatToolbar editor={tiptapEditor} />}
+        {isEditMode && tiptapEditor && (
+          <div ref={formatToolbarRef}>
+            <FormatToolbar editor={tiptapEditor} />
+          </div>
+        )}
 
         {/* Tauri edit mode: Persistent Window */}
         {isEditMode && usePW && docHandle && (

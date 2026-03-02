@@ -10,6 +10,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import Paragraph from '@tiptap/extension-paragraph';
+import CodeBlock from '@tiptap/extension-code-block';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import TextAlign from '@tiptap/extension-text-align';
@@ -20,6 +22,8 @@ import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import FontFamily from '@tiptap/extension-font-family';
 import Focus from '@tiptap/extension-focus';
+import { EditorView } from '@tiptap/pm/view';
+import { Transaction } from '@tiptap/pm/state';
 // Custom extensions
 import { BackgroundColor } from './extensions/BackgroundColor';
 import { FontSize } from './extensions/FontSize';
@@ -29,6 +33,7 @@ import { EditorFloatingMenu } from './EditorFloatingMenu';
 // Utils
 import { detectRequiredExtensions } from './utils/extensionScanner';
 import { loadExtensions } from './utils/extensionLoader';
+import { createBlockNodeView } from './nodeViews/blockNodeView';
 
 interface TiptapEditorProps {
   content: string;
@@ -113,13 +118,24 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
       const tBeforeMount = performance.now();
       editorInstance = new Editor({
-        element: mountRef.current,
+        element: mountRef.current!,
         extensions: [
           StarterKit.configure({
-            codeBlock: false, // Disable default to use CodeBlockLowlight
+            paragraph: false, // Use our extended version below
+            codeBlock: false, // Disable default to use extended version
             dropcursor: {
               color: 'var(--accent)',
               width: 2,
+            },
+          }),
+          Paragraph.extend({
+            addNodeView() {
+              return createBlockNodeView() as any;
+            },
+          }),
+          CodeBlock.extend({
+            addNodeView() {
+              return createBlockNodeView() as any;
             },
           }),
           Placeholder.configure({
@@ -150,7 +166,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         ],
         content: '', // Initialize empty! tiptap-markdown requires setContent to parse initial load.
         editorProps: {
-          handleClick: (view, pos, event) => {
+          handleClick: (view: EditorView, pos: number, event: MouseEvent) => {
             // Handle internal link clicks
             const { doc } = view.state;
             const $pos = doc.resolve(pos);
@@ -170,7 +186,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
             return false;
           },
         },
-        onUpdate: ({ editor, transaction }) => {
+        onUpdate: ({ editor, transaction }: { editor: Editor, transaction: Transaction }) => {
           // Viewport shift transactions (fired by PersistentWindow.shiftContentNonUndoable)
           // must not trigger onChange — they are non-undoable position updates, not user edits.
           if (transaction.getMeta('viewportShift')) return;

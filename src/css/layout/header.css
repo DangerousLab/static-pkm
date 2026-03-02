@@ -97,6 +97,34 @@
   height: var(--header-logo-height-mobile);
 }
 
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--anim-fast) var(--ease-out);
+}
+
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.theme-toggle-icon {
+  font-size: 1.25rem;
+  display: flex;
+  transition: transform var(--anim-normal) var(--ease-out);
+}
+
+.theme-toggle:hover .theme-toggle-icon {
+  transform: scale(1.1);
+}
+
 .header-banner-wrap {
   display: flex;
   flex-direction: column;

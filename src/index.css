@@ -1,9 +1,6 @@
 /* Core layout styles - modular CSS architecture */
 @import './css/main.css';
 
-/* Tailwind CSS v4 */
-@import "tailwindcss";
-
 /* Root container */
 #root {
   min-height: 100vh;
@@ -15,14 +12,4 @@
   inset: 0;
   z-index: 25;
   background: var(--bg-overlay);
-}
-
-/* Scrollbar hiding utility */
-@utility scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 }

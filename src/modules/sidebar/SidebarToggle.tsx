@@ -11,17 +11,15 @@ function SidebarToggle(): React.JSX.Element {
   return (
     <button
       onClick={toggle}
-      className="sidebar-toggle flex items-center gap-2 p-2 rounded-md hover:bg-bg-hover transition-colors duration-fast"
+      className="sidebar-toggle"
       type="button"
       aria-label="Toggle navigation"
       aria-expanded={isOpen}
+      data-open={isOpen}
     >
       {/* Hamburger icon */}
-      <span className="sidebar-toggle-icon relative block w-5 h-0.5 bg-text-main">
-        <span className="absolute w-full h-full bg-text-main -top-1.5" />
-        <span className="absolute w-full h-full bg-text-main top-1.5" />
-      </span>
-      <span className="sidebar-toggle-label text-sm text-text-main hidden tablet:inline">
+      <span className="sidebar-toggle-icon" />
+      <span className="sidebar-toggle-label">
         Menu
       </span>
     </button>

@@ -47,17 +47,18 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       }
 
       return (
-        <div className="min-h-[200px] flex items-center justify-center p-8">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-danger mb-2">
+        <div className="ui-loading-overlay">
+          <div className="ui-text-center ui-p-md">
+            <h2 className="text-xl ui-font-medium text-danger ui-mb-sm">
               Something went wrong
             </h2>
-            <p className="text-text-muted text-sm mb-4">
+            <p className="text-text-muted text-sm ui-mb-md">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
             <button
               onClick={this.handleRetry}
-              className="px-4 py-2 bg-accent-gold text-bg rounded-md hover:opacity-90 transition-opacity"
+              className="ui-btn ui-btn-primary"
+              style={{ width: 'auto' }}
             >
               Try Again
             </button>

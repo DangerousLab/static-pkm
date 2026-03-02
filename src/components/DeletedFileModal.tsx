@@ -50,30 +50,30 @@ export const DeletedFileModal: React.FC<DeletedFileModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="editor-close-modal" role="dialog" aria-modal="true" aria-labelledby="deleted-modal-title">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-sm w-full mx-4">
+      <div className="ui-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="deleted-modal-title">
+        <div className="ui-modal ui-modal-sm ui-p-md">
           <h2
             id="deleted-modal-title"
-            className="text-lg font-semibold mb-2 text-gray-900 dark:text-white"
+            className="ui-modal-title ui-mb-sm"
           >
             File Deleted
           </h2>
 
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">
+          <p className="text-sm text-text-muted ui-mb-md">
             This file was deleted from disk. Would you like to restore it with your current changes?
           </p>
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400 mb-3">
+            <p className="text-sm text-danger ui-mb-sm">
               {error}
             </p>
           )}
 
-          <div className="flex flex-col gap-2">
+          <div className="ui-flex-col ui-gap-sm">
             <button
               onClick={handleRestore}
               disabled={restoring}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md text-sm font-medium transition-colors"
+              className="ui-btn ui-btn-primary"
             >
               {restoring ? 'Restoring…' : 'Restore'}
             </button>
@@ -81,7 +81,7 @@ export const DeletedFileModal: React.FC<DeletedFileModalProps> = ({
             <button
               onClick={onDiscard}
               disabled={restoring}
-              className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 text-gray-900 dark:text-white rounded-md text-sm font-medium transition-colors"
+              className="ui-btn ui-btn-secondary"
             >
               Discard
             </button>

@@ -18,13 +18,6 @@ interface ModalProps {
   closeOnEscape?: boolean;
 }
 
-/** Size styles */
-const sizeStyles = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-};
-
 /**
  * Modal dialog component
  */
@@ -93,7 +86,7 @@ function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="ui-modal-overlay"
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
@@ -101,26 +94,26 @@ function Modal({
     >
       <div
         ref={modalRef}
-        className={`w-full ${sizeStyles[size]} bg-bg-card rounded-lg shadow-xl animate-slide-up-fade`}
+        className={`ui-modal ui-modal-${size}`}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-4 border-b border-border-subtle">
-            <h2 id="modal-title" className="text-lg font-semibold text-text-main">
+          <div className="ui-modal-header">
+            <h2 id="modal-title" className="ui-modal-title">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="p-1 rounded-full hover:bg-bg-hover transition-colors"
+              className="ui-modal-close"
               aria-label="Close modal"
             >
-              <span className="text-xl text-text-muted">×</span>
+              <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>×</span>
             </button>
           </div>
         )}
 
         {/* Content */}
-        <div className="p-4">{children}</div>
+        <div className="ui-modal-content">{children}</div>
       </div>
     </div>,
     document.body

@@ -144,13 +144,14 @@ function App(): React.JSX.Element {
   // Show error if navigation tree fails to load
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg text-text-main">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold mb-4 text-danger">Error Loading Application</h1>
-          <p className="text-text-muted">{error}</p>
+      <div className="ui-loading-overlay">
+        <div className="ui-text-center ui-p-md">
+          <h1 className="text-2xl ui-font-medium ui-mb-md text-danger">Error Loading Application</h1>
+          <p className="text-text-muted ui-mb-md">{error}</p>
           <button
             onClick={() => loadNavigationTree()}
-            className="mt-4 px-4 py-2 bg-accent-gold text-bg rounded-md hover:opacity-90 transition-opacity"
+            className="ui-btn ui-btn-primary"
+            style={{ width: 'auto' }}
           >
             Retry
           </button>
@@ -162,8 +163,8 @@ function App(): React.JSX.Element {
   // Show loading skeleton until layout engine is ready to prevent layout flash
   if (!isLayoutReady) {
     return (
-      <div className="min-h-screen bg-bg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Initializing layout...</div>
+      <div className="ui-loading-overlay">
+        <div>Initializing layout...</div>
       </div>
     );
   }

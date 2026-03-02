@@ -15,12 +15,12 @@ function ThemeToggle(): React.JSX.Element {
   return (
     <button
       onClick={toggleTheme}
-      className="theme-toggle p-2 rounded-full hover:bg-bg-hover transition-colors duration-fast"
+      className="theme-toggle"
       type="button"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
     >
-      <span className="text-xl transition-transform duration-normal hover:scale-110">
+      <span className="theme-toggle-icon">
         <i className={theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
       </span>
     </button>

@@ -1,5 +1,34 @@
 /* ==================== HAMBURGER ICON ANIMATION ==================== */
 
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--anim-fast) var(--ease-out);
+}
+
+.sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.sidebar-toggle-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle-label {
+    display: none;
+  }
+}
+
 .sidebar-toggle-icon {
   width: 18px;
   height: 2px;

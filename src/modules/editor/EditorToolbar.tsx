@@ -31,20 +31,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       <div className="editor-toolbar-row">
         <div className="editor-toolbar-left">
           {/* Mode toggle pill group */}
-          <div
-            className="inline-flex rounded-md bg-gray-100 dark:bg-gray-800 p-0.5"
-            role="group"
-            aria-label="Editor mode"
-          >
+          <div className="ui-pill-group" role="group" aria-label="Editor mode">
             {MODES.map((m) => (
               <button
                 key={m.value}
                 onClick={() => setMode(m.value)}
                 className={[
-                  'px-3 py-1 rounded text-sm font-medium transition-colors',
-                  mode === m.value
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
+                  'ui-pill-btn',
+                  mode === m.value ? 'is-active' : '',
                 ].join(' ')}
                 aria-label={`Switch to ${m.label} mode`}
                 aria-pressed={mode === m.value}
@@ -58,13 +52,13 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         {/* Right: Status (no save button with auto-save) */}
         <div className="editor-toolbar-right">
           {isDeleted && (
-            <span className="deleted-indicator">
-              <span className="deleted-dot" /> File deleted
+            <span className="ui-status-text is-deleted">
+              <span className="ui-status-dot" /> File deleted
             </span>
           )}
 
           {isSaving && !isDeleted && (
-            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+            <span className="ui-status-text is-saving">
               Saving…
             </span>
           )}

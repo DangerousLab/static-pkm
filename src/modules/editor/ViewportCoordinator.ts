@@ -37,6 +37,18 @@ export class ViewportCoordinator {
   private pendingScrollTop: number | null = null;
   private lastProcessedScrollTop: number = 0;
   
+  /**
+   * Timestamp (ms) until which all `onScroll` events should be discarded.
+   * Prevents capturing synthetic scroll events triggered by browser layout reflows.
+   */
+  private ignoreScrollUntil = 0;
+
+  /**
+   * Lock prevents any scroll processing while the frontend is waiting for IPC
+   * blocks or performing a DOM content swap.
+   */
+  private isLocked = false;
+
   private lastEmittedRange = { startBlock: -1, endBlock: -1 };
   private loadedRange = { startBlock: 0, endBlock: 0 };
 
@@ -48,7 +60,14 @@ export class ViewportCoordinator {
   }
 
   onScroll(scrollTop: number): void {
+    // Flag the engine as actively scrolling to bypass expensive operations
     (window as any).unstablonScrollState = 'scrolling';
+
+    // Ignore scroll events during active fetches or suppression windows
+    if (this.isLocked || Date.now() < this.ignoreScrollUntil) {
+      return;
+    }
+
     this.pendingScrollTop = scrollTop;
     if (this.rafId === null) {
       this.rafId = requestAnimationFrame(() => {
@@ -72,6 +91,18 @@ export class ViewportCoordinator {
 
   setLoadedRange(startBlock: number, endBlock: number): void {
     this.loadedRange = { startBlock, endBlock };
+  }
+
+  /**
+   * Suppress `onScroll` processing for a specific duration.
+   * Prevents capturing synthetic browser scroll events during surgical DOM shifts.
+   */
+  suppressScrollFor(ms: number): void {
+    this.ignoreScrollUntil = Date.now() + ms;
+  }
+
+  setLock(locked: boolean): void {
+    this.isLocked = locked;
   }
 
   get totalHeight(): number {
@@ -99,31 +130,35 @@ export class ViewportCoordinator {
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
   }
 
-  private processScroll(scrollTop: number): void {
-    const { startBlock, endBlock, firstVisible, translateY } = this.computeBlockRange(scrollTop);
-    const scrollDelta = Math.abs(scrollTop - this.lastProcessedScrollTop);
-    const mode = this.resolveMode(firstVisible, scrollDelta);
-    const shouldEmit = this.shouldEmitRange(firstVisible, startBlock, endBlock);
-
-    if (shouldEmit) {
-      this.lastEmittedRange = { startBlock, endBlock };
-      this.onChange({ startBlock, endBlock, mode, translateY });
+    private processScroll(scrollTop: number): void {
+      const { startBlock, endBlock, firstVisible, translateY } =
+        this.computeBlockRange(scrollTop);
+  
+      const scrollDelta = Math.abs(scrollTop - this.lastProcessedScrollTop);
+      const mode = this.resolveMode(firstVisible, scrollDelta);
+      const shouldEmit = this.shouldEmitRange(firstVisible, startBlock, endBlock);
+  
+      if (shouldEmit) {
+        console.log(`[TELEMETRY] [VC] EMIT | scrollTop=${scrollTop.toFixed(2)} firstVisible=${firstVisible} range=[${startBlock},${endBlock}] translateY=${translateY} mode=${mode}`);
+        this.lastEmittedRange = { startBlock, endBlock };
+        this.onChange({ startBlock, endBlock, mode, translateY });
+      }
+  
+      this.lastProcessedScrollTop = scrollTop;
+      this.scheduleSettle(scrollTop);
     }
-
-    this.lastProcessedScrollTop = scrollTop;
-    this.scheduleSettle(scrollTop);
-  }
-
-  private scheduleSettle(scrollTop: number): void {
-    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
-    this.settleTimer = setTimeout(() => {
-      this.settleTimer = null;
-      (window as any).unstablonScrollState = 'idle';
-      const settled = this.computeBlockRange(scrollTop);
-      this.lastEmittedRange = { startBlock: settled.startBlock, endBlock: settled.endBlock };
-      this.onChange({ ...settled, mode: 'settle' });
-    }, SETTLE_DEBOUNCE_MS);
-  }
+  
+    private scheduleSettle(scrollTop: number): void {
+      if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+      this.settleTimer = setTimeout(() => {
+        this.settleTimer = null;
+        (window as any).unstablonScrollState = 'idle';
+        const settled = this.computeBlockRange(scrollTop);
+        console.log(`[TELEMETRY] [VC] SETTLE | scrollTop=${scrollTop.toFixed(2)} firstVisible=${settled.firstVisible} range=[${settled.startBlock},${settled.endBlock}]`);
+        this.lastEmittedRange = { startBlock: settled.startBlock, endBlock: settled.endBlock };
+        this.onChange({ ...settled, mode: 'settle' });
+      }, SETTLE_DEBOUNCE_MS);
+    }
 
   private resolveMode(firstVisible: number, scrollDelta: number): ScrollMode {
     const { startBlock: loadedStart, endBlock: loadedEnd } = this.loadedRange;
@@ -183,7 +218,9 @@ export class ViewportCoordinator {
       if ((this.cumulative[mid] ?? 0) <= scrollTop) lo = mid;
       else hi = mid - 1;
     }
-    return Math.max(0, Math.min(lo, this.blocks.length - 1));
+    const result = Math.max(0, Math.min(lo, this.blocks.length - 1));
+    console.log(`[TELEMETRY] [VC] binarySearch | scrollTop=${scrollTop.toFixed(2)} -> block=${result} (cum[${result}]=${this.cumulative[result]})`);
+    return result;
   }
 
   private computeCumulative(blocks: BlockMeta[]): number[] {
