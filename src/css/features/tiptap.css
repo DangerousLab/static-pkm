@@ -29,6 +29,18 @@
   color: var(--text-main);
 }
 
+/* ── Block Layout Spacing ────────────────────────────────────────────────── */
+
+/* 
+  The BlockNodeView wrapper (div.block-node) absorbs the Dictator's 
+  margins as padding to ensure accurate ResizeObserver box measurements.
+  It MUST be transparent to prevent the gaps between blocks from being painted.
+*/
+.tiptap-editor .tiptap .block-node {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
 /* ── Headings ───────────────────────────────────────────────────────────── */
 
 .tiptap-editor .tiptap h1,
@@ -239,13 +251,18 @@
   on the syntax nodes based on the dual themes specified in the JS configuration. 
 */
 
-:root[data-theme="dark"] .tiptap-editor .tiptap .shiki,
+.tiptap-editor .tiptap .shiki {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+:root[data-theme="dark"] .tiptap-editor .tiptap .shiki pre,
 :root[data-theme="dark"] .tiptap-editor .tiptap .shiki span {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
 
-:root[data-theme="light"] .tiptap-editor .tiptap .shiki,
+:root[data-theme="light"] .tiptap-editor .tiptap .shiki pre,
 :root[data-theme="light"] .tiptap-editor .tiptap .shiki span {
   color: var(--shiki-light) !important;
   background-color: var(--shiki-light-bg) !important;
