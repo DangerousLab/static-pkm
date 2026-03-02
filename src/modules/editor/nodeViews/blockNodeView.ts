@@ -56,7 +56,13 @@ export class BlockNodeView implements NodeView {
     // 3. Identify the nodeId (top-level index correlation)
     const pos = getPos();
     const nodeIndex = typeof pos === 'number' ? view.state.doc.content.cut(0, pos).childCount : 0;
-    this.nodeId = String(getWindowStartBlock() + nodeIndex);
+    const globalIndex = getWindowStartBlock() + nodeIndex;
+    this.nodeId = String(globalIndex);
+
+    // Margin collapse: first block in document loses top margin to match Dictator logic
+    if (globalIndex === 0) {
+      mt = 0;
+    }
 
     this.dom.style.boxSizing = 'border-box';
     this.dom.style.paddingTop = `${mt}px`;
@@ -65,7 +71,7 @@ export class BlockNodeView implements NodeView {
     // 4. Apply initial height from Dictator
     const initialHeight = getHeight(this.nodeId);
     
-    console.log(`[TELEMETRY] [NodeView] MOUNT | index=${nodeIndex} type=${node.type.name} height=${initialHeight}px`);
+    console.log(`[TELEMETRY] [NodeView] MOUNT | index=${globalIndex} type=${node.type.name} height=${initialHeight}px`);
 
     if (initialHeight) {
       // The Dictator dictates exact geometry. We use min-height to allow
@@ -76,25 +82,35 @@ export class BlockNodeView implements NodeView {
     }
 
     // 5. Setup ResizeObserver for self-correction
+    // We observe the contentDOM (the semantic tag) instead of the wrapper div.
+    // This prevents the "min-height trap" where the wrapper cannot shrink 
+    // below its initial estimate, preventing the ResizeObserver from 
+    // ever detecting an over-estimation (e.g. if the line-height changed).
     this.ro = new ResizeObserver(([entry]) => {
       if (!entry) return;
       
-      let actualHeight = 0;
+      let contentHeight = 0;
       if (entry.borderBoxSize && entry.borderBoxSize.length > 0) {
-        actualHeight = entry.borderBoxSize[0].blockSize;
+        contentHeight = entry.borderBoxSize[0].blockSize;
       } else {
-        actualHeight = entry.target.getBoundingClientRect().height;
+        contentHeight = entry.target.getBoundingClientRect().height;
       }
 
+      // Total height is the content (including its padding/border) + the layout margins
+      const actualTotalHeight = contentHeight + mt + mb;
       const dictatorHeight = getHeight(this.nodeId) ?? 0;
 
-      if (Math.abs(actualHeight - dictatorHeight) > 2) {
-        console.log(`[TELEMETRY] [VanillaNodeView] CORRECTION | noteId=${this.noteId} nodeId=${this.nodeId} type=${node.type.name} dictator=${dictatorHeight.toFixed(1)} actual=${actualHeight.toFixed(1)}`);
-        applyDomCorrection(this.noteId, this.nodeId, actualHeight);
+      if (Math.abs(actualTotalHeight - dictatorHeight) > 2) {
+        console.log(`[TELEMETRY] [NodeView] CORRECTION | noteId=${this.noteId} nodeId=${this.nodeId} type=${node.type.name} dictator=${dictatorHeight.toFixed(1)} actual=${actualTotalHeight.toFixed(1)}`);
+        
+        // Update the wrapper's min-height to allow the new height to take effect
+        this.dom.style.minHeight = `${actualTotalHeight}px`;
+        
+        applyDomCorrection(this.noteId, this.nodeId, actualTotalHeight);
       }
     });
 
-    this.ro.observe(this.dom);
+    this.ro.observe(this.contentDOM);
   }
 
   update(node: ProseMirrorNode) {

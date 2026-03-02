@@ -139,13 +139,21 @@ export function computeAll(manifests: NodeManifest[], containerWidth: number, no
     
     // Very naive margin collapse: if it's the very first block, subtract its top margin
     if (i === 0 && manifest.nodeType !== 'frontmatter') {
+       let mt = 0;
        if (manifest.nodeType === 'heading') {
           const level = manifest.level || 1;
           const typeKey = `heading${Math.min(Math.max(level, 1), 6)}` as keyof LayoutDictatorConfig;
-          height -= (dictatorConfig[typeKey] as any).marginTop;
+          mt = (dictatorConfig[typeKey] as any).marginTop;
        } else if (manifest.nodeType === 'paragraph') {
-          height -= dictatorConfig.paragraph.marginTop;
+          mt = dictatorConfig.paragraph.marginTop;
+       } else if (manifest.nodeType === 'codeBlock') {
+          mt = dictatorConfig.codeBlock.marginTop;
+       } else if (manifest.nodeType === 'blockquote') {
+          mt = dictatorConfig.blockquote.marginTop;
+       } else if (manifest.nodeType === 'bulletList' || manifest.nodeType === 'orderedList' || manifest.nodeType === 'taskList') {
+          mt = dictatorConfig.list.marginTop;
        }
+       height -= mt;
     }
 
     heightCache.set(manifest.nodeId, {
