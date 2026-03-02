@@ -59,71 +59,9 @@ pub fn run() {
             let conn = rusqlite::Connection::open(&db_path)
                 .expect("Failed to open database");
 
-            // Create schema
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS content (
-                    id TEXT PRIMARY KEY,
-                    path TEXT NOT NULL UNIQUE,
-                    title TEXT,
-                    type TEXT NOT NULL,
-                    body TEXT,
-                    modified_at INTEGER,
-                    indexed_at INTEGER
-                )",
-                [],
-            ).expect("Failed to create content table");
-
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS links (
-                    id INTEGER PRIMARY KEY,
-                    source_id TEXT NOT NULL,
-                    target_id TEXT,
-                    target_path TEXT NOT NULL,
-                    link_type TEXT,
-                    FOREIGN KEY (source_id) REFERENCES content(id)
-                )",
-                [],
-            ).expect("Failed to create links table");
-
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS tags (
-                    id INTEGER PRIMARY KEY,
-                    content_id TEXT NOT NULL,
-                    tag TEXT NOT NULL,
-                    FOREIGN KEY (content_id) REFERENCES content(id)
-                )",
-                [],
-            ).expect("Failed to create tags table");
-
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_content_path ON content(path)",
-                [],
-            ).ok();
-
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id)",
-                [],
-            ).ok();
-
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_path)",
-                [],
-            ).ok();
-
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_tags_content ON tags(content_id)",
-                [],
-            ).ok();
-
-            conn.execute(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(
-                    title,
-                    body,
-                    content='content',
-                    content_rowid='rowid'
-                )",
-                [],
-            ).expect("Failed to create FTS table");
+            // Centralized schema creation/migration
+            db::create_schema(&conn)
+                .expect("Failed to initialize database schema");
 
             // Create database wrapper and manage state
             let database = Arc::new(db::Database::from_connection(conn));

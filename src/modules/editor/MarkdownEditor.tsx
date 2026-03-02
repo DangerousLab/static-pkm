@@ -439,6 +439,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         {isEditMode && !usePW && (
           <div className="editor-live-preview">
             <TiptapEditor
+              docId={node.id}
               content={legacyContent}
               onChange={handleLegacyChange}
               onEditorReady={setTiptapEditor}

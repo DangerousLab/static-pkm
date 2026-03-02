@@ -27,6 +27,7 @@ export interface NodeManifest {
 }
 
 export interface HeightCacheEntry {
+  noteId: string
   nodeId: string
   height: number
   source: 'estimated' | 'oracle' | 'dom'   // dom = highest authority

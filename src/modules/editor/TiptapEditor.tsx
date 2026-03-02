@@ -36,6 +36,7 @@ import { loadExtensions } from './utils/extensionLoader';
 import { createBlockNodeView } from './nodeViews/blockNodeView';
 
 interface TiptapEditorProps {
+  docId: string;
   content: string;
   onChange: (content: string) => void;
   onEditorReady?: (editor: Editor) => void;
@@ -53,6 +54,7 @@ interface TiptapEditorProps {
 }
 
 export const TiptapEditor: React.FC<TiptapEditorProps> = ({
+  docId,
   content,
   onChange,
   onEditorReady,
@@ -130,12 +132,12 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           }),
           Paragraph.extend({
             addNodeView() {
-              return createBlockNodeView() as any;
+              return createBlockNodeView(docId) as any;
             },
           }),
           CodeBlock.extend({
             addNodeView() {
-              return createBlockNodeView() as any;
+              return createBlockNodeView(docId) as any;
             },
           }),
           Placeholder.configure({

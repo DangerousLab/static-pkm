@@ -189,6 +189,7 @@ export const PersistentWindow: React.FC<PersistentWindowProps> = ({
           ].join(' ')}
         >
           <TiptapEditor
+            docId={docHandle.docId}
             content=""
             onEditorReady={handleEditorReady}
             onChange={handleEditorUpdate}

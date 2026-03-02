@@ -7,22 +7,18 @@ import { applyDomCorrection, getHeight } from '../../../core/layout/layoutOracle
  * 
  * A vanilla TypeScript ProseMirror NodeView that handles self-correction
  * for block-level nodes.
- * 
- * Architecture:
- * 1. Creates a minimal DOM wrapper.
- * 2. Sets initial min-height from Layout Oracle.
- * 3. Uses ResizeObserver to report actual rendered height back to Oracle.
- * 4. Satisfies Phase 2 mandate to avoid React in the editor performance path.
  */
 export class BlockNodeView implements NodeView {
   public dom: HTMLElement;
   public contentDOM: HTMLElement;
   private ro: ResizeObserver;
   private nodeId: string;
+  private noteId: string;
 
-  constructor(node: ProseMirrorNode, view: EditorView, getPos: () => number | undefined) {
+  constructor(node: ProseMirrorNode, view: EditorView, getPos: () => number | undefined, noteId: string) {
+    this.noteId = noteId;
+    
     // 1. Create the DOM structure
-    // We use a div as the wrapper and let the node's internal content render inside contentDOM
     this.dom = document.createElement('div');
     this.dom.className = `block-node block-node-${node.type.name}`;
     
@@ -49,15 +45,14 @@ export class BlockNodeView implements NodeView {
       const oracleHeight = getHeight(this.nodeId) ?? 0;
 
       if (Math.abs(actualHeight - oracleHeight) > 2) {
-        console.log(`[TELEMETRY] [VanillaNodeView] CORRECTION | nodeId=${this.nodeId} type=${node.type.name} oracle=${oracleHeight.toFixed(1)} actual=${actualHeight.toFixed(1)}`);
-        applyDomCorrection(this.nodeId, actualHeight);
+        console.log(`[TELEMETRY] [VanillaNodeView] CORRECTION | noteId=${this.noteId} nodeId=${this.nodeId} type=${node.type.name} oracle=${oracleHeight.toFixed(1)} actual=${actualHeight.toFixed(1)}`);
+        applyDomCorrection(this.noteId, this.nodeId, actualHeight);
       }
     });
 
     this.ro.observe(this.dom);
   }
 
-  // Allow ProseMirror to handle updates normally
   update(node: ProseMirrorNode) {
     return node.type.name === this.contentDOM.nodeName.toLowerCase() || 
            (node.type.name === 'paragraph' && this.contentDOM.nodeName === 'P') ||
@@ -72,6 +67,7 @@ export class BlockNodeView implements NodeView {
 /**
  * Factory function for TipTap extension registration
  */
-export function createBlockNodeView() {
-  return (props: any) => new BlockNodeView(props.node, props.view, props.getPos);
+export function createBlockNodeView(noteId: string) {
+  return (props: { node: ProseMirrorNode, view: EditorView, getPos: () => number | undefined }) => 
+    new BlockNodeView(props.node, props.view, props.getPos, noteId);
 }

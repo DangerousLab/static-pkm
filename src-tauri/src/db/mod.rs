@@ -167,8 +167,8 @@ pub async fn init_database(app: &AppHandle) -> Result<Arc<Database>, String> {
 }
 
 /// Create database schema
-fn create_schema(conn: &Connection) -> SqliteResult<()> {
-    // Content table
+pub fn create_schema(conn: &Connection) -> SqliteResult<()> {
+    // 1. Content table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS content (
             id TEXT PRIMARY KEY,
@@ -182,9 +182,9 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
         [],
     )?;
 
-    // Node Manifest table (Phase 2 Layout Oracle)
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS node_manifest (
+    // 2. Node Manifest table (Phase 2 Layout Oracle)
+    // We use a specific expected SQL definition to verify the schema on disk.
+    let node_manifest_sql = "CREATE TABLE node_manifest (
             note_id       TEXT NOT NULL,
             node_id       TEXT NOT NULL,
             node_type     TEXT NOT NULL,
@@ -198,22 +198,23 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
             font_override TEXT,
             position      INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (note_id, node_id)
-        )",
-        [],
-    )?;
+        )";
+    
+    validate_or_recreate_table(conn, "node_manifest", node_manifest_sql)?;
 
-    // Height Cache table (Phase 2 Layout Oracle)
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS height_cache (
-            node_id   TEXT PRIMARY KEY,
+    // 3. Height Cache table (Phase 2 Layout Oracle)
+    let height_cache_sql = "CREATE TABLE height_cache (
+            note_id   TEXT NOT NULL,
+            node_id   TEXT NOT NULL,
             height    REAL NOT NULL,
             source    TEXT NOT NULL DEFAULT 'estimated',
-            timestamp INTEGER NOT NULL
-        )",
-        [],
-    )?;
+            timestamp INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (note_id, node_id)
+        )";
 
-    // Links table
+    validate_or_recreate_table(conn, "height_cache", height_cache_sql)?;
+
+    // 4. Links table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS links (
             id INTEGER PRIMARY KEY,
@@ -226,7 +227,7 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
         [],
     )?;
 
-    // Tags table
+    // 5. Tags table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tags (
             id INTEGER PRIMARY KEY,
@@ -238,30 +239,11 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
     )?;
 
     // Create indexes
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_content_path ON content(path)",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_node_manifest_note ON node_manifest(note_id)",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id)",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_path)",
-        [],
-    )?;
-
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_tags_content ON tags(content_id)",
-        [],
-    )?;
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_content_path ON content(path)", [])?;
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_node_manifest_note ON node_manifest(note_id)", [])?;
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id)", [])?;
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_path)", [])?;
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_content ON tags(content_id)", [])?;
 
     // Full-text search virtual table
     conn.execute(
@@ -274,6 +256,83 @@ fn create_schema(conn: &Connection) -> SqliteResult<()> {
         [],
     )?;
 
-    info!("[INFO] [db] Schema created successfully");
+    info!("[INFO] [db] Schema initialized/verified successfully");
+    Ok(())
+}
+
+/// Aggressively validates a table's schema by comparing its actual CREATE SQL 
+/// against the expected definition. If they differ significantly (e.g. missing 
+/// PRIMARY KEY columns), the table is dropped and recreated.
+fn validate_or_recreate_table(
+    conn: &Connection,
+    table_name: &str,
+    expected_sql: &str,
+) -> SqliteResult<()> {
+    let actual_sql: Option<String> = {
+        let mut stmt = conn.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?1")?;
+        let mut rows = stmt.query(params![table_name])?;
+        rows.next()?.map(|row| row.get(0)).transpose()?
+    }; // Statement and rows are dropped here, releasing the lock
+
+    if let Some(actual_sql) = actual_sql {
+        info!("[DEBUG] [db] Schema Check [{}]: actual='{}'", table_name, actual_sql.replace('\n', " "));
+
+        // Normalized comparison: remove whitespace/newlines/case for robustness
+        let normalize = |s: &str| s.replace('\n', " ").replace('\r', "").split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+        
+        let n_actual = normalize(&actual_sql);
+        let n_expected = normalize(expected_sql);
+
+        if n_actual != n_expected {
+            // Check for specific deal-breakers
+            let has_composite_pk = n_actual.contains("primary key (note_id, node_id)") || n_actual.contains("primary key(note_id,node_id)");
+            let has_timestamp = n_actual.contains("timestamp");
+            let has_note_id = n_actual.contains("note_id");
+            
+            if !has_composite_pk || !has_timestamp || !has_note_id {
+                info!("[INFO] [db] Table {} schema mismatch or missing constraints. DROPPING and recreating.", table_name);
+                conn.execute(&format!("DROP TABLE IF EXISTS {}", table_name), [])?;
+                conn.execute(expected_sql, [])?;
+            } else {
+                info!("[INFO] [db] Table {} schema differs but core constraints (PK, columns) are healthy.", table_name);
+            }
+        }
+    } else {
+        // Table doesn't exist at all
+        info!("[INFO] [db] Creating new table {}", table_name);
+        conn.execute(expected_sql, [])?;
+    }
+
+    Ok(())
+}
+
+/// Helper to check if a column exists and add it if not.
+/// Since SQLite does not support IF NOT EXISTS in ALTER TABLE, we must check PRAGMA.
+fn ensure_column_exists(
+    conn: &Connection,
+    table: &str,
+    column: &str,
+    type_def: &str,
+) -> SqliteResult<()> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({})", table))?;
+    let columns = stmt.query_map([], |row| {
+        let name: String = row.get(1)?;
+        Ok(name)
+    })?;
+
+    let mut found = false;
+    for col in columns {
+        if col?.to_lowercase() == column.to_lowercase() {
+            found = true;
+            break;
+        }
+    }
+
+    if !found {
+        info!("[INFO] [db] Migrating {}: adding column {}", table, column);
+        let sql = format!("ALTER TABLE {} ADD COLUMN {} {}", table, column, type_def);
+        conn.execute(&sql, [])?;
+    }
+
     Ok(())
 }

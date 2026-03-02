@@ -13,11 +13,13 @@
 import type { NodeManifest } from '../../types/layout';
 
 let currentManifests: NodeManifest[] = [];
+let currentNoteId: string | null = null;
 
 /**
- * Set the current manifests (usually called right after opening a note via IPC).
+ * Set the current manifests and noteId.
  */
-export function setCurrentManifests(manifests: NodeManifest[]): void {
+export function setCurrentNoteContext(noteId: string, manifests: NodeManifest[]): void {
+  currentNoteId = noteId;
   currentManifests = [...manifests];
 }
 
@@ -29,8 +31,16 @@ export function getCurrentNoteManifests(): NodeManifest[] {
 }
 
 /**
+ * Retrieve the current noteId in memory.
+ */
+export function getCurrentNoteId(): string | null {
+  return currentNoteId;
+}
+
+/**
  * Clear the manifests (usually called when a note is closed).
  */
 export function clearCurrentManifests(): void {
   currentManifests = [];
+  currentNoteId = null;
 }

@@ -107,6 +107,7 @@ pub struct NodeManifest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HeightCacheEntry {
+    pub note_id: String,
     pub node_id: String,
     pub height: f64,
     pub source: String,
@@ -216,6 +217,7 @@ pub async fn get_height_cache(
 
         let rows = stmt.query_map(rusqlite::params![note_id], |row| {
             Ok(HeightCacheEntry {
+                note_id: note_id.clone(),
                 node_id: row.get(0)?,
                 height: row.get(1)?,
                 source: row.get(2)?,
@@ -241,9 +243,9 @@ pub async fn update_height_cache(
         let tx = conn.transaction()?;
         {
             let mut stmt = tx.prepare(
-                "INSERT INTO height_cache (node_id, height, source, timestamp)
-                 VALUES (?1, ?2, ?3, ?4)
-                 ON CONFLICT(node_id) DO UPDATE SET
+                "INSERT INTO height_cache (note_id, node_id, height, source, timestamp)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT(note_id, node_id) DO UPDATE SET
                  height = excluded.height,
                  source = excluded.source,
                  timestamp = excluded.timestamp
@@ -252,6 +254,7 @@ pub async fn update_height_cache(
 
             for entry in entries {
                 stmt.execute(rusqlite::params![
+                    entry.note_id,
                     entry.node_id,
                     entry.height,
                     entry.source,

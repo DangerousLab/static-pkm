@@ -78,9 +78,10 @@ export function updateConfig(partial: Partial<LayoutOracleConfig>): void {
  *
  * @param manifests The array of blocks parsed by the Rust backend.
  * @param containerWidth The available horizontal space for text wrapping.
+ * @param noteId The ID of the document being measured.
  * @returns A Map of nodeId to pixel height.
  */
-export function computeAll(manifests: NodeManifest[], containerWidth: number): Map<string, number> {
+export function computeAll(manifests: NodeManifest[], containerWidth: number, noteId: string): Map<string, number> {
   if (!ctx) {
     console.warn('[WARN] [LayoutOracle] Canvas context not initialized. Falling back to default block height.');
     const fallbackMap = new Map<string, number>();
@@ -95,11 +96,9 @@ export function computeAll(manifests: NodeManifest[], containerWidth: number): M
   const now = Date.now();
 
   for (const manifest of manifests) {
+    // Height cache is document-aware (primary key is nodeId, but we should clear it on note switch)
     const existing = heightCache.get(manifest.nodeId);
     
-    // If we already have a DOM-measured height, DO NOT overwrite it with an estimate.
-    // Exception: If the width changed drastically, text might reflow, so we'd invalidate
-    // text blocks in `invalidateOracle`, but for now, trust the DOM.
     if (existing && existing.source === 'dom') {
       result.set(manifest.nodeId, existing.height);
       continue;
@@ -109,6 +108,7 @@ export function computeAll(manifests: NodeManifest[], containerWidth: number): M
     const height = measureNode(manifest, oracleConfig, textWrapWidth, ctx);
     
     heightCache.set(manifest.nodeId, {
+      noteId,
       nodeId: manifest.nodeId,
       height,
       source: 'estimated',
@@ -129,12 +129,24 @@ export function getHeight(nodeId: string): number | undefined {
 }
 
 /**
+ * Clear the in-memory cache when switching notes.
+ */
+export function clearOracleCache(): void {
+  heightCache.clear();
+  pendingDomCorrections = [];
+  if (flushTimeoutId) {
+    window.clearTimeout(flushTimeoutId);
+    flushTimeoutId = null;
+  }
+}
+
+/**
  * Called by TipTap NodeViews (via ResizeObserver) when the actual painted DOM 
  * height differs from the Oracle's estimate.
  * 
  * Updates the in-memory cache and schedules a batched IPC write to SQLite.
  */
-export function applyDomCorrection(nodeId: string, height: number): void {
+export function applyDomCorrection(noteId: string, nodeId: string, height: number): void {
   const current = heightCache.get(nodeId);
   
   // If the height is practically identical, don't thrash the cache
@@ -143,6 +155,7 @@ export function applyDomCorrection(nodeId: string, height: number): void {
   }
 
   const entry: HeightCacheEntry = {
+    noteId,
     nodeId,
     height,
     source: 'dom',
@@ -163,17 +176,9 @@ export function applyDomCorrection(nodeId: string, height: number): void {
  * must be re-estimated because they will reflow.
  */
 export function invalidateOracle(): void {
-  // We don't wipe the cache completely, we selectively downgrade 'dom' entries
-  // to 'estimated' (or remove them) so they are recalculated on the next computeAll.
-  // In a more complex implementation, we'd only invalidate text-heavy nodes.
-  
-  for (const [nodeId, entry] of Array.from(heightCache.entries())) {
-    // Keep image heights as they scale predictably with width
-    if (entry.source === 'dom') {
-      // Very naive heuristic: if it's DOM, downgrade it to force re-calc.
-      // A more robust system would check the manifest type here.
-      heightCache.delete(nodeId); 
-    }
+  for (const nodeId of Array.from(heightCache.keys())) {
+    // Naive: remove all to force re-calc.
+    heightCache.delete(nodeId); 
   }
 }
 

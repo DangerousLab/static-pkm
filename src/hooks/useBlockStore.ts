@@ -12,7 +12,7 @@ import { openDocument, closeDocument } from '@core/ipc/blockstore';
 import type { DocumentHandle, BlockMeta } from '@/types/blockstore';
 import type { NodeManifest, HeightCacheEntry } from '@/types/layout';
 import { computeAll, applyDomCorrection, initLayoutOracle } from '@core/layout/layoutOracle';
-import { setCurrentManifests, clearCurrentManifests } from '@core/layout/oracleCoordinator';
+import { setCurrentNoteContext, clearCurrentManifests } from '@core/layout/oracleCoordinator';
 import { getCachedGeometry } from '@hooks/useLayoutEngine';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauriContext } from '@core/ipc/commands';
@@ -73,17 +73,17 @@ export function useBlockStore(absolutePath: string | null): UseBlockStoreResult 
 
           // 2. Convert to manifests and store in coordinator
           const manifests = handle.blocks.map(b => blockMetaToManifest(b));
-          setCurrentManifests(manifests);
+          setCurrentNoteContext(handle.docId, manifests);
 
           // 3. Compute base heights with Oracle
-          const heightMap = computeAll(manifests, containerWidth);
+          const heightMap = computeAll(manifests, containerWidth, handle.docId);
 
           // 4. Try loading cached DOM corrections from SQLite
           if (isTauriContext()) {
             try {
               const cached = await invoke<HeightCacheEntry[]>('get_height_cache', { noteId: handle.docId });
               for (const entry of cached) {
-                applyDomCorrection(entry.nodeId, entry.height);
+                applyDomCorrection(handle.docId, entry.nodeId, entry.height);
                 heightMap.set(entry.nodeId, entry.height);
               }
             } catch (e) {
